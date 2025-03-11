@@ -1,0 +1,13 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+build/
+*.db
+*.db-shm
+*.db-wal
+*.zip
+fixture/
