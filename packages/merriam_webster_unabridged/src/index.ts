@@ -2,8 +2,11 @@ import { Dictionary, DictionaryIndex, TermEntry } from "yomichan-dict-builder";
 import * as cheerio from "cheerio";
 import { queryWordRow, db } from "./db";
 import * as path from "path";
+import { Command } from "commander";
 
-async function constructor_dict() {
+async function constructor_dict(options: ProgramOptions) {
+  const { limit } = options
+
   const index = new DictionaryIndex()
     .setTitle("Merriam Webster Unabridged")
     .setRevision("1.0")
@@ -19,7 +22,7 @@ async function constructor_dict() {
 
   await dictionary.setIndex(index);
 
-  const words = queryWordRow(db);
+  const words = queryWordRow(db, { limit });
 
   for (const { w, m } of words) {
     // Use each individual word record, not the entire iterator
@@ -49,7 +52,7 @@ type TermEntryData = NonFunctionMembers<TermEntry>;
 ```
  * @param definitionHTML 
  */
-function parseDefinition(definitionHTML: string): TermEntryData[] {
+function parser(definitionHTML: string): TermEntryData[] {
   const $ = cheerio.load(definitionHTML);
   const entries: TermEntryData[] = [];
 
@@ -95,9 +98,32 @@ function parseDefinition(definitionHTML: string): TermEntryData[] {
   return entries;
 }
 
+
+function parserDefinition(definitionHTML: string): TermEntryData[] {
+
+}
+
+interface ProgramOptions {
+  limit?: number;
+}
+
 async function main() {
+  const program = new Command();
+
+  program
+    .option("--limit <number>", "Maximum number of entries to build, default is no limit.", (value) => {
+      const parsed = parseInt(value, 10);
+      if (isNaN(parsed)) {
+        throw new Error('limit must be a number');
+      }
+      return parsed;
+    })
+    .parse(process.argv);
+
+  const { limit } = program.opts<ProgramOptions>();
+  console.log(limit);
   const dirname = import.meta.dirname;
-  const dict = await constructor_dict();
+  const dict = await constructor_dict({ limit });
   console.log(path.resolve(dirname, "../build"));
   const stats = await dict.export(path.resolve(dirname, "../build"));
   console.log(stats);

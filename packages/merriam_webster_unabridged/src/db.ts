@@ -26,6 +26,9 @@ export interface WordRecord {
 }
 
 export interface queryWordOption {
+  /**
+   * Maximum number of rows to query, default is no limit.
+   */
   limit?: number
 }
 
