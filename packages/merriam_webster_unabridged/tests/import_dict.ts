@@ -3,11 +3,21 @@ import { chromium, Page } from "playwright";
 import fs from "fs";
 
 async function main() {
-  console.log(path.resolve(__dirname, "./fixture/yomitan-chrome-playwright"));
-  const dictionaryPath = path.resolve(
-    __dirname,
-    "../build/Merriam Webster Unabridged.zip"
-  );
+  // Get zip path from command line arguments
+  const zipPath = process.argv[2];
+  if (!zipPath) {
+    console.error('Please provide path to dictionary zip file');
+    process.exit(1);
+  }
+
+  // Validate file exists
+  if (!fs.existsSync(zipPath)) {
+    console.error(`File not found: ${zipPath}`);
+    process.exit(1);
+  }
+
+  console.log(`Importing dictionary from: ${zipPath}`);
+  const dictionaryPath = path.resolve(zipPath);
   const userDataDir = "/tmp/test-user-data-dir";
 
   // Empty the user data directory before each run
@@ -37,8 +47,8 @@ async function main() {
   // const pages = browserContext.pages();
   // await Promise.all(pages.map(async (page) => await page.close()));
   //
-  const welcomePage = await browserContext.newPage(); // Open a new page
-  await welcomePage.goto(
+  const page = await browserContext.newPage(); // Open a new page
+  await page.goto(
     welcomePageURL
   );
 
@@ -46,7 +56,7 @@ async function main() {
   await searchPage.goto(searchPageURL + "?query=hello");
 
 
-  // Close the autostarted welcome page.
+  // Close the auto started welcome page.
   function closeWelcomePage(page: Page) {
     const url = page.url();
     if (url === welcomePageURL) {
@@ -61,14 +71,18 @@ async function main() {
       browserContext.removeAllListeners();
     }
   });
-  // Wait for dictionaries panel to be ready
-  // await welcomePage.click('div[data-modal-action="show,dictionaries"]');
 
-  // Find and click import button
-  // await welcomePage.waitForSelector("#dictionary-import-button");
-  // await welcomePage.click("#dictionary-import-button");
+  await Promise.all([
+    setLanguage(page, "en"),
+    importDictionary(page, dictionaryPath),
+  ]);
 
-  await welcomePage.setInputFiles(
+}
+
+main();
+
+async function importDictionary(page: Page, dictionaryPath: string) {
+  await page.setInputFiles(
     "#dictionary-import-file-input",
     dictionaryPath
   );
@@ -80,12 +94,15 @@ async function main() {
   // await page.setInputFiles("#dictionary-import-file-input", dictionaryPath);
 
   // Wait for import to complete
-  await welcomePage.waitForSelector(".dictionary-import-progress", {
+  await page.waitForSelector(".dictionary-import-progress", {
     state: "hidden",
     timeout: 60000,
   });
-
-  // console.log("Dictionary import completed");
 }
 
-main();
+async function setLanguage(page: Page, languageCode: string) {
+  await page.waitForSelector("#language-select", { timeout: 10000 });
+  await page.selectOption("#language-select", languageCode);
+  await page.waitForSelector("#recommended-settings-apply-button", { timeout: 10000 });
+  await page.click("#recommended-settings-apply-button");
+}

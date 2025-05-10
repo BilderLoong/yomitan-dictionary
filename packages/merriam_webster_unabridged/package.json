@@ -5,13 +5,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start:bun": "bun run src/index.ts && bun run tests/improt_dict.ts"
+    "dev:build": "bun run src/index.ts && bun run tests/import_dict.ts",
+    "test:dict": "bun run tests/import_dict.ts \"/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip\"",
+    "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.6.1",
   "dependencies": {
+    "cheerio": "^1.0.0",
     "playwright": "^1.51.0"
   },
   "devDependencies": {
