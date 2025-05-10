@@ -99,7 +99,7 @@ function parser(definitionHTML: string): TermEntryData[] {
 }
 
 
-function parserDefinition(definitionHTML: string): TermEntryData[] {
+function parserDefinition(definitionHTML: string): [] {
 
 }
 
@@ -109,23 +109,26 @@ interface ProgramOptions {
 
 async function main() {
   const program = new Command();
-
   program
     .option("--limit <number>", "Maximum number of entries to build, default is no limit.", (value) => {
       const parsed = parseInt(value, 10);
       if (isNaN(parsed)) {
-        throw new Error('limit must be a number');
+        throw new Error('--limit must be a number');
       }
       return parsed;
     })
     .parse(process.argv);
 
-  const { limit } = program.opts<ProgramOptions>();
+  const options = program.opts<ProgramOptions>();
+  const { limit } = options;
   console.log(limit);
+
+  const dict = await constructor_dict(options);
+
   const dirname = import.meta.dirname;
-  const dict = await constructor_dict({ limit });
   console.log(path.resolve(dirname, "../build"));
   const stats = await dict.export(path.resolve(dirname, "../build"));
+
   console.log(stats);
 }
 

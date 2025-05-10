@@ -6,8 +6,5 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 build/
-*.db
-*.db-shm
-*.db-wal
-*.zip
+assets
 fixture/

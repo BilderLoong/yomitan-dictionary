@@ -2,6 +2,13 @@
 
 This package processes Merriam-Webster Unabridged dictionary data and converts it to Yomitan-compatible dictionary format.
 
+## Origin data
+
+Origin data is download from [Merriam Webster's Unabridged 2024 modified 04.05.2025 (MDX).7z](https://cloud.freemdict.com/index.php/s/pgKcDcbSDTCzXCs/download?path=%2FENGLISH%2FEng-Eng%2FMerriam-Webster%27s%20Dictionaries%2FMerriam-Webster%E2%80%99s%20Unabridged&files=Merriam%20Webster%27s%20Unabridged%202024%20modified%2004.05.2025%20(MDX).7z) which is located at [Merriam-Webster’s Unabridged - ファイル - FreeMdict Cloud](https://cloud.freemdict.com/index.php/s/pgKcDcbSDTCzXCs?path=%2FENGLISH%2FEng-Eng%2FMerriam-Webster%27s%20Dictionaries%2FMerriam-Webster%E2%80%99s%20Unabridged).
+The MDX files are then processed to a sqlite database format for easier access and manipulation by using [ilius/pyglossary: A tool for converting dictionary files aka glossaries. Mainly to help use our offline glossaries in any Open Source dictionary we like on any modern operating system / device.](https://github.com/ilius/pyglossary).
+
+If the golden dict can't load downloaded MDX dictionary make sure the current user has write and read permissions for those files.
+
 ## Features
 
 - Parses MDX dictionary HTML content into structured format
