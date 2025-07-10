@@ -1,11 +1,11 @@
 import { Dictionary, DictionaryIndex, TermEntry } from "yomichan-dict-builder";
-import * as cheerio from "cheerio";
-import { queryWordRow, db } from "./db";
+import { queryWordRows, db } from "./db";
 import * as path from "path";
 import { Command } from "commander";
+import { parseDefinition, parser } from "./parser";
 
 async function constructor_dict(options: ProgramOptions) {
-  const { limit } = options
+  const { limit } = options;
 
   const index = new DictionaryIndex()
     .setTitle("Merriam Webster Unabridged")
@@ -22,15 +22,71 @@ async function constructor_dict(options: ProgramOptions) {
 
   await dictionary.setIndex(index);
 
-  const words = queryWordRow(db, { limit });
+  const words = queryWordRows(db, { limit });
 
   for (const { w, m } of words) {
     // Use each individual word record, not the entire iterator
-    const entry = new TermEntry(decodeURIComponent(w))
-      .addDetailedDefinition(m)
-      .setReading("")
-      .build();
-    await dictionary.addTerm(entry);
+    const res = parser(m);
+
+    if (typeof res === "object" && "error" in res) {
+      console.error(`Got error when parsing ${w}: ${res.error}.`);
+      continue;
+    }
+
+    res.forEach((r) => {
+      const entry = new TermEntry(decodeURIComponent(w));
+
+      const {
+        definitionTags,
+        deinflectors,
+        detailedDefinitions,
+        popularity,
+        reading,
+        sequenceNumber,
+        term,
+        termTags,
+      } = r;
+
+      // TODO Review this.
+      detailedDefinitions.forEach((d) => {
+        entry.addDetailedDefinition(d);
+      });
+
+      /**
+       * According to https://github.com/yomidevs/yomitan/blob/edd39aac504336a5616b0e018137431e2f015f52/ext/data/schemas/dictionary-term-bank-v3-schema.json#L415
+       * `reading` must be a string.
+       */
+      entry.setReading(reading ?? "");
+
+      if (definitionTags) {
+        entry.setDefinitionTags(definitionTags);
+      }
+
+      if (deinflectors) {
+        entry.setDeinflectors(deinflectors);
+      }
+      if (popularity) {
+        entry.setPopularity(popularity);
+      }
+
+      if (definitionTags) {
+        entry.setDefinitionTags(definitionTags);
+      }
+
+      if (sequenceNumber) {
+        entry.setSequenceNumber(sequenceNumber);
+      }
+
+      if (termTags) {
+        entry.setTermTags(termTags);
+      }
+
+      if (popularity) {
+        entry.setPopularity(popularity);
+      }
+
+      dictionary.addTerm(entry.build());
+    });
   }
 
   return dictionary;
@@ -42,66 +98,7 @@ type NonFunctionMembers<T> = {
 };
 
 // Usage with TermEntry
-type TermEntryData = NonFunctionMembers<TermEntry>;
-
-/**
- * Parse the definition HTML into a TermEntryData
-
- * ```html
- * <link rel="stylesheet" href="mwu2024.css"><script type="text/javascript" src="mwu2024.js"></script><mwu><div class="search-toolbar"> <div class="also-found-in">	<div class="tabs">	 	<a class="selected" href="bword://bug">Unabridged Dictionary</a>	 	<a class="unselected" href="bword://collegiate_bug">Collegiate Dictionary</a>	 	<a class="unselected" href="bword://thesaurus_bug">Collegiate Thesaurus</a>	 	<a class="unselected" href="bword://medical_bug">Medical Dictionary</a>	</div></div></div><mean show="0"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>1</sup> bug</h1>  <span class="fl">noun</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="row headword-row"> <div class="col"> <span class="vg-ins"> <em>inflected form(s): </em> <span class="il plural"> plural </span><span class="ix">-s</span> </span> </div> </div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg">  <div class="sls"> <span class="sl">obsolete </span> </div>  <div class="sb no-sn"> <span class="sb-0"> <div class="sense no-subnum"> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://bogey" class="mw_t_sx"><span class="text-uppercase">bogey</span></a>, <a href="bword://bugbear" class="mw_t_sx"><span class="text-uppercase">bugbear</span></a></span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p><span class="et">Middle English <em class="mw_t_it">bugge</em> scarecrow; akin to German dialect <em class="mw_t_it">bögge</em> piece of dried nasal mucus, hobgoblin, Norwegian dialect <em class="mw_t_it">bugge</em> important man — more at <a href="bword://boast" class="mw_t_mat">boast</a></span></p> <p>First Known Use: 14th century </p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="1"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>2</sup> bug</h1>  <span class="fl">noun</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="row headword-row"> <div class="col"> <span class="vg-ins"> <em>inflected form(s): </em> <span class="il plural"> plural </span><span class="ix">-s</span> </span> </div> </div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg"> <div class="sb has-num has-let has-subnum"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-1 a"><span class="num">1</span><span class="letter">a</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>an insect or other creeping or crawling invertebrate (as a spider or small crustacean) <span class="uns"><span class="un"><span class="mdash">—</span><span class="unText">not used technically</span></span></span></span> </div> </span> <span class="sb-1"> <div class="pseq no-subnum"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>any of certain insects commonly considered especially obnoxious: such as</span> </div> <div class="sense has-sn has-subnum"> <span class="sn sense-(1)"><span class="sub-num">(1)</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://bedbug" class="mw_t_sx"><span class="text-uppercase">bedbug</span></a></span> </div> <div class="sense has-sn has-subnum"> <span class="sn sense-(2)"><span class="sub-num">(2)</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://cockroach" class="mw_t_sx"><span class="text-uppercase">cockroach</span></a></span> </div> <div class="sense has-sn has-subnum"> <span class="sn sense-(3)"><span class="sub-num">(3)</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://head louse" class="mw_t_sx"><span class="text-uppercase">head louse</span></a></span> </div> </div> </span> <span class="sb-2"> <div class="sense has-sn"> <span class="sn sense-c"><span class="letter">c</span></span> <span class="dt hasSdSense"><strong class="mw_t_bc">: </strong>an insect of the order Hemiptera</span> <span class="sdsense"> <span class="sd">especially</span> <strong class="mw_t_bc">: </strong>a member of the suborder Heteroptera </span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-2"><span class="num">2</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>an unexpected defect, fault, flaw, or imperfection (as in a plan, a mechanism, or a piece of legislation) <span class="uns"><span class="un"><span class="mdash">—</span><span class="unText">used especially of such items as are regarded as capable of alteration or ready improvement<span class="vis"> <span class="vi"><span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ there are still some <span class="mw_t_wi">bugs</span> to iron out but the new motor will do the job</span></span></span></span></span> <span class="dx-jump"> — compare <a href="bword://joker" class="mw_t_dxt"><span class="text-uppercase">joker</span></a></span></span> </span></span></div> </span> </div> <div class="sb has-num has-let"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-3 a"><span class="num">3</span><span class="letter">a</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a microorganism (such as a bacterium or virus) especially when causing illness or disease <span class="ex-sent-group"> <span class="ex-sent first-child t has-aq sents sents-block">→ <span class="mw_t_sp"><em class="mw_t_it">Enterococcus faecium</em>, an especially nasty <span class="mw_t_wi">bug</span>, often shrugs off even vancomycin, a last-resort antibiotic.</span></span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Avery Comarow</span>, <span class="source"><em class="mw_t_it">U.S. News &amp; World Report</em></span>, <span class="aqdate">4 Oct. 1999</span></span></span></span><span class="ex-sent-group"> <span class="ex-sent t has-aq sents sents-block">→ They isolated the 250-million-year-old <span class="mw_t_wi">bug</span>, the oldest bacterium ever found by at least 200 million years …</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Diane Martindale</span>, <span class="source"><em class="mw_t_it">Scientific American</em></span>, <span class="aqdate">January 2001</span></span></span></span></span> </div> </span> <span class="sb-1"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>an often unspecified or nonspecific sickness presumed to be caused by such a microorganism <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ a stomach <span class="mw_t_wi">bug</span></span></span><span class="ex-sent-group"> <span class="ex-sent t no-aq sents sents-block">→ suffering from the flu <span class="mw_t_wi">bug</span></span></span><span class="ex-sent-group"> <span class="ex-sent t has-aq sents sents-block">→ The moment you wake up, you know this is no ordinary cold <span class="mw_t_wi">bug</span>. Your muscles and joints ache so badly you don't feel like getting out of bed.</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Jim DeBrosse</span>, <span class="source"><em class="mw_t_it">Dayton (Ohio) Daily News</em></span>, <span class="aqdate">21 Nov. 1995</span></span></span></span></span> </div> </span> </div> <div class="sb has-num has-let"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-4 a"><span class="num">4</span><span class="letter">a</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://fad" class="mw_t_sx"><span class="text-uppercase">fad</span></a>, <a href="bword://craze" class="mw_t_sx"><span class="text-uppercase">craze</span></a>, <a href="bword://hobby" class="mw_t_sx"><span class="text-uppercase">hobby</span></a> <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ bitten by the miniature-golf <span class="mw_t_wi">bug</span></span></span><span class="ex-sent-group"> <span class="ex-sent t no-aq sents sents-block">→ got the trailer <span class="mw_t_wi">bug</span> on a vacation trip</span></span></span> </div> </span> <span class="sb-1"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>enthusiasm, concern, or deep interest especially in respect to some particular matter or objective <span class="ex-sent-group"> <span class="ex-sent first-child t has-aq sents sents-block">→ I have rather a <span class="mw_t_wi">bug</span> about learning in class</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Jean Nison</span></span></span></span></span> </div> </span> <span class="sb-2"> <div class="sense has-sn"> <span class="sn sense-c"><span class="letter">c</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a person notably concerned with, enthusiastic about, or efficient at a specified interest or activity <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ he's a <span class="mw_t_wi">bug</span> on proper training of young shooters</span></span><span class="ex-sent-group"> <span class="ex-sent t has-aq sents sents-block">→ she was a <span class="mw_t_wi">bug</span> at languages</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="source"> — <em class="mw_t_it">Newsweek</em></span></span></span></span><span class="ex-sent-group"> <span class="ex-sent t no-aq sents sents-block">→ a perfect <span class="mw_t_wi">bug</span> for detail</span></span></span> </div> </span> <span class="sb-3"> <div class="sense has-sn"> <span class="sn sense-d"><span class="letter">d</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://hobbyist" class="mw_t_sx"><span class="text-uppercase">hobbyist</span></a> <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ camera <span class="mw_t_wi">bugs</span></span></span><span class="ex-sent-group"> <span class="ex-sent t no-aq sents sents-block">→ ski <span class="mw_t_wi">bugs</span></span></span></span> </div> </span> <span class="sb-4"> <div class="sense has-sn"> <span class="sn sense-e"><span class="letter">e</span></span> <span class="dt hasSdSense"><strong class="mw_t_bc">: </strong>a crazy person</span> <span class="sdsense"> <span class="sd">especially</span> <strong class="mw_t_bc">: </strong><a href="bword://firebug" class="mw_t_sx"><span class="text-uppercase">firebug</span></a> </span> </div> </span> </div> <div class="sb has-num has-let"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-5 a"><span class="num">5</span><span class="letter">a</span></span> <span class="sl">archaic </span>  <span class="dt "><strong class="mw_t_bc">: </strong>a vain or self-important person</span> </div> </span> <span class="sb-1"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a person of prominence or high social standing <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ we'll have all the <span class="mw_t_wi">bugs</span> to lunch</span></span> <span class="dx-jump"> — see <a href="bword://big bug" class="mw_t_dxt"><span class="text-uppercase">big bug</span></a></span></span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-6"><span class="num">6</span></span> <span class="sl">poker </span>  <span class="dt "><strong class="mw_t_bc">: </strong>the joker when considered wild only for the purpose of filling straights or flushes or of acting as an ace</span> </div> </span> </div> <div class="sb has-num has-let"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-7 a"><span class="num">7</span><span class="letter">a</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>an alarm system (as a burglar alarm)</span> </div> </span> <span class="sb-1"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a concealed microphone</span> </div> </span> <span class="sb-2"> <div class="sense has-sn"> <span class="sn sense-c"><span class="letter">c</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a device for wiretapping</span> </div> </span> <span class="sb-3"> <div class="sense has-sn"> <span class="sn sense-d"><span class="letter">d</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a high-speed telegrapher's key that makes repeated dots or dashes automatically and saves motion of the operator's hand</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-8"><span class="num">8</span></span>  <span class="et">[so called from its designation by an asterisk on race programs]</span> <span class="dt "><strong class="mw_t_bc">: </strong>the weight allowance given apprentice jockeys</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-9"><span class="num">9</span></span> <span class="sl">slang </span>  <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://numbers game" class="mw_t_sx"><span class="text-uppercase">numbers game</span></a></span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-10"><span class="num">10</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a light usually two-seater stripped-down automobile</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-11"><span class="num">11</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a fishing plug felt to resemble a large insect</span> </div> </span> </div> </div> </div> <div class="dro"> <div class="uro"> <span class="ure">bug·like</span> <span class="first-slash">\</span> <span class="prt-a"> <span class="mw">ˈbəg-​ˌlīk </span> </span> <span class="last-slash">\</span> <span class="vr"><span class="vl"> or </span><span id="bug-like-anchor" class="va">bug–like</span></span> <span class="fl">adjective</span> <div class="utxt"> <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block"> → a <span class="mw_t_wi">buglike</span> appearance </span> </span> <span class="ex-sent-group"> <span class="ex-sent t no-aq sents sents-block"> → a <span class="mw_t_wi">bug-like</span> creature </span> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p><span class="et">origin unknown</span></p> <p>First Known Use: 1622 (sense 1b)</p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="2"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>3</sup> bug</h1>  <span class="fl">verb</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="row headword-row"> <div class="col"> <span class="vg-ins"> <span class="if">bugged</span><span class="sep-semicolon">; </span><span class="if">bug·ging</span><span class="sep-semicolon">; </span><span class="if">bugs</span> </span> </div> </div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg">  <p class="vd firstVd"><em>transitive verb</em></p> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-1"><span class="num">1</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>to rid (as plants) of insects <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ we'll have to <span class="mw_t_wi">bug</span> the potatoes again next week</span></span></span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-2"><span class="num">2</span></span> <span class="dt hasSdSense"><strong class="mw_t_bc">: </strong><a href="bword://bother" class="mw_t_sx"><span class="text-uppercase">bother</span></a>, <a href="bword://annoy" class="mw_t_sx"><span class="text-uppercase">annoy</span></a>, <a href="bword://irritate" class="mw_t_sx"><span class="text-uppercase">irritate</span></a></span> <span class="sdsense"> <span class="sd">sometimes</span> <strong class="mw_t_bc">: </strong>to drive (a person) crazy </span> </div> </span> </div> <div class="sb has-num has-let"> <span class="sb-0"> <div class="sense has-sn"> <span class="sn sense-3 a"><span class="num">3</span><span class="letter">a</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>to equip with a burglar alarm</span> </div> </span> <span class="sb-1"> <div class="sense has-sn"> <span class="sn sense-b"><span class="letter">b</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>to plant a concealed microphone in <strong class="mw_t_bc">: </strong><a href="bword://wiretap" class="mw_t_sx"><span class="text-uppercase">wiretap</span></a> <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ <span class="mw_t_sp"><span class="mw_t_wi">bug</span> a meeting</span></span></span></span> </div> </span> </div> </div> <div class="vg">  <p class="vd"><em>intransitive verb</em></p> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-1"><span class="num">1</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>to hunt for or collect bugs</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-2"><span class="num">2</span></span> <span class="sl">informal </span>  <span class="dt "><strong class="mw_t_bc">: </strong>to lose one's composure <strong class="mw_t_bc">: </strong><a href="bword://freak" class="mw_t_sx"><span class="text-uppercase">freak</span></a> <span class="ex-sent-group"> <span class="ex-sent first-child t has-aq sents sents-block">→ Margy introduced the man to crack, and like many first-time users, she says, "he began to <span class="mw_t_wi">bug</span>, to get afraid."</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Andi Rierden</span>, <span class="source"><em class="mw_t_it">The Farm</em></span>, <span class="aqdate">1997</span></span></span></span><span class="uns"><span class="un"><span class="mdash">—</span><span class="unText">usually + <em class="mw_t_it">out</em></span></span></span><span class="ex-sent-group"> <span class="ex-sent first-child t has-aq sents sents-block">→ … a $50 billion a year industry that gets the average couple to spend about $20,000, creating enough pressure to make even the mellowest bride-to-be <span class="mw_t_wi">bug out</span>.</span><span class="ex-sent aq has-aq sents"><span class="aq"><span class="auth"> — Erinn Bucklan</span>, <span class="source"><em class="mw_t_it">Cosmopolitan</em></span>, <span class="aqdate">June 2004</span></span></span></span></span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p>First Known Use: 1869 (transitive sense 1)</p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="3"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>4</sup> bug</h1>  <span class="fl">noun</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="row headword-row"> <div class="col"> <span class="entry-attr vrs"> <span class="vr"><span class="vl"> or less commonly </span><span id="bug-light-anchor" class="va">bug light</span></span></span> </div> </div> <div class="row headword-row"> <div class="col"> <span class="vg-ins"> <em>inflected form(s): </em> <span class="il plural"> plural </span><span class="ix">-s</span> </span> </div> </div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg"> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-1"><span class="num">1</span></span> <span class="dt "><strong class="mw_t_bc">: </strong>a small channel or harbor light with intermittent flash</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-2"><span class="num">2</span></span> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://flashlight" class="mw_t_sx"><span class="text-uppercase">flashlight</span></a> <span class="text-lowercase">b</span></span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p><span class="et">probably from (<em class="mw_t_it">lightning</em>) <em class="mw_t_it">bug</em></span></p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="4"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>5</sup> bug</h1>  <span class="fl">adjective</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a><span class="addPunct">, </span><span class="pr"> ˈbu̇g</span> <span class="last-slash">\</span> </span> </div></div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg">  <div class="sls"> <span class="sl">dialectal, England </span> </div>  <div class="sb no-sn"> <span class="sb-0"> <div class="sense no-subnum"> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://conceited" class="mw_t_sx"><span class="text-uppercase">conceited</span></a>, <a href="bword://stuck-up" class="mw_t_sx"><span class="text-uppercase">stuck-up</span></a></span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p><span class="et">perhaps of Scandinavian origin; akin to Norwegian <em class="mw_t_it">bugge</em> important man</span></p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="5"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> <sup>6</sup> bug</h1>  <span class="fl">verb</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbəg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://b/bug00001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="row headword-row"> <div class="col"> <span class="vg-ins"> <span class="if">bugged</span><span class="sep-semicolon">; </span><span class="if">bugged</span><span class="sep-semicolon">; </span><span class="if">bug·ging</span><span class="sep-semicolon">; </span><span class="if">bugs</span> </span> </div> </div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg">  <p class="vd firstVd"><em>intransitive verb</em></p> <div class="sb no-sn"> <span class="sb-0"> <div class="sense no-subnum"> <span class="sl">of the eyes </span>  <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://protrude" class="mw_t_sx"><span class="text-uppercase">protrude</span></a>, <a href="bword://bulge" class="mw_t_sx"><span class="text-uppercase">bulge</span></a> <span class="uns"><span class="un"><span class="mdash">—</span><span class="unText">often used with <em class="mw_t_it">out</em></span></span></span></span> </div> </span> </div> </div> <div class="vg">  <p class="vd"><em>transitive verb</em></p> <div class="sb no-sn"> <span class="sb-0"> <div class="sense no-subnum"> <span class="dt "><strong class="mw_t_bc">: </strong><a href="bword://bulge" class="mw_t_sx"><span class="text-uppercase">bulge</span></a>, <a href="bword://protrude" class="mw_t_sx"><span class="text-uppercase">protrude</span></a> <span class="ex-sent-group"> <span class="ex-sent first-child t no-aq sents sents-block">→ his eyes were <em class="mw_t_it">bugged</em> with horror</span></span></span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> <div class="section custom-accordion" data-id="origin"> <h2 class="toggle"><span class="text">Origin of BUG</span><span class="toggle-icon">[+]</span></h2> <div class="section-content etymology"> <div class="sub-well"> <p><span class="et">probably alteration (influenced by <a href="bword://bug[1]" class="mw_t_et_link"><sup>1</sup>bug</a>) of <em class="mw_t_it">bulge</em></span></p> <p>First Known Use: 1865 (intransitive sense)</p> </div> </div></div> </div> </div> </div> </div></div> </div></mean><mean show="6"><div class="page-content">  <div class="well content-body definition-body"><div class="wordclick" data-word-click="enabled"> <div class="left-content col-xl-12"> <div class="row entry-header"> <div class="col-12"> <h1 class="hword"> Bug</h1>  <span class="fl">geographical name</span> <span class="prs"> <span class="first-slash">\</span><span class="pr"> ˈbüg</span> <a class="play-pron hw-play-pron" data-lang="en_us" href="sound://gg/ggbug001.mp3"><span class="audio-icon"></span></a> <span class="last-slash">\</span> </span> </div></div> <div class="section" data-id="definition"> <div class="def-wrapper"> <div class="vg"> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-1"><span class="num">1</span></span> <span class="dt ">river over 450 miles (720 kilometers) long in central Europe rising in western Ukraine, forming part of Ukraine–Poland and Poland–Belarus borders, and flowing into the Vistula River in Poland</span> </div> </span> </div> <div class="sb has-num"> <span class="sb-0"> <div class="sense has-num-only"> <span class="sn sense-2"><span class="num">2</span></span> <span class="dt ">river over 500 miles (805 kilometers) long in southwestern Ukraine flowing southeast to the <a href="bword://estuary" class="mw_t_d_link">estuary</a> of the Dnieper River</span> </div> </span> </div> </div> </div> <div class="def-accordion-sections"> </div> </div> </div> </div></div> </div></mean></mwu>
-```
- * @param definitionHTML 
- */
-function parser(definitionHTML: string): TermEntryData[] {
-  const $ = cheerio.load(definitionHTML);
-  const entries: TermEntryData[] = [];
-
-  $("mean").each((_, element) => {
-    const $element = $(element);
-
-    // Find the headword (term) and its superscript number if present
-    const headword = $element.find(".hword").text().trim();
-    const superscript = $element.find(".hword sup").text().trim() || "";
-
-    // Find part of speech
-    const partOfSpeech = $element.find(".fl").text().trim();
-
-    // Find pronunciation
-    const pronunciation = $element.find(".pr").text().trim();
-
-    // Find definitions
-    const definitions: string[] = [];
-    $element.find(".dt").each((_, defEl) => {
-      const definition = $(defEl)
-        .text()
-        .trim()
-        .replace(/^\s*:\s*/, "") // Remove leading colon
-        .replace(/\s+/g, " "); // Normalize whitespace
-
-      if (definition) {
-        definitions.push(definition);
-      }
-    });
-
-    entries.push({
-      term: headword || "Unknown term",
-      reading: pronunciation || undefined,
-      definitionTags: partOfSpeech || undefined,
-      deinflectors: undefined,
-      popularity: undefined,
-      detailedDefinitions: definitions,
-      sequenceNumber: superscript ? parseInt(superscript, 10) : undefined,
-      termTags: undefined,
-    });
-  });
-
-  return entries;
-}
-
-
-function parserDefinition(definitionHTML: string): [] {
-
-}
+export type TermEntryData = NonFunctionMembers<TermEntry>;
 
 interface ProgramOptions {
   limit?: number;
@@ -110,13 +107,17 @@ interface ProgramOptions {
 async function main() {
   const program = new Command();
   program
-    .option("--limit <number>", "Maximum number of entries to build, default is no limit.", (value) => {
-      const parsed = parseInt(value, 10);
-      if (isNaN(parsed)) {
-        throw new Error('--limit must be a number');
+    .option(
+      "--limit <number>",
+      "Maximum number of entries to build, default is no limit.",
+      (value) => {
+        const parsed = parseInt(value, 10);
+        if (isNaN(parsed)) {
+          throw new Error("--limit must be a number");
+        }
+        return parsed;
       }
-      return parsed;
-    })
+    )
     .parse(process.argv);
 
   const options = program.opts<ProgramOptions>();

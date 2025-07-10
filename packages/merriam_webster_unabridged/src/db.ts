@@ -29,13 +29,43 @@ export interface queryWordOption {
   /**
    * Maximum number of rows to query, default is no limit.
    */
-  limit?: number
+  limit?: number;
 }
 
-export function queryWordRow(db: Database, options: queryWordOption = {}): IterableIterator<WordRecord> {
+export function queryWordRows(
+  db: Database,
+  options: queryWordOption = {}
+): IterableIterator<WordRecord> {
   const { limit } = options;
   const limitString = limit !== undefined ? ` LIMIT ${limit}` : "";
-  console.log(`SELECT * FROM word where w not like 'collegiate_%' AND w not like 'medical_%' AND w not like 'thesaurus_%'` + limitString);
+  console.log(
+    `SELECT * FROM word where w not like 'collegiate_%' AND w not like 'medical_%' AND w not like 'thesaurus_%'` +
+      limitString
+  );
   // Explicitly type the return value
-  return db.prepare<WordRecord, []>(`SELECT * FROM word where w not like 'collegiate_%' AND w not like 'medical_%' AND w not like 'thesaurus_%'` + limitString).iterate();
+  return db
+    .prepare<WordRecord, []>(
+      `SELECT * FROM word where w not like 'collegiate_%' AND w not like 'medical_%' AND w not like 'thesaurus_%'` +
+        limitString
+    )
+    .iterate();
+}
+
+/**
+ * 
+ * @param words words to query
+ * @param db database
+ * @returns word records
+ */
+export function queryGivenWordRows(
+  words: string[],
+  db: Database
+): WordRecord[] {
+  if (words.length === 0) {
+    return [];
+  }
+  const placeholders = words.map(() => '?').join(',');
+  const query = `SELECT * FROM word WHERE w IN (${placeholders})`;
+  const stmt = db.prepare<WordRecord, string[]>(query);
+  return stmt.all(...words);
 }
