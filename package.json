@@ -15,7 +15,7 @@
     "commander": "^13.1.0",
     "archiver": "^7.0.1",
     "eslint": "^9.22.0",
-    "yomichan-dict-builder": "^2.9.2"
+    "yomichan-dict-builder": "^2.10.0"
   },
   "devDependencies": {
     "@types/bun": "^1.2.5"

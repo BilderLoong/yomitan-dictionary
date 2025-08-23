@@ -5,9 +5,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev:build": "bun run src/index.ts --limit 10000",
+    "dev:build": "bun run src/index.ts --limit 5000 --additional-words-list-file tests/testWords.txt",
     "test:dict": "bun run tests/import_dict.ts \"/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip\"",
-    "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\""
+    "debug:unittest": "bun test --inspect-wait=/vscode",
+    "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && npx prettier -w --ignore-path=../../.gitignore \"build/Merriam Webster Unabridged\" *.json"
   },
   "keywords": [],
   "author": "",
@@ -15,10 +16,11 @@
   "packageManager": "pnpm@10.6.1",
   "dependencies": {
     "cheerio": "^1.0.0",
-    "playwright": "^1.51.0"
+    "playwright": "^1.55.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.0",
-    "@types/node": "^22.13.10"
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.13.10",
+    "domhandler": "^5.0.3"
   }
 }

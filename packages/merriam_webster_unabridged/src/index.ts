@@ -1,11 +1,12 @@
 import { Dictionary, DictionaryIndex, TermEntry } from "yomichan-dict-builder";
-import { queryWordRows, db } from "./db";
+import { queryWordRows, db, queryGivenWordRows, chainIterators } from "./db";
 import * as path from "path";
 import { Command } from "commander";
-import { parseDefinition, parser } from "./parser";
+import { parser } from "./parser";
+import { readFile } from "fs/promises";
 
 async function constructor_dict(options: ProgramOptions) {
-  const { limit } = options;
+  const { limit, additionalWordsListFile } = options;
 
   const index = new DictionaryIndex()
     .setTitle("Merriam Webster Unabridged")
@@ -22,7 +23,37 @@ async function constructor_dict(options: ProgramOptions) {
 
   await dictionary.setIndex(index);
 
-  const words = queryWordRows(db, { limit });
+  // const res = await readFile(additionalWordsListFile, "utf-8").then((givenWords) => {
+  //   return givenWords
+  //     .split("\n")
+  //     .map((w) => w.trim())
+  //     .filter((w) => w.length > 0);
+  // }).catch((error) => {
+  //   console.error(`Error reading additional words file: ${error}`);
+  // });
+
+  const readGivenWords = async () => {
+    if (!additionalWordsListFile) {
+      return [];
+    }
+
+    try {
+      const givenWords = await readFile(additionalWordsListFile, "utf-8");
+      return givenWords
+        .split("\n")
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0);
+    } catch (error) {
+      console.error(`Error reading additional words file: ${error}`);
+    }
+
+    return [];
+  };
+
+  const words = chainIterators(
+    queryWordRows(db, { limit }),
+    queryGivenWordRows(await readGivenWords(), db)
+  );
 
   for (const { w, m } of words) {
     // Use each individual word record, not the entire iterator
@@ -102,6 +133,7 @@ export type TermEntryData = NonFunctionMembers<TermEntry>;
 
 interface ProgramOptions {
   limit?: number;
+  additionalWordsListFile?: string;
 }
 
 async function main() {
@@ -118,11 +150,13 @@ async function main() {
         return parsed;
       }
     )
+    .option(
+      "--additional-words-list-file <string>",
+      "Path to a file containing additional words to include, words should be separated by /n."
+    )
     .parse(process.argv);
 
   const options = program.opts<ProgramOptions>();
-  const { limit } = options;
-  console.log(limit);
 
   const dict = await constructor_dict(options);
 

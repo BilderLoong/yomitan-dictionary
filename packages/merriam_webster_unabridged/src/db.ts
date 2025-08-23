@@ -52,7 +52,7 @@ export function queryWordRows(
 }
 
 /**
- * 
+ *
  * @param words words to query
  * @param db database
  * @returns word records
@@ -60,12 +60,25 @@ export function queryWordRows(
 export function queryGivenWordRows(
   words: string[],
   db: Database
-): WordRecord[] {
+): IterableIterator<WordRecord> {
   if (words.length === 0) {
-    return [];
+    return createEmptyIterator();
   }
-  const placeholders = words.map(() => '?').join(',');
+  const placeholders = words.map(() => "?").join(",");
   const query = `SELECT * FROM word WHERE w IN (${placeholders})`;
   const stmt = db.prepare<WordRecord, string[]>(query);
-  return stmt.all(...words);
+  return stmt.iterate(...words);
+}
+
+export function* chainIterators<T>(
+  ...iterators: IterableIterator<T>[]
+): IterableIterator<T> {
+  for (const iterator of iterators) {
+    yield* iterator;
+  }
+}
+
+function* createEmptyIterator() {
+  // This generator doesn't yield any values, so its iterator is empty.
+  return;
 }
