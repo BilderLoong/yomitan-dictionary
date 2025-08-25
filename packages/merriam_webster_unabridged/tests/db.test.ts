@@ -4,7 +4,7 @@ import { expect, it, describe } from "bun:test";
 import { db, queryGivenWordRows } from "../src/db";
 describe("db test", () => {
   it("should load given word xml", () => {
-    const rows = queryGivenWordRows(["what", "word"], db);
+    const rows = [...queryGivenWordRows(["what", "word"], db)];
 
     expect(rows.length).toBe(2);
 

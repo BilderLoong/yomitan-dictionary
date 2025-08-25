@@ -3,46 +3,85 @@ import { TermEntryData } from ".";
 import type { Element } from "domhandler";
 import { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
-export function parseDefinition($mean: cheerio.Cheerio<Element>): string[][] {
-  // sb -> sb-num -> dt -> uns -> un -> dash & unText -> actual glosses & vis
-  return $mean
-    .find(".sb")
-    .children()
-    .get()
-    .map((sbNum) => {
-      const $sbNumCheerio = cheerio.load(sbNum);
-      return $sbNumCheerio(".dt")
-        .children()
-        .get()
-        .map((dt) => {
-          const $dt = cheerio.load(dt);
-          return $dt.text().trim();
-        });
-    });
+type NestArray<T> = Array<T | NestArray<T>>;
+
+/**
+ * Represents a sense tree structure.
+ */
+interface SenseTree {
+  // The order matters.
+  children: SenseTree[];
+  data: Sense | null;
 }
 
-function buildDefinitionStructuredContent(
-  definitions: string[][]
+/**
+ * A single sense
+ */
+interface Sense {
+  definition: string;
+  examples: string[];
+}
+// Only use this as a wrapper.
+const $ = cheerio.load("");
+
+export function parseDefinition($mean: cheerio.Cheerio<Element>): SenseTree[] {
+  const level1 = $mean
+    .find(".sb")
+    .get()
+    .map((sb) => {
+      const $sb = $(sb);
+      const dts = $sb.find(".dt").get();
+
+      const level2 = dts.map((dt) => parseDtForLevel2($(dt)));
+
+      return { children: level2, data: null };
+    }, [] as SenseTree[]);
+
+  return level1;
+
+  function parseDtForLevel2($dt: cheerio.Cheerio<Element>): SenseTree {
+    const definitionText = getDefinitionTextFromDt($dt);
+
+    const examples = $dt
+      .find(".ex-sent-group")
+      .map((_, ex) => $(ex).text().trim().replace(/^→ /, ""))
+      .get();
+
+    return {
+      children: [],
+      data: {
+        definition: definitionText,
+        examples,
+      },
+    };
+  }
+}
+
+/**
+ * extract and format definition from `.dt`.
+ */
+export function getDefinitionTextFromDt(dt: cheerio.Cheerio<Element>): string {
+  const dtCopy = dt.clone();
+  dtCopy.find(".ex-sent-group").remove();
+
+  const raw = dtCopy.contents().text();
+  return raw.trim().replace(/^: /, "").trim();
+}
+
+function buildDefinitionStructuredContentFromNestedSense(
+  definitions: NestArray<string>
 ): StructuredContent {
   return {
     tag: "div",
     data: {
       content: "definitions",
     },
-    content: definitions.map((def) => ({
-      tag: "ol",
-      data: {
-        content: "definition",
-      },
-      content: def.map((item) => ({
-        tag: "li",
-        data: {
-          content: "gloss",
-        },
-        content: item,
-      })),
-    })),
+    content: createNestStructuredContentListFromNestArray(definitions),
   };
+
+  function createNestStructuredContentListFromNestArray(
+    nestedArray: NestArray<string>
+  ): StructuredContent[] {}
 }
 
 function buildDetailedDefinition(
@@ -57,7 +96,7 @@ function buildDetailedDefinition(
           data: {
             content: "detailed-definition",
           },
-          content: [buildDefinitionStructuredContent(definitions)],
+          content: [],
         },
       ],
     },
