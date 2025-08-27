@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "Bash(bun install)",
+      "Bash(bun test)",
+      "Bash(bun run:*)",
+      "Bash(bun add:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/birudo/Projects/yomitan-dictionary"
+    ]
+  }
+}
