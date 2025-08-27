@@ -12,8 +12,9 @@
   "license": "ISC",
   "packageManager": "pnpm@10.6.1",
   "dependencies": {
-    "commander": "^13.1.0",
     "archiver": "^7.0.1",
+    "cheerio": "^1.0.0",
+    "commander": "^13.1.0",
     "eslint": "^9.22.0",
     "yomichan-dict-builder": "^2.10.0"
   },

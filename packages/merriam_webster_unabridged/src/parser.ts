@@ -24,23 +24,44 @@ interface Sense {
 // Only use this as a wrapper.
 const $ = cheerio.load("");
 
+/**
+ * level 1: sb
+ * level 2: sb-num
+ * level 3: dt
+ */
 export function parseDefinition($mean: cheerio.Cheerio<Element>): SenseTree[] {
   const level1 = $mean
     .find(".sb")
     .get()
     .map((sb) => {
       const $sb = $(sb);
-      const dts = $sb.find(".dt").get();
+      const level2 = $sb
+        .children()
+        .get()
+        .map((sbNum) => {
+          const $sbNum = $(sbNum);
+          const level3 = $sbNum
+            .find(".dt")
+            .get()
+            .map((dt) => parseDtForLevel3($(dt)));
 
-      const level2 = dts.map((dt) => parseDtForLevel2($(dt)));
+          return {
+            children: level3,
+            level: 2,
+            data: {
+              definition: getLevel2DefinitionText($sbNum),
+              examples: [],
+            },
+          };
+        });
 
-      return { children: level2, data: null };
+      return { level: 1, children: level2, data: null };
     }, [] as SenseTree[]);
 
   return level1;
 
-  function parseDtForLevel2($dt: cheerio.Cheerio<Element>): SenseTree {
-    const definitionText = getDefinitionTextFromDt($dt);
+  function parseDtForLevel3($dt: cheerio.Cheerio<Element>): SenseTree {
+    const definitionText = getLevel3DefinitionText($dt);
 
     const examples = $dt
       .find(".ex-sent-group")
@@ -57,15 +78,21 @@ export function parseDefinition($mean: cheerio.Cheerio<Element>): SenseTree[] {
   }
 }
 
+export function getLevel2DefinitionText(
+  $sbNum: cheerio.Cheerio<Element>
+): string {
+  return $sbNum.find(".sen").contents().not(".sn").text().trim();
+}
+
 /**
  * extract and format definition from `.dt`.
  */
-export function getDefinitionTextFromDt(dt: cheerio.Cheerio<Element>): string {
+export function getLevel3DefinitionText(dt: cheerio.Cheerio<Element>): string {
   const dtCopy = dt.clone();
   dtCopy.find(".ex-sent-group").remove();
 
   const raw = dtCopy.contents().text();
-  return raw.trim().replace(/^: /, "").trim();
+  return raw.trim().replace(/^: /, "").replace(/ : /, ": ").trim();
 }
 
 function buildDefinitionStructuredContentFromNestedSense(

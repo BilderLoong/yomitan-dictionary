@@ -11,6 +11,9 @@ importers:
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.1.2
       commander:
         specifier: ^13.1.0
         version: 13.1.0
