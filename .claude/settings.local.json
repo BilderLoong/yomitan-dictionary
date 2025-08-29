@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run tsc --noEmit)",
+      "Bash(bun run src/index.ts --limit 5 --dry-run)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

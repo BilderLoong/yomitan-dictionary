@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Read(//Users/birudo/Projects/yomitan-dictionary/node_modules/.pnpm/yomichan-dict-builder@2.10.0/node_modules/yomichan-dict-builder/**)",
+      "Read(//Users/birudo/Projects/yomitan-dictionary/node_modules/**)"
     ],
     "deny": [],
     "ask": []
