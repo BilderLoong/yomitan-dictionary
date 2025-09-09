@@ -2,13 +2,15 @@ import * as cheerio from "cheerio";
 import { TermEntryData } from ".";
 import type { AnyNode, Element, NodeWithChildren } from "domhandler";
 import { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan/termbank";
+import { text } from "stream/consumers";
+import { pbcopy } from "../tests/utils";
 
 type NestArray<T> = Array<T | NestArray<T>>;
 
 /**
  * Represents a sense tree structure.
  */
-interface SenseNode {
+export interface SenseNode {
   // The order matters.
   children: SenseNode[];
   data: SenseData[] | null;
@@ -17,7 +19,7 @@ interface SenseNode {
 /**
  * A single sense
  */
-interface SenseData {
+export interface SenseData {
   text: string;
   examples: string[];
 }
@@ -46,19 +48,23 @@ export function parseDefinition($mean: cheerio.Cheerio<Element>): SenseNode[] {
             .get()
             .map((sense) => parseSenseForLevel3($(sense)));
 
+          const level2DefinitionText = getLevel2DefinitionText($sbNum);
           return {
             children: level3,
-            data: [
-              {
-                text: getLevel2DefinitionText($sbNum),
-                examples: [],
-              },
-            ],
-          } as SenseNode;
+            data:
+              level2DefinitionText.length > 0
+                ? [
+                    {
+                      text: level2DefinitionText,
+                      examples: [],
+                    },
+                  ]
+                : null,
+          };
         });
 
       return { children: level2, data: null };
-    }, [] as SenseNode[]);
+    }, []);
 
   return level1;
 }
@@ -185,26 +191,101 @@ export function extractOnlyOuterLevelSenseText(
   return raw.trim().replace(/^: /, "").replaceAll(/ *: /g, ": ").trim();
 }
 
-function buildDefinitionStructuredContentFromNestedSense(
-  definitions: NestArray<string>
+/**
+ * TODO
+ * Convert a sense tree to a structured content list.
+ */
+export function senseTree2StructuredContentList(
+  senseTree: SenseNode[]
 ): StructuredContent {
-  return {
-    tag: "div",
-    data: {
-      content: "definitions",
-    },
-    content: createNestStructuredContentListFromNestArray(definitions),
-  };
+  if (senseTree.length === 0) return [];
 
-  function createNestStructuredContentListFromNestArray(
-    nestedArray: NestArray<string>
-  ): StructuredContent[] {
-    return [];
+  return senseTree.map((node) => helper(1, node));
+
+  function helper(
+    level: number,
+    { children, data }: SenseNode
+  ): StructuredContent {
+    const nextLevel: StructuredContent[] = children.map((node) => {
+      const childContent = node.children.map((child) =>
+        helper(level + 1, child)
+      );
+
+      return {
+        tag: "li",
+        data: {
+          // content: "gloss",
+        },
+        content: [
+          ...(node.data?.length
+            ? [senseDatasToStructuredContentList(node.data)]
+            : []),
+          ...childContent,
+        ],
+      };
+    });
+
+    return {
+      tag: "ol",
+      data: {
+        level: String(level),
+      },
+      content: [
+        ...(data?.length ? [senseDatasToStructuredContentList(data)] : []),
+        ...nextLevel,
+      ],
+    };
   }
 }
 
+/** Render deepest level of the list. */
+export function senseDatasToStructuredContentList(
+  senses: SenseData[]
+): StructuredContent {
+  return [
+    {
+      tag: "div",
+      data: {
+        content: "senses",
+      },
+      content: senses.map<StructuredContent>((sense) => {
+        return {
+          tag: "div",
+          data: {
+            content: "sense",
+          },
+          content: [
+            {
+              tag: "div",
+              data: {
+                content: "sense-text",
+              },
+              content: sense.text,
+            },
+            {
+              tag: "div",
+              data: {
+                content: "examples",
+              },
+              content: sense.examples.map((example) => {
+                return {
+                  tag: "div",
+                  data: {
+                    content: "example",
+                  },
+                  content: example,
+                };
+              }),
+            },
+          ],
+        };
+      }),
+    },
+  ];
+}
+
 function buildDetailedDefinition(
-  definitions: string[][]
+  structuredContentList: StructuredContent
 ): TermEntryData["detailedDefinitions"] {
   return [
     {
@@ -215,7 +296,7 @@ function buildDetailedDefinition(
           data: {
             content: "detailed-definition",
           },
-          content: [],
+          content: structuredContentList,
         },
       ],
     },
@@ -260,7 +341,13 @@ export function parser(
       // it's context free wrapper which means
       // what `$` loads doesn't matter.
 
-      const definitions = parseDefinition($mean);
+      const senseTree = parseDefinition($mean);
+      const detailedDefinitions = buildDetailedDefinition(
+        senseTree2StructuredContentList(senseTree)
+      );
+
+      // pbcopy(JSON.stringify(detailedDefinitions, null, 2));
+      // console.log({ detailedDefinitions });
 
       return {
         term: headword || "Unknown term",
@@ -268,7 +355,7 @@ export function parser(
         definitionTags: partOfSpeech || undefined,
         deinflectors: undefined,
         popularity: undefined,
-        detailedDefinitions: [],
+        detailedDefinitions,
         sequenceNumber: superscript ? parseInt(superscript, 10) : undefined,
         termTags: undefined,
       };

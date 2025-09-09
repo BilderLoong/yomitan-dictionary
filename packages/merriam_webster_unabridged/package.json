@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev:build": "bun run src/index.ts --limit 5000 --additional-words-list-file tests/testWords.txt",
+    "dev:build": "bun run src/index.ts --limit 0 --additional-words-list-file tests/testWords.txt",
     "test:dict": "bun run tests/import_dict.ts \"/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip\"",
     "debug:unittest": "bun test --inspect-wait=/vscode",
     "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && npx prettier -w --ignore-path=../../.gitignore \"build/Merriam Webster Unabridged\" *.json"

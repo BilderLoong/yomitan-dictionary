@@ -7,7 +7,7 @@ import { join } from 'path';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import type { DictionaryStructure, DictionaryIndex, TermEntry, TagEntry } from './types.js';
-
+  
 async function parseDictionaryDirectory(directoryPath: string): Promise<DictionaryStructure> {
   const files = await readdir(directoryPath);
   

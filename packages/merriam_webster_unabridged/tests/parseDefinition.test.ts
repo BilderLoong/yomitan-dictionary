@@ -9,6 +9,9 @@ import {
   parseUns,
   extractOuterLevelExamples,
   extractUnText,
+  SenseNode,
+  senseTree2StructuredContentList,
+  senseDatasToStructuredContentList,
 } from "../src/parser";
 import { queryGivenWordRows, db } from "../src/db";
 
@@ -16,6 +19,96 @@ function loadXMLString(words: string[]): string[] {
   const rows = queryGivenWordRows(words, db);
   return [...rows].map((row) => row.m);
 }
+
+describe("useless", () => {
+  const xmlString = loadXMLString(["useless"])[0];
+  const $ = cheerio.load(xmlString);
+  const $means = $("mean");
+
+  describe("parseDefinition", () => {
+    test("should provide correct structure", () => {
+      const res = parseDefinition($means.first());
+
+      expect(res).toBeArrayOfSize(1);
+      expect(res).toEqual([
+        {
+          data: null,
+          children: [
+            {
+              data: null,
+              children: [
+                {
+                  children: [],
+                  data: [
+                    {
+                      examples: [
+                        "attempts … to sterilize the seawater at swimming beaches are useless because the seawater itself is a sterilizing agent — G. E. & Nettie MacGinitie",
+                      ],
+                      text: "having or being of no use: producing no good end: answering no desired purpose: ineffectual, inefficient, unserviceable",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ] as SenseNode[]);
+    });
+  });
+
+  describe("senseTree2StructuredContentList", () => {
+    it("should convert sense tree to structured content list correctly", () => {
+      const senseTree = parseDefinition($means.first());
+
+      const res = senseTree2StructuredContentList(senseTree);
+
+      expect(res).toEqual({
+        tag: "ol",
+        data: {
+          level: "1",
+          // content: "glosses",
+        },
+        content: [
+          {
+            tag: "li",
+            data: {
+              // content: "gloss",
+            },
+            content: [
+              {
+                tag: "ol",
+                data: {
+                  level: "2",
+                },
+                content: [
+                  {
+                    tag: "li",
+                    content: [
+                      {
+                        tag: "ol",
+                        data: {
+                          level: "3",
+                        },
+                        content: [
+                          {
+                            tag: "li",
+                            content: senseDatasToStructuredContentList(
+                              senseTree[0].children[0].children[0].data!
+                            ),
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+  });
+});
 
 describe("word", () => {
   const xmlString = loadXMLString(["word"])[0];
@@ -29,39 +122,37 @@ describe("word", () => {
   expect(word1MeanElement).toBeDefined();
   expect(word2MeanElement).toBeDefined();
 
-  describe("parseDefinition", () => {
-    describe("extractOnlyOuterLevelSenseText", () => {
-      test("should extract and format definition text correctly without `.sense .sl`", () => {
-        const targetSenseEle = $(word1MeanElement).find(".sense")[0];
-        expect(targetSenseEle).toBeDefined();
+  describe("extractOnlyOuterLevelSenseText", () => {
+    test("should extract and format definition text correctly without `.sense .sl`", () => {
+      const targetSenseEle = $(word1MeanElement).find(".sense")[0];
+      expect(targetSenseEle).toBeDefined();
 
-        const res = extractOnlyOuterLevelSenseText($(targetSenseEle));
-        expect(res).toBe("something that is said: utterance, statement");
-      });
-
-      test("should extract and format definition text correctly with `.sense .sl`", () => {
-        const targetSenseEle = $(word2MeanElement).find(".sense")[0];
-        expect(targetSenseEle).toBeDefined();
-
-        const res = extractOnlyOuterLevelSenseText($(targetSenseEle));
-        expect(res).toBe("archaic: to use words: speak");
-      });
+      const res = extractOnlyOuterLevelSenseText($(targetSenseEle));
+      expect(res).toBe("something that is said: utterance, statement");
     });
 
-    describe("getLevel2DefinitionText", () => {
-      test("should extract and format definition text correctly", () => {
-        const sb1 = $(word1MeanElement).find(".sb:nth-of-type(1) .sb-1")[0];
-        expect(sb1).toBeDefined();
+    test("should extract and format definition text correctly with `.sense .sl`", () => {
+      const targetSenseEle = $(word2MeanElement).find(".sense")[0];
+      expect(targetSenseEle).toBeDefined();
 
-        const res = getLevel2DefinitionText($(sb1));
-        expect(res).toBe("words plural");
+      const res = extractOnlyOuterLevelSenseText($(targetSenseEle));
+      expect(res).toBe("archaic: to use words: speak");
+    });
+  });
 
-        const sb2 = $(word1MeanElement).find(".sb:nth-of-type(4) .sb-0")[0];
-        expect(sb2).toBeDefined();
+  describe("getLevel2DefinitionText", () => {
+    test("should extract and format definition text correctly", () => {
+      const sb1 = $(word1MeanElement).find(".sb:nth-of-type(1) .sb-1")[0];
+      expect(sb1).toBeDefined();
 
-        const res2 = getLevel2DefinitionText($(sb2));
-        expect(res2).toBe("or Word of God");
-      });
+      const res = getLevel2DefinitionText($(sb1));
+      expect(res).toBe("words plural");
+
+      const sb2 = $(word1MeanElement).find(".sb:nth-of-type(4) .sb-0")[0];
+      expect(sb2).toBeDefined();
+
+      const res2 = getLevel2DefinitionText($(sb2));
+      expect(res2).toBe("or Word of God");
     });
   });
 });
@@ -137,18 +228,12 @@ describe("what", () => {
   });
 });
 
-function pbcopy(data: string) {
-  var proc = require("child_process").spawn("pbcopy");
-  proc.stdin.write(data);
-  proc.stdin.end();
-}
-
 function loadHtmlStr(input: string) {
   /**
-  * Below two method doesn't work well, cause it return `Cheerio<Document>` whose `find()` method behaves differently.
-  * `Cheerio<Document>.find()` result will include the outer most html tag, however `Cheerio<Element>.find()` does not.
-  * cheerio.load(input).root();
-  * cheerio.load(input, {}, false).root();
-  */
+   * Below two method doesn't work well, cause it return `Cheerio<Document>` whose `find()` method behaves differently.
+   * `Cheerio<Document>.find()` result will include the outer most html tag, however `Cheerio<Element>.find()` does not.
+   * cheerio.load(input).root();
+   * cheerio.load(input, {}, false).root();
+   */
   return cheerio.load(input)("body > *");
 }
