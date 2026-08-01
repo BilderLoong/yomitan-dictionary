@@ -68,10 +68,14 @@ inferred from an ancestor, or still needs a more targeted survey.
 | lexical-entry | One lexical/POS block with its own headword and definition tree. | a headword; a phrase | mean tag; .hword | Level 1. Every defined .drp phrase with a following definition tree is an independently searchable lexical entry; the parent also retains its .dro section. | false |
 | part-of-speech | Grammar category for a lexical entry or phrase. | verb; noun; pronoun; adverb | .fl; .hword + .fl | Level 1. Header .fl belongs to the entry; phrase .fl belongs to the phrase relation. | false |
 | verb-subtype | A verb subgroup such as transitive or intransitive. | transitive verb; intransitive verb | .vg; .vd | Level 2 when .vd is inside a verb group. A separate intransitive-verb mean is another source shape. | false |
-| pronunciation | Visible pronunciation reading. | /ˈtərn/; /ˈtu̇rn/ | .prs; .pr | Level 1. One .prs can contain multiple .pr readings. All readings go into structured content; the Yomitan reading field remains empty. | false |
+| pronunciation | Visible pronunciation reading for an entry or other pronunciation-bearing owner. | /ˈtərn/; /ˈtu̇rn/ | .prs; .pr | Level 1 for the entry header; use the nearest semantic owner when pronunciation belongs to a phrase or sense. All readings go into structured content; the Yomitan reading field remains empty. | false |
 | pronunciation-audio | Playable audio metadata associated with one pronunciation. | sound://word/0001.mp3 | .play-pron; .hw-play-pron; .audio-icon | Level 1 source evidence only. Audio files are deferred and are not included in the current Yomitan dictionary. | true |
-| syllabification | Syllable division or pronunciation-form display. | pro·cessed | No dedicated class confirmed; candidate .breakpoints/.breakpoint | Level 1 candidate. More word coverage is needed before treating it as a stable unit. | false |
+| form-pronunciation | Pronunciation alternatives attached to an inflected or alternate form rather than the main entry header. | `process` plural: `ˈprä-...`; `put`: `ˈpu̇t chiefly dialectal ˈpət` | .prt-a; .mw | Bound to the owning form or variant at its nearest level. Preserve every reading and its local qualifier in structured content; leave the Yomitan reading field empty. | false |
+| headword-display | The visible rich headword form, including homograph numbers and printed syllable dots. | happiness shown as hap·pi·ness; 1 process | .hword; .breakpoints; .breakpoint; sup | Level 1. Preserve visible source text and inline styling. `.breakpoint` spans may only be responsive line-break chunks, so their boundaries are not interpreted as linguistic syllables. | false |
 | inflection | A form or grammatical variation of a headword or sense. | plural -s; past -ed | .headword-row; .if; .spl | Level 1 for headword-row forms; it can bind to Level 4 or Level 5 when inside a sense. | false |
+| inflection-group | Ordered display block containing one or more forms, their labels, markers, and pronunciations. | `have`: past `had`, past participle `had`, present participle `having` | .vg-ins; .headword-row | Level 1 when it occurs in the entry header; otherwise use the nearest semantic owner. It preserves source order but is not a new hierarchy level. | false |
+| inflection-label | Grammatical, register, or alternation text qualifying one form. | past; past participle; also archaic 2d singular; or dialectal | .il | Bound to the associated form inside an inflection-group. Keep it inline; do not promote it to a global tag without later scope evidence. | false |
+| inflection-marker | Printed form marker indicating a suffix or group of forms. | -s; -es; -ed/-ing/-s | .ix | Bound to the associated form inside an inflection-group. Preserve it as form metadata, not as a separate lexical entry. | false |
 | origin | Etymological history of an entry. | Middle English; partly from Old English | .section-content.etymology; .et; .mw_t_et_link | Level 1, normally scoped to one lexical/POS entry. | false |
 | first-known-use | Earliest recorded use, often with a sense reference. | before 12th century (sense 1a) | No dedicated class; plain text inside .section-content.etymology | Usually attached to Level 1 origin text, while referring to Level 3–5. It is plain text, not a dedicated class. | true |
 | sense-number | Numbered broad sense marker. | 1; 2; 3 | .sn; .num; .sb.has-num | Level 3. A deeper marker may inherit the number from an ancestor. | false |
@@ -84,15 +88,20 @@ inferred from an ancestor, or still needs a more targeted survey.
 | usage-note | Usage or grammar note attached to a definition. | usually used with over | .uns; .un; .unText | Level 6. .un can contain another .un, so nesting must be preserved. | false |
 | example-sentence | Example showing the definition in use. | The machine turned slowly. | .ex-sent-group; .ex-sent; .vi; .vis | Level 6 under .dt, .un, a phrase, or related discussion. | false |
 | example-source | Author or publication attribution for an example. | Theodore Roethke; Ford Times | .auth; .source; .aq | Level 6, attached to its example. .auth and .source are attribution variants. | false |
+| example-date | Date or period included in an example attribution. | May 1991; November 2001 | .aqdate | Level 6 as a child of example-source; keep it with its example rather than making a separate attachment. | false |
 | comparison-reference | See or compare reference attached to meaning content. | compare a related term; see another entry | .dx-jump; .mw_t_dxt | Level 6 under a definition or usage note. | false |
-| cross-reference | Visible linked word or phrase pointing to another dictionary item. | more at another entry; see a related term | .mw_t_sx; gdlookup:// href | Level 1 for broad related sections or Level 6 for a local definition reference. Internal navigation targets are discarded. | false |
+| cross-reference | Visible linked word or phrase pointing to another dictionary item, including an etymological “more at” reference. | more at 1set; see a related term | .mw_t_sx; .mw_t_mat; gdlookup:// href | Bind to the nearest owner: Level 1 for an origin reference such as `more at 1set`, or Level 6 for a local definition reference. Internal navigation targets are discarded. | false |
 | phrase | A defined run-on multiword lexical unit hosted under a headword, with its own source phrase identity, label, and definition tree. | take a bath; take the word | .dro; .drp; .vr; .va; .fl; .vg | Level 1 relation to the parent entry. .dro is a collection; each .drp has its own phrase boundary and definition tree and becomes an independent searchable entry. The parent retains the phrase section. | false |
 | alternate-form | A spelling or phrase variant related to a canonical expression. | take stage → take the stage; take the word → take up the word | .vr; .va; alt table row | Level 1 relation. Defined phrase-local .va forms are searchable expression records for the same phrase meaning. A raw alt-table row alone is not extracted as a dictionary entry. | false |
-| derivative | A new lexical item formed from a parent word. | a noun formed from a verb | No dedicated class confirmed; future source survey | Level 1 relation. It becomes an independent entry only when MWU provides its own definition. | false |
+| variant-qualifier | Text describing how an alternate expression relates to its canonical form. | or less commonly; or | .vl; .vr | Bound to the alternate-form relation, usually at Level 1 for a phrase or variant, or at the nearest sense owner when `.vr` occurs inside a sense. Preserve it inline next to the alternate. | false |
+| undefined-run-on | A derivative displayed under a parent entry without its own definition tree. It may carry pronunciation, POS, variants, inflections, labels, and examples. | `abandon` → `abandoner`, noun, plural `abandoners` | .dro; .uro; .ure; optional .prt-a, .mw, .fl, .vr, .va, .il, .if, .ix, .sl, .utxt | Level 1 relation. Preserve the complete run-on under its parent. Do not create an independent searchable record or soft link because it has no definition. | false |
+| defined-derivative | A derivative with its own source-owned definition tree. | a derived word that MWU defines separately | Definition-bearing derivative structure; exact selector remains to be confirmed when encountered | Bound to its nearest source owner. It becomes independently searchable only when MWU provides its own definition. | false |
 | related-item | A related word or entry reference outside the main definition. | a word in a see-also section | .related-to; .mw_t_sc; .see-in-addition; .sa-link | Usually Level 1 in related-to content, but local related references may be Level 6. | false |
 | called-also | A named alternative for the thing described by a definition. | called also another term | .ca; .cat; .ucat | Level 6 when it occurs inside .dt. | false |
 | synonym-discussion | Explanatory comparison of synonyms and their usage differences. | Synonym Discussion: related terms | .related-to; .syn; .synonym-discussion; .mw_t_sc | Level 1 related information attached to the lexical entry. | false |
+| synonym-discussion-reference | A pointer from an entry to a named synonym discussion. | See Synonym Discussion at fun, play:2, room | .srefs.synonym-discussion; .sr | Level 1 related information. Keep the pointer separate from the actual synonym discussion and discard internal link targets. | false |
 | target-highlight | Presentation metadata marking the looked-up expression inside an example. | highlighted lookup word in an example | .mw_t_wi; .mw_t_sp | Level 6 example metadata. .mw_t_wi is useful for display but is not meaning text. | false |
+| entry-status-image | Image used as an entry status or update marker rather than dictionary meaning. | `_images_definition_update-new.jpg` | .entry-status; `<img>` | Level 1 header presentation. The survey reports it, but the current dictionary ignores it. | true |
 | interposed-object-candidate | Derived evidence that the components of a phrasal verb are separated by an intervening object in an example. | take [a town] apart; takes [it] apart | .ex-sent-group; .ex-sent; .mw_t_wi | Observed at Level 6, but points to the Level 1 phrase entry where the canonical expression and Yomitan v_phr rule belong. Derive it from two target-highlight spans with retained text between them; do not treat italic markup alone as semantic proof. | false |
 
 The catalog distinguishes confirmed observations from candidates. A
@@ -101,8 +110,9 @@ recognized instead of silently dropping it.
 
 ## Current recognition status
 
-This is the current status from the surveyed words `what`, `turn`, `take`, and
-`run`. It is deliberately separate from the catalog's `Ignore` column:
+This is the current status from the detailed reports for `what`, `turn`,
+`take`, and `run`, plus the latest 12-word read-only reconnaissance. It is
+deliberately separate from the catalog's `Ignore` column:
 `Ignore=true` means we understand the information but have chosen not to put it
 in the current dictionary, while `not yet recognized` means our source model
 is incomplete.
@@ -113,15 +123,16 @@ These units have evidence for their meaning and nearest-level ownership:
 
 - lexical-entry;
 - part-of-speech and verb-subtype;
-- pronunciation;
-- inflection;
+- pronunciation and form-pronunciation;
+- inflection, inflection-group, inflection-label, and inflection-marker;
 - origin;
 - sense-number, subsense-letter, and definition-number;
 - sense-label, definition-label, definition, and sub-definition;
-- usage-note, example-sentence, and example-source;
+- usage-note, example-sentence, example-source, and example-date;
 - comparison-reference and cross-reference;
 - phrase and defined phrase-local alternate-form;
-- related-item, called-also, and synonym-discussion;
+- variant-qualifier, related-item, called-also, synonym-discussion, and
+  synonym-discussion-reference;
 - target-highlight.
 
 The same unit can bind to different levels. For example, `.fl` is Level 1 for
@@ -140,6 +151,8 @@ new information units or new levels:
 - `.dt` as definition content that may contain child units;
 - `.un` as a usage-note container that may contain examples;
 - `.prs` as a pronunciation container;
+- `.vg-ins` as an ordered inflection-group container;
+- `.prt-a` as a pronunciation container for a form or variant;
 - `.related-to` as a related-information container.
 
 ### Confirmed derived unit
@@ -148,19 +161,56 @@ new information units or new levels:
 intervening text. It is evidence observed at the example level and points to
 the canonical Level 1 phrase; it is not a literal MWU HTML class.
 
+### Latest 12-word reconnaissance
+
+The additional exact lookup words were:
+
+    set, make, put, break, go, work, process, look,
+    give, have, play, hand
+
+This scan refined the catalog without adding a hierarchy level:
+
+- `.vg-ins` can contain several ordered forms, `.il` labels, `.ix` markers,
+  and pronunciation blocks. `have` shows `past had`, `past participle had`,
+  and `present participle having` in one form group.
+- `.il` carries form-local labels such as `past`, `past participle`, `or
+  dialectal`, and `also archaic 2d singular`. These are not global tags by
+  default; they stay beside the form they qualify.
+- `.ix` carries markers such as `-s`, `-es`, and `-ed/-ing/-s`. They are form
+  metadata, not new searchable entries.
+- `.prt-a` and `.mw` carry one or more readings for an inflected or alternate
+  form. `process` has four visible readings for one plural form, while `put`
+  has two readings with a local `chiefly dialectal` qualifier.
+- `.vl` carries alternate-form relation text such as `or less commonly` and
+  `or`. It belongs to the alternate expression, not to the parent sense.
+- `.aqdate` carries dates such as `May 1991` and `November 2001` inside an
+  example attribution.
+- `.mw_t_mat` carries etymological `more at` references such as `more at
+  1set`; these are Level 1 cross-references under origin.
+- `.srefs` with `.sr` carries pointers such as `See Synonym Discussion at
+  fun, play:2, room`; the pointer remains separate from the discussion body.
+- `hand` contains one `<img>` under `.entry-status`. It is an entry-status
+  image, not definition content, and is therefore cataloged with `Ignore=true`.
+
+The 12 words contained no table, list, details, or audio elements. Classes
+such as `.mw_t_bc`, `.first-slash`, `.last-slash`, `.addPunct`, `.sents`, and
+accordion/layout classes remain presentation or boundary markup, not new
+information units.
+
 ### Recognized but intentionally ignored
 
 - `pronunciation-audio`: audio extraction is deferred;
 - `first-known-use`: excluded from the current dictionary;
+- `entry-status-image`: the observed image is header status artwork, not
+  dictionary meaning;
 - internal navigation targets such as `gdlookup://` and `bword://`: visible
   text may remain, but the source link target is discarded.
 
 ### Partially recognized or still candidate
 
-- syllabification: observed as a possible presentation unit, but its stable
-  HTML representation needs more word coverage;
-- derivative: the linguistic rule is clear, but a complete MWU source class or
-  structure has not been confirmed;
+- defined-derivative: `.uro` is confirmed as an undefined run-on structure,
+  but the selector for a derivative with its own local definition will be
+  recorded when one is encountered;
 - raw `alt` table rows: treated as lookup metadata only and never used alone
   to create an entry; their source role is not an information unit we export;
 - tag-bank eligibility: labels are preserved and inventoried first; no final
@@ -172,14 +222,15 @@ the canonical Level 1 phrase; it is not a literal MWU HTML class.
 
 The current evidence does not yet establish:
 
-- image and other media structures;
+- definition images and other media structures outside the observed
+  `.entry-status` image;
 - specialized related or derived-form sections;
 - all phrase and variant shapes outside the surveyed `.dro`/`.vr`/`.va`
   patterns;
 - all possible label-bearing classes and their WTY mappings;
 - unknown descendants hidden inside already recognized containers;
-- the full range of dense-word structures beyond `what`, `turn`, `take`, and
-  `run`.
+- the full range of dense-word structures beyond the current 16-word evidence
+  set.
 
 The future survey tool must report these separately as `not observed in this
 word` or `present but unrecognized`; it must never silently classify them as
@@ -206,12 +257,12 @@ descendant levels below it.
 
 | Level | Direct information units | Child or repeated structure |
 | --- | --- | --- |
-| Level 1 — Lexical Entry | lexical-entry, part-of-speech, pronunciation, pronunciation-audio, syllabification, headword inflection, origin, first-known-use, related-item, synonym-discussion, phrase, alternate-form, derivative, broad cross-reference | May contain Level 2 verb groups, or Level 3 senses directly when no verb group exists. pronunciation-audio and first-known-use are cataloged source units with Ignore=true. A phrase relation can have its own Level 3–6 tree. |
+| Level 1 — Lexical Entry | lexical-entry, headword-display, part-of-speech, pronunciation, pronunciation-audio, inflection-group, inflection-label, inflection-marker, form-pronunciation, origin, first-known-use, related-item, synonym-discussion, synonym-discussion-reference, phrase, alternate-form, variant-qualifier, undefined-run-on, defined-derivative, broad cross-reference, entry-status-image | May contain Level 2 verb groups, or Level 3 senses directly when no verb group exists. pronunciation-audio, first-known-use, and entry-status-image are cataloged source units with Ignore=true. A phrase relation can have its own Level 3–6 tree. An undefined run-on remains parent-only. |
 | Level 2 — Verb Group | verb-subtype, group-level label, group-level definition text | Contains Level 3 numbered senses and their Level 4–6 descendants. Source order supplies the integer group order when several .vd groups occur. |
 | Level 3 — Numbered Sense | sense-number, sense-label, definition | May contain Level 4 lettered subsenses, Level 5 individual definitions, and Level 6 attachments. |
 | Level 4 — Lettered Subsense | subsense-letter, sense-label, inflection, definition | May contain Level 5 individual definitions and Level 6 attachments. |
 | Level 5 — Individual Definition | definition-number, definition-label, definition | Owns Level 6 usage notes, subordinate definitions, examples, citations, comparisons, and local references. |
-| Level 6 — Definition Attachment | sub-definition, usage-note, example-sentence, example-source, comparison-reference, cross-reference, called-also, target-highlight | May nest usage notes and subordinate definitions. Example sources and highlighting remain attached to the example. |
+| Level 6 — Definition Attachment | sub-definition, usage-note, example-sentence, example-source, example-date, comparison-reference, cross-reference, called-also, target-highlight | May nest usage notes and subordinate definitions. Example sources, dates, and highlighting remain attached to the example. |
 
 The source does not always print every inherited marker on every child. A
 child can add a letter or parenthesized number while inheriting a broader
@@ -227,6 +278,13 @@ DOM ownership is more reliable than visual indentation or a CSS class name by
 itself. The same source class can mean different things under different
 ancestors. For example, .fl in an entry header is Level 1 part of speech,
 while .fl inside .dro is phrase-level part of speech.
+
+Apply the same rule to every newly encountered information unit: determine its
+source boundary and nearest semantic owner, give the recognized unit a name,
+and render it like MWU in source order at that Level 1–6 position. If the unit
+is not understood yet, preserve its unknown subtree once at that owner and
+report it; do not guess another level or recursively render its descendants a
+second time.
 
 ## Evidence files
 
@@ -266,6 +324,23 @@ refine, or contradict them.
   in the MWU style, such as red italic specifically, without creating a new
   entry or numbered level.
 - .fl can describe a top-level entry or a phrase, depending on its ancestor.
+- `.vg-ins` is an ordered inflection-group container, not a new hierarchy
+  level. Its `.il`, `.ix`, and `.prt-a` descendants remain attached to the
+  exact form or variant they qualify.
+- `.il` is a form-local inflection-label unit, while `.vl` is a relation
+  qualifier for an alternate expression. Similar text such as `or` must not
+  be merged when the DOM owners differ.
+- `.prt-a` can contain multiple `.mw` readings for one form. Preserve their
+  order and local qualifiers in structured content rather than using the
+  Yomitan reading field.
+- `.aqdate` is part of example attribution and remains attached to the
+  Level 6 example.
+- `.mw_t_mat` is a Level 1 cross-reference inside origin, while `.sr` is a
+  Level 1 pointer to a synonym discussion. Both retain visible text but lose
+  their internal navigation targets.
+- An image under `.entry-status` is presentation/status artwork and is
+  cataloged with `Ignore=true`; this does not decide how definition images
+  will be handled if later reconnaissance finds them.
 - .dro is a defined-run-on phrase collection, not a numbered-sense level.
   Each .drp phrase inside it is independently defined and has its own phrase
   identity and nested definition tree. Do not merge adjacent .drp items.
@@ -277,11 +352,16 @@ refine, or contradict them.
   must not be merged.
 - A .vr/.va immediately following a .drp belongs to that phrase in the source.
   For example, take stage has take the stage, and take the word has the less
-  common take up the word. Each defined phrase form is searchable; the final
-  term-bank deduplication shape is an implementation detail.
+  common take up the word. Each defined phrase form is searchable. The
+  canonical form stores structured content and the alternative uses a Yomitan
+  dictionary-deinflection tuple pointing to the canonical form.
 - A .fl immediately following a .drp belongs to that phrase. by the run has
   the phrase-local label adverb, even though its parent run entry is a noun
   block.
+- `.dro > .uro > .ure` is an undefined run-on relation. In `abandon`,
+  `abandoner` has pronunciation, noun and plural metadata, and examples but no
+  definition. Preserve the run-on under `abandon`; do not create a searchable
+  `abandoner` record or soft link.
 - Interposed-object evidence comes from target-highlight spans such as take
   and apart with an object between them in an example. The canonical phrase
   remains take apart; the eventual Yomitan v_phr rule belongs to that phrase
@@ -293,14 +373,14 @@ refine, or contradict them.
 
 ## Word-selection scan
 
-The read-only comparison scanned these 12 exact words in parallel:
+The detailed baseline reports cover `what`, `turn`, `take`, and `run`. The
+latest read-only comparison scanned these 12 additional exact words:
 
-    give, set, run, take, make, put, break, turn,
-    go, work, process, look
+    set, make, put, break, go, work, process, look,
+    give, have, play, hand
 
-The detailed reports linked above are the current evidence samples from that
-scan. Additional words should be selected to cover structures not represented
-by the existing reports.
+Together these 16 words are the current evidence set. Additional words should
+be selected to cover structures not represented by the existing reports.
 
 ## Survey workflow
 
@@ -417,10 +497,11 @@ later audio phase.
 ## Future tag-inventory tool
 
 Before creating a tag bank, a read-only inventory tool will scan `.sl`, `.fl`,
-`.vd`, `.sd`, `.lb`, parenthetical labels, phrase-local labels, and any other
-label-bearing nodes found during reconnaissance. It will report each label's
-text, source class, example words, frequency, nearest level, ancestor path,
-and possible WTY/Yomitan mapping. It will not generate a tag bank.
+`.vd`, `.sd`, `.lb`, `.il`, `.vl`, parenthetical labels, phrase-local labels,
+example-attribution labels, and any other label-bearing nodes found during
+reconnaissance. It will report each label's text, source class, example words,
+frequency, nearest level, ancestor path, and possible WTY/Yomitan mapping. It
+will not generate a tag bank.
 
 The eventual tool report will use the three requested sections: interesting,
 not needed, and not yet noticed or recognized.
@@ -429,8 +510,9 @@ not needed, and not yet noticed or recognized.
 
 There are no unresolved user decisions in the currently surveyed source
 structures. The separate `<mean>`/`.vd` rule, the treatment of example-only
-phrases, inflections, derivatives, defined `.drp`/`.va` search entries, and
-nearest-level related information are working decisions.
+phrases, inflections, undefined run-ons, defined derivatives, defined
+`.drp`/`.va` search entries, and nearest-level related information are working
+decisions.
 
 Future reconnaissance will cover additional structures such as images,
 specialized related sections, and the survey-tool coverage report. The future

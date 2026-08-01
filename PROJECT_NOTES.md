@@ -211,7 +211,7 @@ detailed per-word evidence is archived in
 The exact lookup word was `turn`; it matched one `word` row (`id = 450356`), contained
 three `<mean>` blocks, and had 36 associated alternate rows.
 
-The 12-word read-only selection scan chose `turn` for broad coverage. It
+The earlier read-only selection scan chose `turn` for broad coverage. It
 showed:
 
 - two `.vd` groups inside one verb `<mean>`: transitive verb followed by
@@ -230,6 +230,35 @@ The report also records that `.fl` can belong to phrase groups, `.pr` can
 contain multiple readings, and the same information unit can bind to different
 levels depending on its nearest owner.
 
+## Latest reconnaissance: 12 additional words
+
+The additional exact lookup words were `set`, `make`, `put`, `break`, `go`,
+`work`, `process`, `look`, `give`, `have`, `play`, and `hand`. This scan refined
+the information-unit catalog without adding a hierarchy level.
+
+The new confirmed units and source shapes are:
+
+- `inflection-group`: an ordered `.vg-ins` block containing forms, labels,
+  markers, and pronunciations;
+- `inflection-label`: form-local `.il` text such as `past`, `past participle`,
+  `or dialectal`, and `also archaic 2d singular`;
+- `inflection-marker`: `.ix` values such as `-s`, `-es`, and `-ed/-ing/-s`;
+- `form-pronunciation`: `.prt-a`/`.mw` readings attached to an inflected or
+  alternate form; all readings remain structured display content and the
+  Yomitan reading field remains empty;
+- `variant-qualifier`: `.vl` relation text such as `or less commonly`;
+- `example-date`: `.aqdate` attached to an example attribution;
+- `synonym-discussion-reference`: `.srefs`/`.sr` pointers such as `See
+  Synonym Discussion at fun, play:2, room`;
+- `entry-status-image`: an `<img>` under `.entry-status`, currently ignored as
+  header status artwork rather than dictionary meaning.
+
+The scan also confirmed `.mw_t_mat` as an etymological `more at` form of the
+existing `cross-reference` unit. Its visible text remains under the Level 1
+origin owner while the internal navigation target is discarded. Classes such
+as `.mw_t_bc`, `.first-slash`, `.last-slash`, `.addPunct`, `.sents`, and
+accordion/layout classes remain presentation or boundary markup.
+
 ## Survey data vocabulary
 
 The survey names information independently from its eventual Yomitan output:
@@ -240,14 +269,17 @@ the current dictionary output.
 
 - structural markers: `part-of-speech`, `verb-subtype`, `sense-number`,
   `subsense-letter`, `definition-number`;
-- lexical metadata: `pronunciation`, `syllabification`, `origin`,
-  `first-known-use`, `pronunciation-audio`, and `inflection`;
+- lexical metadata: `headword-display`, `pronunciation`, `form-pronunciation`,
+  `origin`, `first-known-use`, `pronunciation-audio`, `inflection`,
+  `inflection-group`, `inflection-label`, and `inflection-marker`;
 - meaning content: `sense-label`, `definition-label`, `definition`,
   `sub-definition`, `usage-note`;
 - relations and examples: `comparison-reference`, `cross-reference`,
-  `example-sentence`, `example-source`, `alternate-form`, `phrase`,
-  `derivative`, `related-item`, `called-also`, `synonym-discussion`,
-  `interposed-object-candidate`.
+  `example-sentence`, `example-source`, `example-date`, `alternate-form`,
+  `variant-qualifier`, `phrase`, `undefined-run-on`, `defined-derivative`,
+  `related-item`, `called-also`,
+  `synonym-discussion`, `synonym-discussion-reference`,
+  `entry-status-image`, and `interposed-object-candidate`.
 
 These are survey names, not claims that every word contains every type, and
 not direct one-to-one Yomitan fields.
@@ -344,10 +376,11 @@ The take row also gives two phrase-local alternate shapes:
 Because .vr and .va occur after the phrase's .drp and before its definition
 .vg, those alternatives belong to that phrase in the source. `take stage`,
 `take the stage`, `take the word`, and `take up the word` should all be
-searchable expression records for their phrase meaning. The later export
-choice—shared definition content, an alias-like record, or another
-deduplicated term-bank shape—must preserve that searchability without
-combining unrelated phrases.
+searchable expressions for their phrase meaning. The canonical expression
+stores the structured definition. Each phrase-local alternative uses
+Yomitan's dictionary-deinflection tuple to point to the canonical expression,
+so the source definition is parsed and stored only once. Unrelated phrases
+remain separate.
 
 The run row (id = 330483) provides the phrase-local part-of-speech case. The
 exact lookup phrase is by the run; it is under a parent noun run section, but
@@ -426,6 +459,24 @@ glossary: the phrase definitions and structured content
 phrasal-verb form. A visual verb tag such as `v` is separate presentation
 metadata and is not a replacement for the rule.
 
+Paired target-highlight spans are evidence for `v_phr`, not conclusive proof.
+Every build therefore produces a complete candidate inventory for manual
+inspection. Each candidate records the canonical term, source word and owner
+path, full evidence example, highlighted components, intervening text, and
+whether the builder emitted the rule. This lets us catch cases where paired
+highlights do not actually describe a separable phrasal verb.
+
+The build produces one deterministic `build-report.json` for tests and manual
+inspection. It includes source-row and emitted-entry totals, counts by
+recognized information-unit name, ignored-unit counts, unrecognized findings,
+rejected rows, conversion errors, the `v_phr` candidate inventory, and a
+phrase-alternative audit. Each phrase-alternative audit item records any local
+pronunciation, part of speech, usage restriction, inflection, definition, or
+unrecognized content so that the initial shared-definition model cannot hide
+a source difference. “Findings” means source content that the parser
+encountered but could not yet classify semantically; it is not dictionary
+definition content.
+
 References:
 
 - [Yomitan English transforms](https://github.com/yomidevs/yomitan/blob/master/ext/js/language/en/english-transforms.js)
@@ -481,12 +532,11 @@ an HTML link.
 
 ### Grouping meanings and homographs
 
-Do not blindly make every `<mean>` a separate Yomitan entry, and do not blindly
-merge every `<mean>` from one database row. Use lexical identity as the working
-grouping key:
+Do not merge separate `<mean>` blocks that MWU presents as distinct lexical/POS
+identities. Use the source lexical identity as the working grouping key:
 
 ```text
-normalized expression + part of speech + reading/pronunciation identity
+exact source expression + source <mean> identity + part of speech/pronunciation identity
 ```
 
 Group senses belonging to one lexical item. Keep a different homograph, part
@@ -510,17 +560,43 @@ model must not move a child information unit to Level 1 or copy it to every
 descendant. The difficult part is maintaining the semantic-owner mapping for
 each container shape, not the basic nearest-ancestor lookup.
 
+This is also the rule for newly encountered information units. Once the source
+meaning and boundary are understood, give the unit a name, model it explicitly,
+and render it like MWU at the nearest owner's Level 1–6 position. For example,
+the visible headword display, including printed syllable dots, stays in the
+Level 1 header. Responsive `.breakpoint` spans are presentation boundaries and
+must not be interpreted as linguistic syllables. A derivative remains at the
+source level that owns the derivative relation and becomes independently
+searchable only when it has its own definition.
+Until a new unit is understood, preserve its subtree once as unrecognized
+fallback content and report its owner and level rather than guessing.
+
+Known transparent wrappers may be traversed recursively. Unknown wrappers are
+atomic fallbacks: preserve their visible subtree once and do not also parse
+their descendants separately. This prevents a known-looking nested example
+from being rendered twice while the unknown wrapper's own text is also kept.
+
 ### Alternate forms
 
 Prefer searchable alternate forms that point to a canonical lemma rather than
-duplicating a full definition. Yomitan deinflection is not a general alias
-table: it can only generate forms supported by the language transform. A
-variant that Yomitan cannot generate may need a lightweight searchable alias
-record. For the currently observed defined run-on phrases, the source rule is
-already decided: each `.drp` phrase and each phrase-local `.va` form is
-searchable, while the parent keeps its `.dro` section. Remaining `alt` rows
-without a defined `.dro` tree still need source classification before choosing
-their final shape.
+duplicating a full definition. Yomitan term-bank definitions support a
+dictionary-deinflection tuple containing the canonical term and a rule chain;
+the translator follows that tuple and displays the canonical definition. For
+the currently observed defined run-on phrases, each `.drp` phrase is canonical
+and each phrase-local `.va` form receives this lightweight pointer, while the
+parent keeps its `.dro` section. Remaining `alt` rows without a defined `.dro`
+tree still need source classification before choosing their final shape.
+
+“Sharing one definition” means the canonical phrase owns one parsed definition
+tree and its phrase-local alternative points to that canonical term. For
+example, `take the word` stores the structured definition and `take up the
+word` points to `take the word`; both are searchable without repeated
+definition JSON.
+
+Do not use unspecified normalization for record deduplication. The first build
+deduplicates only an exact Unicode searchable expression plus its source lexical
+identity. Case, punctuation, spacing, and diacritics remain meaningful unless a
+later surveyed source rule explicitly says otherwise.
 
 ### Usage notes and examples
 
@@ -604,10 +680,13 @@ they belong to a defined `.drp` phrase subtree.
 An example-only multiword string, such as `take a town apart` inside an
 example under `take apart`, remains an example and does not become a new
 phrase entry. An inflection, such as `turns` marked as a plural form of
-`turn`, is a grammatical form, not a new lexical definition. A derivative,
-such as `happy → happiness` or `help → helpful`, is a new lexical item only
-when MWU gives it its own entry/definition; we have not yet confirmed the
-complete MWU derivative structure.
+`turn`, is a grammatical form, not a new lexical definition. MWU's
+`.dro > .uro > .ure` structure is an undefined run-on derivative. For example,
+the `abandon` entry contains `abandoner` with pronunciation, noun label, plural
+form, and examples but no definition. Preserve that complete run-on under the
+Level 1 parent. It does not receive an independent searchable record or a
+soft link. A derivative becomes independently searchable only when MWU gives
+it its own definition.
 
 ### Origin and related information
 
@@ -672,13 +751,16 @@ following are working rules:
   `.vd` groups inside one `<mean>` are Level 2;
 - an example-only phrase such as `take a town apart` stays an example;
 - inflections such as `turns` are form metadata, not new lexical definitions;
-- a derivative becomes independent when MWU gives it its own definition;
+- an undefined `.uro` derivative such as `abandoner` remains under its Level 1
+  parent and is not independently searchable; a derivative becomes independent
+  only when MWU gives it its own definition;
 - defined `.drp` and phrase-local `.va` forms are independently searchable;
 - `.sl` tag-bank candidates will be determined by the future WTY-style
   inventory tool, not by asking for a manual label list now.
 
-Future reconnaissance will cover additional structures such as images,
-specialized related sections, and the survey-tool coverage report.
+Future reconnaissance will cover definition images and other media outside the
+observed entry-status image, specialized related sections, and the survey-tool
+coverage report.
 
 ## Research checklist
 
@@ -698,6 +780,8 @@ specialized related sections, and the survey-tool coverage report.
 - [x] Compare observed `what` nodes with the current parser vocabulary.
 - [x] Compare 12 candidate words and choose `turn` for broad coverage.
 - [x] Perform detailed read-only reconnaissance for `turn`.
+- [x] Scan 12 additional words for information units outside the existing
+      catalog and record the confirmed additions.
 
 ### In progress
 
