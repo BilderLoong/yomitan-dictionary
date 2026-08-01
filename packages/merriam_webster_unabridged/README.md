@@ -1,5 +1,9 @@
 # Merriam-Webster Unabridged Dictionary Parser
 
+## Reference projects
+
+https://github.com/yomidevs/wiktionary-to-yomitan
+
 This package processes Merriam-Webster Unabridged dictionary data and converts it to Yomitan-compatible dictionary format.
 
 ## Origin data
