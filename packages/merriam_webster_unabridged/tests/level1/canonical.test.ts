@@ -10,7 +10,7 @@ import {
   extractSearchableHeadword,
   planCanonicalOwners,
 } from "../../src/level1/planCanonical";
-import { definition, example, mean } from "../helpers/mwuHtml";
+import { definition, example, mean, phrase } from "../helpers/mwuHtml";
 
 const sourceRow = (
   id: number,
@@ -155,6 +155,32 @@ describe("canonical lexical ownership", () => {
       {
         kind: "definition-free-mean",
         rowId: 15,
+        meanIndex: 0,
+        preview: html,
+      },
+    ]);
+  });
+
+  test("defers a definition-free hosted phrase to its dedicated target", () => {
+    const html = mean(
+      "target",
+      phrase("target phrase", definition("target phrase meaning")),
+    );
+    const result = planCanonicalOwners(
+      sourceRow(17, "host", html),
+      sourceIndex([
+        { id: 17, encodedKey: "host" },
+        { id: 18, encodedKey: "target" },
+      ]),
+    );
+
+    expect(result.canonical).toEqual([]);
+    expect(result.requiredDependencyIds).toEqual([18]);
+    expect(result.decisions).toEqual([]);
+    expect(result.findings).toEqual([
+      {
+        kind: "definition-free-mean",
+        rowId: 17,
         meanIndex: 0,
         preview: html,
       },

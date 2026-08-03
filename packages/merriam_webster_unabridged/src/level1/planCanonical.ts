@@ -321,27 +321,27 @@ const planMean = (
   const findings = identity.hasUnrecognizedMarkup
     ? [headwordFinding(row, meanIndex, identity.preview)]
     : [];
+  const meanFindings = hasMeanDefinition
+    ? findings
+    : [...findings, definitionFreeMeanFinding(row, meanIndex, ownerHtml)];
+
+  if (rule === "case-3-dedicated-row") {
+    return {
+      canonical: [],
+      decisions: hasMeanDefinition ? [decision] : [],
+      requiredDependencyIds: dedicatedRows.map(
+        ({ id }: IndexedSourceRow): number => id,
+      ),
+      findings: meanFindings,
+    };
+  }
 
   if (!hasMeanDefinition) {
     return {
       canonical: phrases,
       decisions: [],
       requiredDependencyIds: [],
-      findings: [
-        ...findings,
-        definitionFreeMeanFinding(row, meanIndex, ownerHtml),
-      ],
-    };
-  }
-
-  if (rule === "case-3-dedicated-row") {
-    return {
-      canonical: [],
-      decisions: [decision],
-      requiredDependencyIds: dedicatedRows.map(
-        ({ id }: IndexedSourceRow): number => id,
-      ),
-      findings,
+      findings: meanFindings,
     };
   }
 
