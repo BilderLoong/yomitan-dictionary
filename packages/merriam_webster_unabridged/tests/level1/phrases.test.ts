@@ -95,4 +95,34 @@ describe("canonical defined phrases", () => {
       secondPhrase,
     ]);
   });
+
+  test("preserves direct text and comments inside each phrase owner range", () => {
+    const firstOwner =
+      '<div class="dro"><span class="drp">first phrase</span>' +
+      "<!--keep this comment-->literal " +
+      definition("first meaning") +
+      " trailing text</div>";
+    const secondOwner = phrase("second phrase", definition("second meaning"));
+    const collection =
+      '<div class="dro"><span class="drp">first phrase</span>' +
+      "<!--keep this comment-->literal " +
+      definition("first meaning") +
+      " trailing text" +
+      secondOwner.slice('<div class="dro">'.length);
+
+    const result = planCanonicalOwners(
+      sourceRow(16, "parent", mean("parent", collection)),
+      sourceIndex([{ id: 16, encodedKey: "parent" }]),
+    );
+    const phrases = result.canonical.filter(isCanonicalPhrase);
+
+    expect(phrases.map(({ term }) => term)).toEqual([
+      "first phrase",
+      "second phrase",
+    ]);
+    expect(phrases.map(({ source }) => source.ownerHtml)).toEqual([
+      firstOwner,
+      secondOwner,
+    ]);
+  });
 });

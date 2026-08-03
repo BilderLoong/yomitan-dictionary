@@ -15,6 +15,18 @@ export type Level1Finding =
       readonly rowId: number;
       readonly meanIndex: number;
       readonly preview: string;
+    }
+  | {
+      readonly kind: "unresolved-mean";
+      readonly rowId: number;
+      readonly meanIndex: number;
+      readonly preview: string;
+    }
+  | {
+      readonly kind: "definition-free-mean";
+      readonly rowId: number;
+      readonly meanIndex: number;
+      readonly preview: string;
     };
 
 export interface CanonicalLexicalPlan {
@@ -38,7 +50,7 @@ export type OwnershipRule =
   | "case-2-embedded"
   | "case-3-dedicated-row";
 
-export interface ResolvedOwnershipDecision {
+export interface OwnershipDecision {
   readonly rowId: number;
   readonly rowKey: string;
   readonly meanIndex: number;
@@ -46,19 +58,6 @@ export interface ResolvedOwnershipDecision {
   readonly rule: OwnershipRule;
   readonly dedicatedRowId: number | null;
 }
-
-export interface UnresolvedOwnershipDecision {
-  readonly rowId: number;
-  readonly rowKey: string;
-  readonly meanIndex: number;
-  readonly searchableHeadword: null;
-  readonly rule: "unresolved-headword";
-  readonly dedicatedRowId: null;
-}
-
-export type OwnershipDecision =
-  | ResolvedOwnershipDecision
-  | UnresolvedOwnershipDecision;
 
 export interface CanonicalPlanningResult {
   readonly canonical: readonly CanonicalPlan[];

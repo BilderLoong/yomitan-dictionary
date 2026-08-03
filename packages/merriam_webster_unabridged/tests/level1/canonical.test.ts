@@ -10,7 +10,7 @@ import {
   extractSearchableHeadword,
   planCanonicalOwners,
 } from "../../src/level1/planCanonical";
-import { definition, mean } from "../helpers/mwuHtml";
+import { definition, example, mean } from "../helpers/mwuHtml";
 
 const sourceRow = (
   id: number,
@@ -135,27 +135,29 @@ describe("canonical lexical ownership", () => {
     );
 
     expect(result.canonical).toEqual([]);
-    expect(result.decisions).toEqual([
-      {
-        rowId: 14,
-        rowKey: "parent",
-        meanIndex: 0,
-        searchableHeadword: null,
-        rule: "unresolved-headword",
-        dedicatedRowId: null,
-      },
-      {
-        rowId: 14,
-        rowKey: "parent",
-        meanIndex: 1,
-        searchableHeadword: null,
-        rule: "unresolved-headword",
-        dedicatedRowId: null,
-      },
-    ]);
+    expect(result.decisions).toEqual([]);
     expect(result.findings.map(({ kind }) => kind)).toEqual([
-      "headword-markup",
-      "headword-markup",
+      "unresolved-mean",
+      "unresolved-mean",
+    ]);
+  });
+
+  test("does not emit a lexical canonical for a definition-free mean", () => {
+    const html = mean("example-only", example("example-only text"));
+    const result = planCanonicalOwners(
+      sourceRow(15, "example-only", html),
+      sourceIndex([{ id: 15, encodedKey: "example-only" }]),
+    );
+
+    expect(result.canonical).toEqual([]);
+    expect(result.decisions).toEqual([]);
+    expect(result.findings).toEqual([
+      {
+        kind: "definition-free-mean",
+        rowId: 15,
+        meanIndex: 0,
+        preview: html,
+      },
     ]);
   });
 });

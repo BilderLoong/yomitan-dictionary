@@ -152,22 +152,46 @@ const headwordFinding = (
   preview,
 });
 
-const unresolvedOwnershipDecision = (
+const unresolvedMeanFinding = (
   row: SourceRow,
   meanIndex: number,
-): OwnershipDecision => ({
+  preview: string,
+): Level1Finding => ({
+  kind: "unresolved-mean",
   rowId: row.id,
-  rowKey: row.decodedKey,
   meanIndex,
-  searchableHeadword: null,
-  rule: "unresolved-headword",
-  dedicatedRowId: null,
+  preview,
+});
+
+const definitionFreeMeanFinding = (
+  row: SourceRow,
+  meanIndex: number,
+  preview: string,
+): Level1Finding => ({
+  kind: "definition-free-mean",
+  rowId: row.id,
+  meanIndex,
+  preview,
 });
 
 const phraseOwnerElements = (
   root: cheerio.CheerioAPI,
   phrase: Element,
-): readonly Element[] => [phrase, ...root(phrase).nextUntil(".drp").toArray()];
+): readonly AnyNode[] => {
+  const parentNodes = root(phrase).parent().contents().toArray();
+  const phraseIndex = parentNodes.indexOf(phrase);
+  if (phraseIndex < 0) return [phrase];
+
+  const nextPhraseOffset = parentNodes
+    .slice(phraseIndex + 1)
+    .findIndex((node: AnyNode): boolean => root(node).is(".drp"));
+  const endIndex =
+    nextPhraseOffset < 0
+      ? parentNodes.length
+      : phraseIndex + 1 + nextPhraseOffset;
+
+  return parentNodes.slice(phraseIndex, endIndex);
+};
 
 const phraseOwnerHtml = (root: cheerio.CheerioAPI, phrase: Element): string => {
   const parent = root(phrase).parent();
@@ -175,7 +199,7 @@ const phraseOwnerHtml = (root: cheerio.CheerioAPI, phrase: Element): string => {
   const parentHtml = parent.prop("outerHTML") ?? "";
   const parentInnerHtml = parent.html() ?? "";
   const ownedHtml = phraseOwnerElements(root, phrase)
-    .map((element: Element): string => root(element).prop("outerHTML") ?? "")
+    .map((node: AnyNode): string => root(node).toString())
     .join("");
 
   if (parentElement === undefined) return ownedHtml;
@@ -193,10 +217,22 @@ const hasLocalDefinition = (
   root: cheerio.CheerioAPI,
   phrase: Element,
 ): boolean =>
-  phraseOwnerElements(root, phrase).some((element: Element): boolean => {
-    const localElement = root(element);
+  phraseOwnerElements(root, phrase).some((node: AnyNode): boolean => {
+    const localElement = root(node);
     return localElement.is(".dt") || localElement.find(".dt").length > 0;
   });
+
+const hasLocalMeanDefinition = (
+  root: cheerio.CheerioAPI,
+  mean: Element,
+): boolean =>
+  root(mean)
+    .find(".dt")
+    .toArray()
+    .some(
+      (definition: Element): boolean =>
+        root(definition).closest(".dro").length === 0,
+    );
 
 const planPhrases = (
   root: cheerio.CheerioAPI,
@@ -248,10 +284,10 @@ const planMean = (
   if (identity.kind === "missing-headword-identity") {
     return {
       canonical: [],
-      decisions: [unresolvedOwnershipDecision(row, meanIndex)],
+      decisions: [],
       requiredDependencyIds: [],
       findings: [
-        headwordFinding(
+        unresolvedMeanFinding(
           row,
           meanIndex,
           identity.preview.length === 0 ? ownerHtml : identity.preview,
@@ -260,6 +296,14 @@ const planMean = (
     };
   }
 
+  const phrases = planPhrases(
+    root,
+    mean,
+    meanIndex,
+    row,
+    identity.searchableHeadword,
+  );
+  const hasMeanDefinition = hasLocalMeanDefinition(root, mean);
   const dedicatedRows = findSourceRows(index, identity.searchableHeadword);
   const rule = ownershipRule(identity.searchableHeadword, row, dedicatedRows);
   const dedicatedRow = dedicatedRows[0];
@@ -278,6 +322,18 @@ const planMean = (
     ? [headwordFinding(row, meanIndex, identity.preview)]
     : [];
 
+  if (!hasMeanDefinition) {
+    return {
+      canonical: phrases,
+      decisions: [],
+      requiredDependencyIds: [],
+      findings: [
+        ...findings,
+        definitionFreeMeanFinding(row, meanIndex, ownerHtml),
+      ],
+    };
+  }
+
   if (rule === "case-3-dedicated-row") {
     return {
       canonical: [],
@@ -288,14 +344,6 @@ const planMean = (
       findings,
     };
   }
-
-  const phrases = planPhrases(
-    root,
-    mean,
-    meanIndex,
-    row,
-    identity.searchableHeadword,
-  );
 
   return {
     canonical: [lexicalPlan(row, meanIndex, ownerHtml, identity), ...phrases],
