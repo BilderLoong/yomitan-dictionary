@@ -8,8 +8,6 @@
       "Bash(bun run:*)",
       "Bash(bun add:*)"
     ],
-    "additionalDirectories": [
-      "/Users/birudo/Projects/yomitan-dictionary"
-    ]
+    "additionalDirectories": ["/Users/birudo/Projects/yomitan-dictionary"]
   }
 }
