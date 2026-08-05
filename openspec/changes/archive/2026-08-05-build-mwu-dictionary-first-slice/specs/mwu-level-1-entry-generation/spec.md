@@ -118,7 +118,7 @@ Every `.drp` phrase with its own source-owned definition tree SHALL emit one can
 
 The generator SHALL model a `SoftLinkEntryPlan` as a lookup spelling, canonical target spelling, approved relationship kind, optional qualifier, dictionary-deinflection rule chain, and source evidence. A soft-link entry SHALL NOT own or copy the target definition.
 
-Approved relationship sources SHALL be `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link` from a `.va` attached directly to a mean, `phrase-alternate-soft-link` from a `.va` attached to a defined `.drp`, and derived `bare-affix-soft-link`. Raw `alt` rows, inflections, undefined `.uro` run-ons, examples, and unapproved cross-reference-only structures SHALL NOT create soft-link entries.
+Approved relationship sources SHALL be `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link` from a `.va` attached directly to a mean, `phrase-alternate-soft-link` from a `.va` attached to a defined `.drp`, derived `bare-affix-soft-link`, and `cxl-ref-variant-reference-soft-link` from a `.cxl-ref` variant reference in a cross-reference-only `<mean>` block. Raw `alt` rows, inflections, undefined `.uro` run-ons, examples, and `.cxl-ref` references outside the confirmed variant family SHALL NOT create soft-link entries.
 
 #### Scenario: Main-to-alternative-spelling soft link with an embedded target
 
@@ -144,6 +144,15 @@ Approved relationship sources SHALL be `main-to-alternative-spelling-soft-link`,
 
 - **WHEN** a spelling occurs only in `alt(id, w)`
 - **THEN** it emits neither a canonical entry nor a soft link in this change
+
+#### Scenario: Cross-reference-only mean variant reference
+
+- **WHEN** the `o` row hosts a definition-free `O` `<mean>` whose `.cxl-ref`
+  reads `variant spelling of oh`
+- **THEN** generation emits a `cxl-ref-variant-reference-soft-link` from
+  `O → oh` whose deinflection rule chain is the relation phrase
+  `variant spelling of`, whose target row joins the canonical dependencies,
+  and which replaces any same-route `.va` link while merging its evidence
 
 ### Requirement: Audit alternative-local metadata
 
@@ -199,7 +208,7 @@ The generator SHALL begin with the requested root rows and add dedicated rows re
 
 ### Requirement: Preserve exact identities and inspectable evidence
 
-Canonical entries SHALL retain their source row and `<mean>` identities. Serialized soft links SHALL be deduplicated only when their exact Unicode lookup spelling, target spelling, and effective deinflection rule chain are equal. Case, punctuation, spacing, and diacritics SHALL NOT be normalized for deduplication.
+Canonical entries SHALL retain their source row and `<mean>` identities. Serialized soft links SHALL be deduplicated only when their exact Unicode lookup spelling, target spelling, and effective deinflection rule chain are equal. Case, punctuation, spacing, and diacritics SHALL NOT be normalized for deduplication. A `cxl-ref-variant-reference-soft-link` whose lookup and target match an existing route SHALL replace that route's relationship and rule chain and merge the existing evidence.
 
 For every independent `<mean>`, the generator SHALL report source row ID and key, `<mean>` position, searchable headword, ownership decision, decision rule, and dedicated target row when applicable. For every emitted or reused soft link, it SHALL report all source evidence.
 

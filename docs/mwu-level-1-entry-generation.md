@@ -40,6 +40,7 @@ and design discussions.
 | `vr-mean-alternate-soft-link` | An explicit variant relationship from an alternate attached to an independent `<mean>`. `vr` is the domain label; the current MWU source marker is `.va`. | `SoftLinkEntryPlan.kind = "soft-link-entry"`; relationship = `"vr-mean-alternate-soft-link"` |
 | `phrase-alternate-soft-link` | An explicit alternate attached to a defined `.drp` phrase, pointing to that phrase's canonical spelling. | `SoftLinkEntryPlan.kind = "soft-link-entry"`; relationship = `"phrase-alternate-soft-link"` |
 | `bare-affix-soft-link` | An additional lookup route produced by removing only the boundary hyphen from a marked affix alternate. | `SoftLinkEntryPlan.kind = "soft-link-entry"`; relationship = `"bare-affix-soft-link"` |
+| `cxl-ref-variant-reference-soft-link` | A soft-link relationship from a cross-reference-only `<mean>` headword to the target spelling named by its `.cxl-ref` variant reference (for example `O` → `oh`). | `SoftLinkEntryPlan.kind = "soft-link-entry"`; relationship = `"cxl-ref-variant-reference-soft-link"` |
 
 Case 3 is a defer rule, not a separately emitted entry kind: the embedded
 alternative spelling is skipped because its dedicated word row owns the
@@ -87,6 +88,15 @@ The lookup spelling may also have its own canonical entries. For example, `in`
 keeps its ordinary canonical definitions while separate `soft-link-entry`
 records point from `in` to `In`, `IN`, `in-`, and `-in`.
 
+### Cross-reference-only `<mean>`
+
+A cross-reference-only `<mean>` has no local definition tree (no `.dt`
+outside `.dro`); its content is a `.cxl-ref` variant reference such as
+`variant spelling of oh`. It never owns a canonical Level 1 entry. Its
+headword is still a searchable lookup spelling, and the confirmed variant
+reference emits a `cxl-ref-variant-reference-soft-link` targeting the
+referenced spelling.
+
 ### Dedicated word row
 
 A dedicated word row is a row whose decoded source key represents the
@@ -112,6 +122,7 @@ parser, build report, and documentation use the same vocabulary.
 | `dedicated-word-row` | The existence of a source row for a searchable headword. | `word.w` index; encoded keys such as `o%27` | Makes the dedicated row the canonical owner for a different-spelling embedded `<mean>`; no semantic comparison is performed. |
 | `source-row-membership` | A different-spelling `<mean>` headword hosted inside a source word row. | `word.w`, `<mean>`, `.hword` | Creates a `main-to-alternative-spelling-soft-link` from the decoded `word.w` to the target headword, whether the target is Case 2 or Case 3. |
 | `alternate-form` | An explicit local alternate expression attached to a lexical entry or phrase. | `.vr`, `.vl`, `.va` | Creates a confirmed alternate soft-link domain form from the alternate expression to its local canonical headword while preserving the qualifier. The current `.va` mean and phrase rules are named `vr-mean-alternate-soft-link` and `phrase-alternate-soft-link`. |
+| `variant-reference` | A source statement identifying the local headword as a spelling variant of another entry. | `.cxl-ref`, `.cxl`, `.cxt` | In a cross-reference-only `<mean>`, creates a `cxl-ref-variant-reference-soft-link` from the headword to the referenced spelling. |
 | `phrase` | A defined multiword lexical unit with its own definition tree. | `.dro`, `.drp` | Creates a `drp-phrase-canonical-entry`; the parent retains the phrase section. Phrase-local `.va` creates a `phrase-alternate-soft-link`. |
 | `soft-link-entry` | A Level 1 searchable relationship with no copied definition tree. | Derived from a confirmed source relationship | Serializes one of the approved soft-link domain forms as a dictionary-deinflection tuple targeting a canonical term spelling. |
 | `alt-index-row` | An alternate lookup index row whose semantic target relationship has not yet been classified. | SQLite `alt(id, w)` | Possible future `soft-link-entry` evidence; skipped by the current build. |
@@ -242,43 +253,13 @@ are handled by `soft-link-entry` generation:
 - an additional bare-affix lookup route, such as using `in` to find `in-` or
   `-in`.
 
-This exclusion is only from canonical-entry generation. Some excluded forms
-may later become `soft-link-entry` records pointing to a canonical Level 1
-entry.
+This exclusion is only from canonical-entry generation.
+Cross-reference-only `<mean>` blocks emit `cxl-ref-variant-reference-soft-link`
+records instead of canonical entries; other excluded forms may later become
+`soft-link-entry` records pointing to a canonical Level 1 entry.
 The ordinary word `in` can still own its canonical definition while the same
 search spelling also participates in separate `soft-link-entry` records for
 `in-` and `-in`.
-
-### TODO: Cross-reference-only mean soft-link generation
-
-The current Level 1 planner uses a local `.dt` as evidence that a `<mean>`
-owns a canonical definition. It does not currently inspect `.cxl-ref` when
-planning `soft-link-entry` records. The renderer recognizes `cxl-ref`, but
-that recognition happens only after a canonical plan already exists.
-
-The first `O` mean in the `o` source row is the motivating case:
-
-```text
-O -> oh
-```
-
-Its content says `variant spelling of oh`, but it has no local definition
-tree. It should not create a third `alternative-spelling-canonical-entry`.
-However, the cross-reference may be useful relationship evidence and should
-be evaluated as a possible soft-link source.
-
-Before implementing this, decide and test:
-
-- whether a cross-reference-only `<mean>` creates a new soft-link
-  relationship or reuses an existing relationship kind;
-- how the direction and target are extracted from `.cxl-ref`;
-- how to deduplicate it with an equivalent `.va` relationship from the
-  dedicated target row, such as the existing `O -> oh` evidence; and
-- how to preserve source evidence while keeping the canonical-entry rule
-  definition-bearing.
-
-This is intentionally a planning TODO, not a rule that the current builder
-already implements.
 
 ## Source-key comparison
 
@@ -357,6 +338,9 @@ After canonical generation:
    same-spelling records reuse it. This means all canonical records matching a
    source row's decoded `word.w` spelling share a sequence, while distinct
    terms receive later sequence numbers.
+10. `.cxl-ref` never grants canonical ownership; a cross-reference-only
+    `<mean>` may emit a `cxl-ref-variant-reference-soft-link` pointing to the
+    referenced spelling.
 
 ### Canonical term-bank sequence grouping
 
@@ -401,10 +385,11 @@ Confirmed creation sources are:
 - `vr-mean-alternate-soft-link` for `.va` alternatives attached directly to a
   mean;
 - `phrase-alternate-soft-link` for `.va` alternatives attached to defined
-  phrases.
+  phrases;
+- `cxl-ref-variant-reference-soft-link` for `.cxl-ref` variant references in
+  cross-reference-only `<mean>` blocks.
 
-Cross-reference-only `<mean>` blocks remain candidates whose creation rules are
-not yet approved. The `alt` table is also a possible future source of
+The `alt` table is also a possible future source of
 `soft-link-entry` records, but it is intentionally skipped for now because we
 have not defined which `alt` relationships are semantically safe to emit. Bare
 lookup for marked prefixes, suffixes, and infixes is already covered when those
@@ -526,6 +511,61 @@ take up the word -> take the word
 
 The local qualifier `or less commonly` remains attached to the
 `soft-link-entry` evidence.
+
+### Confirmed cxl-ref-variant-reference soft-link
+
+This domain rule is represented by a `SoftLinkEntryPlan` with
+`relationship = "cxl-ref-variant-reference-soft-link"` and is serialized as a
+`soft-link-entry` record.
+
+A cross-reference-only `<mean>` — one whose content is a `.cxl-ref` variant
+reference and which has no local definition tree — emits no canonical entry.
+Its searchable headword is the lookup spelling, and the referenced spelling
+from the `.cxl-ref` is the canonical target. The first `O` mean in the `o`
+source row is the motivating case:
+
+```text
+O -> oh
+```
+
+Target extraction uses the `.cxt` anchor's `bword://` href, not the visible
+anchor text: strip the scheme and the trailing `[homograph]` suffix (for
+example `bword://ibadite[1]` becomes `ibadite`). The visible text may carry a
+homograph prefix such as `1ibadite` and must not be used for the target. The
+`.cxn` reference qualifier (for example `2a` in `variant of acoustics 2a`) is
+relationship evidence, not part of the target spelling.
+
+Only the confirmed variant family of relation phrases is emitted: `.cxl` text
+case-insensitively matching `variant` or `spelling`, such as `variant
+spelling of`, `variant of`, `archaic variant of`, `obsolete variant of`,
+`dialectal variant of`, `Scottish variant of`, `chiefly Scottish variant of`,
+and `chiefly British spelling of`. Inflection references (`plural of`, `past
+tense of`, and similar), `taxonomic synonym of`, `synonym of`, and `and of`
+continuations remain reported findings without soft-link rules until their own
+rules are approved.
+
+The serialized record's dictionary-deinflection tuple carries the relation
+phrase as its rule name, so the resolved entry displays the relation: for the
+`O` mean this produces `[[oh, ["variant spelling of"]]]`. The
+`definition-free-mean` finding remains for diagnostics.
+
+Eligibility and dependency:
+
+- the `<mean>` must be cross-reference-only (no local `.dt` outside `.dro`);
+  a mean with its own definition tree keeps `.cxl-ref` as rendered content and
+  emits no link;
+- skip the link when the extracted target equals the lookup spelling or when
+  no source row exists for the target in the decoded index;
+- the target row joins `requiredDependencyIds` exactly like a dedicated-row
+  deferral, so the target becomes a canonical term and the final
+  `missing-dependency` check passes.
+
+Deduplication: one serialized `soft-link-entry` per `(lookup, target)` route.
+When an existing route (for example the `oh` row's `vr-mean-alternate-soft-link`
+evidence for `O`) covers the same lookup and target, the
+`cxl-ref-variant-reference-soft-link` replaces that route's relationship and
+rule name and merges the existing evidence, because the variant reference is
+the more specific statement of the relationship.
 
 All confirmed sources produce the same Level 1 kind, `soft-link-entry`. The
 build report still distinguishes source-row membership from explicit lexical
