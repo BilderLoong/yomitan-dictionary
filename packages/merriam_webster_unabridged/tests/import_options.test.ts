@@ -8,6 +8,10 @@ test("parses a query file and close option", () => {
       "dictionary.zip",
       "--query-file",
       "queries.txt",
+      "--extension-path",
+      "/tmp/yomitan-extension",
+      "--screenshot",
+      "mwu-search.png",
       "--close",
     ]),
   ).toEqual({
@@ -18,6 +22,8 @@ test("parses a query file and close option", () => {
       queryFilePath: "queries.txt",
       close: true,
       chromeFlags: [],
+      screenshotPath: "mwu-search.png",
+      extensionPath: "/tmp/yomitan-extension",
     },
   });
 });
@@ -39,6 +45,8 @@ test("forwards chrome flags verbatim in order", () => {
       queryFilePath: null,
       close: false,
       chromeFlags: ["--remote-debugging-port=9222", "--remote-allow-origins=*"],
+      screenshotPath: null,
+      extensionPath: null,
     },
   });
 });

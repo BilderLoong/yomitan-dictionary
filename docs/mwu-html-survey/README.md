@@ -201,10 +201,21 @@ The build writes a deterministic `build-report.json` containing input
 evidence, source rows, ownership decisions, dependency reasons, relationship
 evidence, findings, rejections, fatal errors, output-record totals, and the
 archive path. A successful archive is checked against the repository's
-Yomitan schemas and imported with the bundled Chromium harness. The current
-boundary is conservative readable content for selected words; the final
-Level 1-6 presentation model, full-database coverage, audio, and richer media
-remain future work.
+Yomitan schemas and imported with the bundled Chromium harness.
+
+Structured content now follows the six-level model end to end. The renderer
+(`src/conversion/renderStructuredContent.ts`) emits an `mwu-entry` root with
+a header (homograph number, headword display, entry qualifier,
+pronunciation, inflection group, alternate forms), verb-subtype labels,
+nested sense lists (`1.`, `a.`, `1.` via `.sn` marker paths with MWU-style
+inheritance), definitions, usage notes, example groups with one visible
+example and an `N more examples` collapse, example attributions, orange
+target highlighting, called-also, comparison and cross references, collapsed
+origin and synonym-discussion sections, and collapsed phrase sections.
+Definition tags are WTY-style chips derived from `.fl` (`noun` → `n`,
+`transitive verb` → `v`, …). The full unit contract is documented in
+[MWU Level 1 entry generation](../mwu-level-1-entry-generation.md). Audio,
+full-database coverage, and richer media remain future work.
 
 ### Confirmed containers and structural rules
 

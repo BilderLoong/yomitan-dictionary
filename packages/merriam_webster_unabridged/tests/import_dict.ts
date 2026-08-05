@@ -50,7 +50,7 @@ const importDictionary = async (
   }
 };
 
-const _assertSearchResult = async (
+const assertSearchResult = async (
   page: Page,
   searchPageUrl: string,
   query: string,
@@ -95,8 +95,8 @@ const main = async (): Promise<void> => {
   await mkdir(userDataDirectory, { recursive: true });
 
   const pathToExtension = path.resolve(
-    import.meta.dirname,
-    "./fixture/yomitan-chrome-playwright",
+    options.extensionPath ??
+      path.join(import.meta.dirname, "./fixture/yomitan-chrome-playwright"),
   );
   const launchArgs = [
     `--disable-extensions-except=${pathToExtension}`,
@@ -145,9 +145,19 @@ const main = async (): Promise<void> => {
     await searchPage.goto(
       `${searchPageUrl}?query=${encodeURIComponent(searchQueries.join(". "))}`,
     );
-    // for (const query of searchQueries) {
-    //   await assertSearchResult(searchPage, searchPageUrl, query);
-    // }
+    await searchQueries.reduce(
+      (previous: Promise<void>, query: string): Promise<void> =>
+        previous.then(() =>
+          assertSearchResult(searchPage, searchPageUrl, query),
+        ),
+      Promise.resolve(),
+    );
+    if (options.screenshotPath !== null) {
+      await searchPage.screenshot({
+        path: path.resolve(options.screenshotPath),
+        fullPage: true,
+      });
+    }
   } finally {
     if (options.close) await browserContext.close();
   }

@@ -4,6 +4,12 @@
 
 **Goal:** Render selected MWU entries as structured, MWU-shaped Yomitan content instead of anonymous flattened blocks.
 
+**Execution status (2026-08-06):** Implemented in the `structure-content`
+worktree. The renderer, POS tuple propagation, real-source integration test,
+archive checks, importer assertions, screenshot option, and documentation are
+complete. The Chrome MCP connector was unavailable; local bundled Chromium
+passed the import/search gate instead.
+
 **Architecture:** Keep Level 1 source ownership and build orchestration intact. Add a pure Cheerio-backed semantic renderer that returns schema-valid structured content plus conversion findings, then let term-bank assembly carry the renderer's POS tag. Keep browser import and visual assertions at the edge.
 
 **Tech Stack:** Bun 1.3, TypeScript ESM, Cheerio, `bun:sqlite`, Yomitan structured-content types, Bun test, local Yomitan Chromium fixture/import harness.
@@ -28,7 +34,7 @@
 - Consumes: `convertCanonical(plan)` and the existing `mainCanonicalEntryPlan` test factory.
 - Produces: focused assertions that later renderer code must satisfy without relying on implementation details.
 
-- [ ] **Step 1: Add the failing semantic-header test**
+- [x] **Step 1: Add the failing semantic-header test**
 
 ```ts
 test("renders an MWU header with headword, pronunciation, and POS metadata", () => {
@@ -55,7 +61,7 @@ test("renders an MWU header with headword, pronunciation, and POS metadata", () 
 });
 ```
 
-- [ ] **Step 2: Add failing hierarchy/example/section assertions**
+- [x] **Step 2: Add failing hierarchy/example/section assertions**
 
 ```ts
 test("renders nested sense markers, highlighted examples, and collapsed extras", () => {
@@ -90,13 +96,13 @@ test("renders nested sense markers, highlighted examples, and collapsed extras",
 });
 ```
 
-- [ ] **Step 3: Run the focused tests and confirm the new expectations fail for the missing contract**
+- [x] **Step 3: Run the focused tests and confirm the new expectations fail for the missing contract**
 
 Run: `bun test packages/merriam_webster_unabridged/tests/conversion/convertCanonical.test.ts`
 
 Expected: FAIL because `ConvertedCanonical` does not yet expose `definitionTags` and the current converter emits nested anonymous `div` nodes without semantic header/list/section metadata.
 
-- [ ] **Step 4: Add helper predicates only after the failure is observed**
+- [x] **Step 4: Add helper predicates only after the failure is observed**
 
 Create `structuredContentAssertions.ts` with typed recursive helpers that inspect `tag`, `data.content`, and child content without changing production behavior. Keep the helpers pure and avoid `any`/casts.
 
@@ -111,7 +117,7 @@ Create `structuredContentAssertions.ts` with typed recursive helpers that inspec
 - Consumes: `CanonicalEntryPlan` owner HTML and Cheerio DOM nodes.
 - Produces: `renderCanonicalContent(plan): Result<RenderedCanonicalContent, ConversionError>` with `content`, `definitionTags`, `findings`, and deterministic visible text.
 
-- [ ] **Step 1: Define the renderer result and semantic node constructors**
+- [x] **Step 1: Define the renderer result and semantic node constructors**
 
 ```ts
 export interface RenderedCanonicalContent {
@@ -128,7 +134,7 @@ export const renderCanonicalContent = (
 };
 ```
 
-- [ ] **Step 2: Implement immutable text normalization and class-aware inline mapping**
+- [x] **Step 2: Implement immutable text normalization and class-aware inline mapping**
 
 Use the following output policy in `renderInlineNode`:
 
@@ -150,7 +156,7 @@ const renderTarget = (content: StructuredContent): StructuredContent => ({
 
 Map `mw_t_wi`, `mw_t_it`, `sl`, `sdsense`, and supported punctuation wrappers to schema-valid `span` nodes. Keep visible text from `a`/`cxl-ref`/`dx-jump`, but never emit `gdlookup://` or `bword://` URLs.
 
-- [ ] **Step 3: Implement header extraction and assert the focused header test passes**
+- [x] **Step 3: Implement header extraction and assert the focused header test passes**
 
 Extract `.hword`, `.fl`, `.lbs`, `.prs .pr`, and `.vg-ins` into `mwu-header`. Normalize `¦` to `ˈ`, wrap each pronunciation in `/.../`, preserve display syllable dots, and map common POS labels with a pure lookup table.
 
@@ -169,7 +175,7 @@ Expected: PASS for the new test and the existing source-order/link/fallback/empt
 - Consumes: class-marked MWU `.sb`, `.sense`, `.dt`, `.ex-sent-group`, `.uns`, `.dro`, and origin nodes.
 - Produces: nested native lists, definition-flow nodes, collapsed details nodes, and one finding per unsupported visible subtree.
 
-- [ ] **Step 1: Flatten sense DOM into immutable marker paths**
+- [x] **Step 1: Flatten sense DOM into immutable marker paths**
 
 Represent each source sense as:
 
@@ -185,7 +191,7 @@ interface SenseRecord {
 
 Build the ordered list tree by grouping marker-path prefixes. Use `decimal` for level 3/5 and `lower-alpha` for level 4. A sense with `1 a (1)` must produce nested list items rather than a single flat label string.
 
-- [ ] **Step 2: Render definitions and local attachments in source order**
+- [x] **Step 2: Render definitions and local attachments in source order**
 
 Render `.dt` direct content as a `definition`/`usage-note` flow, then attach `.ex-sent-group`, `.uns`, `.sdsense`, cross references, and attribution to the nearest sense. Render one example directly and the remaining examples under:
 
@@ -201,11 +207,11 @@ Render `.dt` direct content as a `definition`/`usage-note` flow, then attach `.e
 }
 ```
 
-- [ ] **Step 3: Render origin and defined phrase sections as collapsed details**
+- [x] **Step 3: Render origin and defined phrase sections as collapsed details**
 
 Use `data.content` values `origin`, `origin-section-title`, `origin-text`, and `phrase`. Keep phrase body order and reuse definition/example rendering for phrase-local definitions.
 
-- [ ] **Step 4: Run the full focused conversion test file and fix only production behavior**
+- [x] **Step 4: Run the full focused conversion test file and fix only production behavior**
 
 Run: `bun test packages/merriam_webster_unabridged/tests/conversion/convertCanonical.test.ts`
 
@@ -223,11 +229,11 @@ Expected: PASS with no raw unsupported HTML tags in the serialized structured co
 - Consumes: `ConvertedCanonical.definitionTags` and real `MWU.db` source rows.
 - Produces: canonical term-bank records with WTY-style definition tags and deterministic structured content.
 
-- [ ] **Step 1: Add a failing real-source integration assertion**
+- [x] **Step 1: Add a failing real-source integration assertion**
 
 Assert that building `what`, `take`, `process`, `set`, and `hand` yields canonical records whose structured roots contain `mwu-header`, at least one `ol` for entries with senses, and no `unsupported-visible-subtree` finding for the known covered classes.
 
-- [ ] **Step 2: Pass definition tags into `assembleCanonicalRecord`**
+- [x] **Step 2: Pass definition tags into `assembleCanonicalRecord`**
 
 Change the canonical tuple construction from a hard-coded `null` definition tag to:
 
@@ -237,7 +243,7 @@ converted.definitionTags
 
 Keep `reading` as `""`, popularity/sequence ordering unchanged, and soft links untouched.
 
-- [ ] **Step 3: Run focused and real-source gates**
+- [x] **Step 3: Run focused and real-source gates**
 
 Run:
 
@@ -260,15 +266,15 @@ Expected: focused tests pass; the build exits zero and its report has no fatal e
 - Consumes: an archive path, optional query, optional extension path, and optional close flag.
 - Produces: deterministic import completion/error/count checks and representative rendered search assertions.
 
-- [ ] **Step 1: Add an explicit extension-path option with a default**
+- [x] **Step 1: Add an explicit extension-path option with a default**
 
 The default remains the package-local fixture path. The option allows the ignored historical fixture in the main checkout to be used without copying it into the worktree. Add parser tests for absolute and relative paths.
 
-- [ ] **Step 2: Make the dictionary harness assert rendered results**
+- [x] **Step 2: Make the dictionary harness assert rendered results**
 
 After import completion, assert dictionary count increases, query results exist, and representative result content includes the selected term plus one of the structured labels (`Origin`, a definition list, or an example). Keep `--close` for CI and omit it for manual inspection.
 
-- [ ] **Step 3: Run archive/schema/import gates**
+- [x] **Step 3: Run archive/schema/import gates**
 
 Run:
 
@@ -292,15 +298,15 @@ Expected: schemas pass and the local bundled Chromium harness imports the archiv
 - Consumes: verified renderer behavior, report counts, archive/import output, and browser limitations.
 - Produces: current documentation that distinguishes production output from the design fixture and names all verification gates.
 
-- [ ] **Step 1: Document the renderer ownership and structured-content contract**
+- [x] **Step 1: Document the renderer ownership and structured-content contract**
 
 Record header/list/attachment rules, source classes covered, fallback finding behavior, and why Yomitan reading remains empty.
 
-- [ ] **Step 2: Record rendered representative searches and unresolved evidence**
+- [x] **Step 2: Record rendered representative searches and unresolved evidence**
 
 Update the visual audit with the actual query set, counts, collapsed sections, target highlighting, and any source classes still reported as findings. Do not call the whole repository green if unrelated baseline diagnostics remain.
 
-- [ ] **Step 3: Run final gates before claiming completion**
+- [x] **Step 3: Run final gates before claiming completion**
 
 Run:
 

@@ -78,6 +78,16 @@ local `.sgram` labels, `set` keeps its full recognized sense/phrase slice with
 the ordinary `set` records prioritized before `seth`/`sett`, and
 `give up`/`sett` retain their dedicated source-row entries.
 
+The production selected-word path now implements the corresponding Level 1
+structured-content slice in
+[`src/conversion/renderStructuredContent.ts`](../src/conversion/renderStructuredContent.ts).
+It consumes canonical `<mean>` HTML, emits semantic MWU headers and native
+ordered lists, keeps local labels/examples attached to their owning senses,
+and collapses origin, phrase, and extra-example sections. The fixture remains
+the visual reference and coverage ledger; production output is verified by
+focused converter tests, real SQLite builds, archive schema checks, and the
+bundled-Chromium importer.
+
 The source-to-fixture comparison is recorded in
 [`coverage-audit.md`](coverage-audit.md). It deliberately distinguishes
 information-unit coverage from complete article transcription. The `set` slice
@@ -167,7 +177,8 @@ link tests may replace its choices.
 
 The fixture intentionally leaves these for later:
 
-- implementing and validating the direct MWU HTML-to-source parser;
+- expanding the direct MWU HTML renderer to uncommon source wrappers and
+  broad all-article coverage;
 - exact ownership of unusual markup, images, and less common presentation
   classes;
 - whether `.sgram` grammar labels should ever be promoted from scoped inline

@@ -15,6 +15,7 @@ describe("assembleRecords", () => {
       {
         plan: mainCanonicalEntryPlan({ term: "in-" }),
         content: { tag: "div", content: "prefix form" },
+        definitionTags: null,
         findings: [],
       },
       1,
@@ -36,6 +37,7 @@ describe("assembleRecords", () => {
       {
         plan: mainCanonicalEntryPlan({ term: "in-", rowKey: "in" }),
         content: { tag: "div", content: "embedded prefix form" },
+        definitionTags: "n",
         findings: [],
       },
       2,
@@ -43,6 +45,7 @@ describe("assembleRecords", () => {
     );
 
     expect(embeddedCanonical[4]).toBe(0);
+    expect(embeddedCanonical[2]).toBe("n");
 
     const link = assembleSoftLinkRecord(
       softLinkEntryPlan(

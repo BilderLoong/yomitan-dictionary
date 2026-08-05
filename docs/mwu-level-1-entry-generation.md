@@ -578,3 +578,136 @@ may return every matching canonical Level 1 record for that spelling. The
 intermediate model may retain more precise source identities for diagnostics,
 but it cannot rely on Yomitan to select one same-spelling POS or homograph
 record by ID.
+
+## Structured-content rendering
+
+This section defines how the canonical owner HTML is converted into Yomitan
+structured content. It is the production counterpart of the hand-authored
+`design-fixtures/what/term_bank_1.json`: the fixture records the intended
+visual design, and this contract states how the parser reproduces it from
+source HTML.
+
+The conversion lives in `src/conversion/convertCanonical.ts` (facade) and
+`src/conversion/renderStructuredContent.ts` (pure renderer). The renderer is
+pure: it maps `CanonicalEntryPlan.source.ownerHtml` to
+`RenderedCanonicalContent { content, definitionTags, findings, visibleText }`
+with no I/O. `ConvertedCanonical` adds the plan and the final
+`definitionTags` (`null` for means without `.fl`, `phrase` for defined
+phrases without their own `.fl`).
+
+### Root shape
+
+Every canonical record's content root is an `mwu-entry` `div` (data:
+`content = mwu-entry`, `level = 1`, `unit = lexical-entry`) containing, in
+source order:
+
+1. `mwu-header` — homograph number, headword display, entry qualifier,
+   pronunciation, inflection group, and local alternate forms;
+2. the definition body — verb-subtype labels and the nested sense list;
+3. defined phrase sections (`dro`) as collapsed `details`; when the owner is
+   the phrase itself (a `drp-phrase-canonical-entry`), the phrase body is
+   rendered flat as `definition-flow` instead of being wrapped in `details`;
+4. the origin section as a collapsed `details`;
+5. the related-to section (synonym discussion) as a collapsed `details`;
+6. any remaining visible source content rendered loosely.
+
+### Information units
+
+The renderer recognizes the following source classes and emits the named
+units. Levels follow the six-level source model (1 entry, 2 verb group,
+3 sense, 4 subsense, 5 definition, 6 note/example/reference).
+
+| Source evidence | Unit | Tag and styling |
+| --- | --- | --- |
+| `.hword > sup` | `homograph-number` | `span`, superscript, 0.75em |
+| `.hword` when display differs from the searchable term | `headword-display` > `syllabification-marker` | `div`/`span`, italic |
+| `.lbs` / `.lb` | `entry-qualifier` | `span` |
+| `.prs` / `.pr` | `pronunciation` | `span`, italic, margin-left; each reading wrapped in `/…/`; `¦` normalized to `ˈ`, zero-width spaces removed |
+| `.vg-ins`, `.il`, `.if`, `.ix`, `.prt-a`, `.mw` | `inflection-group`, `inflection-label`, `inflection-marker`, `form-pronunciation` | `div`/`span`, italic labels |
+| `.entry-attr.vrs > .vr`, `.vl`, `.va` | `alternate-form`, `variant-qualifier` | `div`/`span`, italic |
+| `.vd` | `verb-subtype` | `div`, bold |
+| `.sgram` | `grammar-label` | `span`, italic |
+| `.sls > .sl` | `tag` (category `usage`, sourceUnit `sense-label`) | `span`, italic, title = label |
+| `.sn` with `.num`/`.letter`/`.sub-num` | `mwu-level` `ol` + `sense-number`/`subsense-letter`/`definition-number` `li` | nested `ol`, decimal / lower-alpha / decimal |
+| `.dt` | `definition` | `span`, or `div` when it contains block units |
+| `.uns` / `.un` / `.mdash` / `.unText` | `usage-note` | `div`, italic, margin-left 1em; the em dash gets a trailing space |
+| `.vis` / `.vi` / `.ex-sent-group` / `.ex-sent` | `example-sentence`, `extra-examples` | `div`, margin-left 1em; first example visible, the rest collapsed in a `details` with an `N more examples` summary |
+| `.mw_t_wi` | `target-highlight` | `span`, orange background, bold |
+| `.aq` / `.auth` / `.aqdate` | `example-source` | `div`, italic, 0.9em, margin-left 1em |
+| `.dx-jump` / `.mw_t_dxt` | `comparison-reference` + `cross-reference` (relation `compare`) | `div` / `span`, underline |
+| `.cxl-ref` / `.cxl` / `.cxt` | `variant-reference` + `cross-reference` (relation `variant`) | `span` |
+| `.mw_t_mat`, `.mw_t_sx`, `.mw_t_sc` | `cross-reference` (relations `origin`, `see`, `related`) | `span`, underline |
+| `.ca`, `.intro`, `.cat`, `.ucat` | `called-also` | `span` |
+| `.sdsense`, `.sd` | definition continuation (no separate unit) | inline |
+| `.see-in-addition` | `see-in-addition` | `div` |
+| `.section[data-id=origin]` | `origin` details + `origin-section-title` + `origin-text` | `details` (collapsed) / `summary` / `div` |
+| `.section[data-id=related-to]` | `related-item` details + `synonym-discussion` | `details` (collapsed) / `div` |
+| `.dro` / `.drp` | `phrase` details + `definition-flow` | `details` (collapsed) / `div` |
+
+Internal navigation targets are discarded (`bword://`, `gdlookup://`, and
+`sound://` hrefs never survive); visible link text is kept. `em`/`mw_t_it`
+become italic `emphasis` spans, `strong` becomes bold, `sup` becomes
+`superscript-reference`, and `p` is transparent. `.mw_t_bc` is rendered as
+plain colon text. `First Known Use` paragraphs and `.entry-status` images are
+excluded from output, matching the information-unit catalog's ignore list.
+
+### Sense hierarchy
+
+Senses are collected from `.sense` and `.sen` containers whose nearest `.sb`
+is the current one, in document order. Each container's marker path comes
+from its `.sn` (`.num` → level 3, `.letter` → level 4, `.sub-num` → level 5).
+A sense without its own marker at a level inherits the previous sense's
+marker at that level — this reproduces MWU's `1a(1)`, `1a(2)`, `1b(1)` runs
+and the `hand` shape where a numbered `.sen` is followed by lettered
+`.sense` containers. Bare senses (no `.sn`) render directly into the parent
+flow. The resolved paths are grouped into nested `ol` lists: level 3 uses
+`decimal`, level 4 `lower-alpha`, level 5 `decimal`; each `li` carries its
+source marker in `data.sourceMarker`.
+
+Each sense's content is wrapped in a `definition-flow` `div` at the sense's
+level. Verb subtypes (`.vd`) are emitted as bold `verb-subtype` blocks before
+the sense list they own; `.sls` group labels render before the senses they
+qualify. `.vg` blocks inside `.dro` are rendered by the phrase section and
+excluded from the definition section, so phrase content is parsed exactly
+once.
+
+### Example groups
+
+One `.vis` (or a bare `.ex-sent-group`) is one local example group: its first
+example renders as a visible `example-sentence` `div`, and every later
+example is collapsed into an `extra-examples` `details` with a
+`N more examples` summary. Attributions (`— Author`) stay attached to their
+own example. The `→` arrow prefix of a source example is presentation
+metadata and is dropped.
+
+### Part-of-speech tags
+
+The `.fl` label maps to the Yomitan `definitionTags` field (the WTY-style
+chip shown beside the definition):
+
+- `noun` → `n`, `adjective` → `adj`, `verb` → `v`, `adverb` → `adv`,
+  `pronoun` → `pron`, `conjunction` → `conj`, `preposition` → `prep`,
+  `interjection` → `interj`, `abbreviation` → `abbr`, `symbol` → `symbol`,
+  `prefix` → `prefix`, `suffix` → `suffix`, `combining form` → `comb`;
+- verb subtypes collapse to `v` (`transitive verb`, `intransitive verb`,
+  `verb, transitive + intransitive`, …);
+- special forms: `geographical name` → `geo`, `biographical name` → `bio`,
+  `proper noun` → `prop n`, `trademark`/`service mark`/`certification mark`
+  → `trademark`, idioms/phrases → `phrase`, `auxiliary verb` → `aux`,
+  articles → `art`, `contraction` → `contraction`, `affix` → `affix`;
+- compounds join mapped parts with ` or ` (`adjective or noun` → `adj or n`);
+- parenthesized alternates (`adverb (or adjective)`) drop the parenthetical;
+- `noun … in construction` forms collapse to `n`, `plural noun` to `n pl`;
+- unknown labels keep their cleaned source text as a tag.
+
+The hand-authored fixture placed the `Origin of WHAT` details inside
+`mwu-header`; the production renderer keeps source order instead, so the
+origin section appears at the bottom of the entry like MWU itself. This is
+the only deliberate layout divergence from the fixture.
+
+### Renderer findings
+
+Unknown visible tags or classes still produce one
+`unsupported-visible-subtree` finding with the source position and a preview,
+and an entry whose rendered visible text is empty fails the conversion with
+`empty-canonical-definition` exactly like the previous renderer.

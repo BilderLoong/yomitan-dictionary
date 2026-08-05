@@ -8,3 +8,8 @@ node_modules/
 build/
 assets
 fixture/
+
+# Keep build-focused integration tests visible; the build/ rule above is
+# intentionally broad for generated artifacts.
+!tests/build/
+!tests/build/*.test.ts

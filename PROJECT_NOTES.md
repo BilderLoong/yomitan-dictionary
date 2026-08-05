@@ -1,17 +1,17 @@
 # MDX to Yomitan: Project Notes and Research Log
 
-Last updated: 2026-08-03
+Last updated: 2026-08-06
 
-Status: research and design log. This document records source understanding,
-Yomitan behavior, user requirements, and survey findings. The first selected-
-word converter is specified separately in the `build-mwu-dictionary-first-slice`
-OpenSpec change.
+Status: research, design, and implementation log. This document records source
+understanding, Yomitan behavior, user requirements, survey findings, and the
+verified selected-word renderer slice. The source ownership/link contract is
+still specified separately in the archived OpenSpec change.
 
-The current work is archived as a status checkpoint in
+The earlier reconnaissance work is archived as a status checkpoint in
 [`docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md`](docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md).
-That archive records completed reconnaissance, verified fixture behavior, and
-the remaining richer-converter TODO; it does not claim the full converter is
-done.
+That archive records completed reconnaissance and verified fixture behavior.
+The 2026-08-06 worktree adds the first production semantic renderer described
+below; it does not claim complete uncommon-markup or media coverage.
 
 ## Goal
 
@@ -33,18 +33,19 @@ because that is easier to export.
 
 ## Scope boundary
 
-This document remains the source-research record. The first production version
-now implements the approved selected-word Level 1 ownership and link rules
-while richer Level 1-6 presentation research continues. Production
-implementation details belong in the OpenSpec change rather than being
-inferred from this history.
+This document remains the source-research record, but it now also records the
+first production structured-content implementation. The selected-word builder
+implements the approved Level 1 ownership/link rules and a conservative
+MWU-shaped Level 1 renderer; broader Level 1-6 coverage and media remain
+research work. Production implementation details are linked from this history
+so the source contract and the current code do not drift apart.
 
 The verified v1 path accepts only explicit `--words` and `--words-file`
 targets, reads selected SQLite rows on demand, closes dedicated canonical
 dependencies, converts readable owner-local definitions, records findings and
 rejected relationships, validates the emitted Yomitan tuples, and writes a
 deterministic ZIP plus `build-report.json`. It is intentionally not a
-full-database fallback or the final six-level renderer.
+full-database fallback or a complete uncommon-markup/media renderer.
 
 ## Project orientation
 
@@ -161,12 +162,51 @@ presentation tokens rather than new information units. The broad all-source
 report remains an inventory, not proof that every uncommon descendant has been
 understood.
 
-Deferred work includes the complete Level 1-6 semantic renderer, surveying
-uncommon markup and images, building the future label inventory, broader
-soft-link validation in Yomitan, and deciding the final origin/First Known Use
-and audio policies. The first production implementation is narrower: it builds
-only explicit `--words`/`--words-file` targets, implements Level 1 ownership
-and links, and emits conservative readable definitions.
+### 2026-08-06 production renderer finding
+
+The new `structure-content` worktree replaces the old generic `div` flattening
+in [`renderStructuredContent.ts`](packages/merriam_webster_unabridged/src/conversion/renderStructuredContent.ts).
+The converter now keeps source ownership in the selected `<mean>` and emits a
+single `mwu-entry` root with:
+
+- a compact header for homograph number, display headword, POS, pronunciation,
+  inflection, and source variants;
+- immutable marker-path `ol`/`li` trees for decimal, lower-alpha, and
+  parenthetical sense levels;
+- sense-local `.sl`, `.sgram`, `.uns`, `.sdsense`, cross-reference, and
+  attribution nodes;
+- one visible example per local `.vis` group, with the remainder in closed
+  `extra-examples` details;
+- independently titled, closed phrase sections and a closed origin section;
+- orange/bold `.mw_t_wi` target spans, visible link text without MWU internal
+  URLs, and styled fallbacks for unsupported visible subtrees.
+
+The reading tuple field remains empty. The definition-tag field now carries a
+small WTY-style POS mapping, while richer source labels remain in structured
+content. This preserves the distinction between searchable/deinflection data
+and presentation data.
+
+Real-source evidence from the current implementation:
+
+- direct `what` conversion: one entry root, 12 list levels, 13 phrase
+  sections, 9 collapsed example groups, 84 example nodes, and zero conversion
+  findings;
+- five-root build (`what take process set hand`): 180 canonical records, 29
+  soft-link records, 209 total records, two intentional planning findings for
+  definition-free `sett` means, and zero fatal errors;
+- archive schema/determinism checks pass, and the local bundled-Chromium
+  importer passes per-query searches for `what`, `process`, `set`, `hand`, and
+  `take stage`.
+
+The Chrome MCP connector was unavailable in this session, so the browser result
+above is local Playwright Chromium evidence, not Chrome-MCP evidence. The
+import harness now supports `--extension-path`, `--screenshot`, and per-query
+render assertions so that limitation is explicit and repeatable.
+
+Deferred work is now narrower: uncommon source wrappers, broad label inventory,
+images/audio, full-database mode, and the final origin/audio policy. The
+production implementation still accepts only explicit `--words`/`--words-file`
+targets and keeps all fallback findings visible in `build-report.json`.
 
 ### SQLite source shape
 

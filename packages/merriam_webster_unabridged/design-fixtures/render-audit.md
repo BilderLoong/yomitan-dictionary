@@ -1,12 +1,29 @@
 # Manual design-fixture render audit
 
-Updated: 2026-08-03
+Updated: 2026-08-06
 
 This is a visual/behavioral check of the hand-authored
 [`what/term_bank_1.json`](what/term_bank_1.json) after packaging it as
 `build/design-what/MWU-what-design.zip`. It is not parser output. The ZIP was
 imported into the local Yomitan Chromium fixture with revision
 `design-what-plus-set-1`.
+
+## Production renderer audit
+
+The production selected-word builder now consumes the same MWU source shape
+through [`renderStructuredContent.ts`](../src/conversion/renderStructuredContent.ts);
+the hand-authored JSON remains a reference, not an input. A five-root build of
+`what`, `take`, `process`, `set`, and `hand` produced 180 canonical records and
+29 soft links with no fatal errors. The direct `what` owner rendered 12 native
+ordered-list levels, 13 collapsed phrase sections, 9 collapsed example groups,
+84 example nodes, orange target highlights, and zero conversion findings.
+
+The bundled-Chromium importer then passed per-query searches for `what`,
+`process`, `set`, `hand`, and `take stage`; a screenshot of the rendered result
+was captured during the audit. The Chrome MCP connector was unavailable, so
+this is local Playwright evidence rather than Chrome-MCP evidence. The harness
+now supports `--extension-path` for the ignored fixture, `--screenshot` for
+visual review, and explicit per-query result assertions.
 
 ## Queries checked
 
@@ -95,5 +112,7 @@ deinflection soft-link records.
 - `.see-in-addition` outside the synonym-discussion wrapper is now known to
   occur in `because`, `finalize`, `he`, `one`, and `they`; their surrounding
   ownership still needs a later focused fixture.
-- The final parser must reproduce these relationships from source HTML; this
-  design job intentionally does not add or run that parser.
+- The fixture still does not define every production fallback or uncommon
+  source wrapper. The production renderer now covers the documented Level 1
+  slice; broader uncommon markup, media, and full-article transcription remain
+  deferred.

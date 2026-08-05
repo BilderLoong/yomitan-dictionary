@@ -6,6 +6,8 @@ export interface ImportOptions {
   readonly queryFilePath: string | null;
   readonly close: boolean;
   readonly chromeFlags: readonly string[];
+  readonly screenshotPath: string | null;
+  readonly extensionPath: string | null;
 }
 
 export interface ImportArgumentError {
@@ -18,10 +20,12 @@ interface ParsedOptions {
   readonly queryFilePath: string | null;
   readonly close: boolean;
   readonly chromeFlags: readonly string[];
+  readonly screenshotPath: string | null;
+  readonly extensionPath: string | null;
 }
 
 const usage =
-  "Usage: bun run tests/import_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--chrome-flag <flag>] [--close]";
+  "Usage: bun run tests/import_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
 
 const parseOptions = (
   argumentsList: readonly string[],
@@ -35,6 +39,40 @@ const parseOptions = (
     return parseOptions(argumentsList, index + 1, {
       ...options,
       close: true,
+    });
+  }
+
+  if (argument === "--screenshot") {
+    const value = argumentsList[index + 1];
+    if (value === undefined || value.length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "--screenshot requires a non-empty value",
+        },
+      };
+    }
+    return parseOptions(argumentsList, index + 2, {
+      ...options,
+      screenshotPath: value,
+    });
+  }
+
+  if (argument === "--extension-path") {
+    const value = argumentsList[index + 1];
+    if (value === undefined || value.length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "--extension-path requires a non-empty value",
+        },
+      };
+    }
+    return parseOptions(argumentsList, index + 2, {
+      ...options,
+      extensionPath: value,
     });
   }
 
@@ -112,6 +150,8 @@ export const parseImportArguments = (
     queryFilePath: null,
     close: false,
     chromeFlags: [],
+    screenshotPath: null,
+    extensionPath: null,
   });
   if (!parsed.ok) return parsed;
 

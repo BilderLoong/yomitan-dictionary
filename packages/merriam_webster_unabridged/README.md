@@ -40,8 +40,28 @@ The first version implements selected-word Level 1 ownership and approved
 `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
 `phrase-alternate-soft-link`, and `bare-affix-soft-link` relationships. It emits
 conservative readable definitions, deterministic reports, and schema-valid
-Yomitan archives. The final six-level presentation model, full-database
-coverage, pronunciation audio, and richer media rendering remain future work.
+Yomitan archives. Canonical entries now use MWU-shaped structured content:
+semantic headers, WTY-style POS tags, native nested sense lists, scoped labels,
+highlighted targets, collapsed examples/origin/phrases, and visible
+cross-reference text without MWU navigation URLs. Broader uncommon markup
+coverage, full-database mode, pronunciation audio, and richer media rendering
+remain future work.
+
+## Production structured-content renderer
+
+The renderer is pure and owner-local: Level 1 planning selects the canonical
+`<mean>` first, then the converter maps only that HTML subtree. Source marker
+paths such as `1 a (1)` become nested ordered lists; `.uns` remains beside its
+own definition; each local `.vis` example group shows its first example and
+collapses the remainder; `.dro` phrases become separately titled collapsed
+sections in the parent entry; and `First Known Use`/audio controls are omitted
+by policy. Unsupported visible elements are retained once as readable fallback
+text and recorded as conversion findings.
+
+The Yomitan reading field stays empty. MWU pronunciations remain visible in the
+structured header, with `¦` normalized to `ˈ`; the canonical tuple's definition
+tag carries the compact POS mapping (`pron`, `v`, `n`, `phrase`, and related
+aliases), while sense-local labels remain inside structured content.
 
 ## Verification
 
@@ -64,8 +84,11 @@ bun run tests/import_dict.ts \
 The harness accepts either one comma- or newline-delimited `--query` value or a
 newline-delimited `--query-file`. The two options are mutually exclusive. If
 neither is supplied, it uses `tests/testWords.txt`. It uses bundled Chromium
-and checks that import progress completes, no import error is shown, and the
-installed dictionary count increases.
+and checks that import progress completes, no import error is shown, the
+installed dictionary count increases, and each query produces a rendered
+result. Use `--extension-path` when the ignored Yomitan fixture lives in a
+different checkout, and `--screenshot /tmp/mwu.png` to capture the rendered
+search page for visual inspection.
 
 ## Origin data
 

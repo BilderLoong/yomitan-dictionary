@@ -10,7 +10,7 @@ export const assembleCanonicalRecord = (
 ): TermInformation => [
   converted.plan.term,
   "",
-  null,
+  converted.definitionTags,
   "",
   popularity,
   [

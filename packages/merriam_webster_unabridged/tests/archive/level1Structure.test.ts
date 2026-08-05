@@ -46,10 +46,14 @@ const collectStrings = (value: unknown): readonly string[] =>
         ? Object.values(value).flatMap(collectStrings)
         : [];
 
-const canonicalEntry = (term: string, popularity: number): TermInformation => [
+const canonicalEntry = (
+  term: string,
+  popularity: number,
+  definitionTags: string | null | undefined = undefined,
+): TermInformation => [
   term,
   "",
-  null,
+  definitionTags === undefined ? expect.any(String) : definitionTags,
   "",
   popularity,
   expect.any(Array),
@@ -239,7 +243,7 @@ describe("term-bank level 1 generation test", () => {
       canonicalEntry("o-", 0),
       canonicalEntry("-o", 0),
       canonicalEntry("-o", 0),
-      canonicalEntry("-o-", 0),
+      canonicalEntry("-o-", 0, null),
     ];
     const mainToAlternativeSpellingSoftLinks = [
       softLinkEntry("o", "O", []),
