@@ -15,10 +15,9 @@ export const listSourceRowSummaries = (
   database: Database,
 ): readonly SourceRowSummary[] =>
   database
-    .query<
-      SourceRowSummary,
-      []
-    >("SELECT id, w AS encodedKey FROM word ORDER BY id")
+    .query<SourceRowSummary, []>(
+      "SELECT id, w AS encodedKey FROM word ORDER BY id",
+    )
     .all();
 
 export const loadSourceRow = (
@@ -26,10 +25,9 @@ export const loadSourceRow = (
   id: number,
 ): SourceRow | null => {
   const record = database
-    .query<
-      SourceRowRecord,
-      [number]
-    >("SELECT id, w AS encodedKey, m AS html FROM word WHERE id = ?")
+    .query<SourceRowRecord, [number]>(
+      "SELECT id, w AS encodedKey, m AS html FROM word WHERE id = ?",
+    )
     .get(id);
 
   return record === null

@@ -1,75 +1,233 @@
 ## ADDED Requirements
 
-### Requirement: Build the representative first slice
-The builder SHALL support an exact-word build containing the MWU rows for `what`, `turn`, `take`, and `run` so the complete pipeline can be validated before processing the full database.
+### Requirement: Build only explicitly requested words
 
-#### Scenario: Default first-slice selection
-- **WHEN** the first-slice build is run against an MWU SQLite database containing the four words
-- **THEN** only the exact selected source rows and the searchable entries derived from their defined phrases are included
+The production CLI SHALL accept target words through `--words <word...>` and
+an optional newline-delimited `--words-file <path>`. It SHALL combine both
+sources, trim boundary whitespace, ignore blank file lines, deduplicate exact
+Unicode spellings, and preserve first-seen order. It SHALL NOT read target
+words from stdin or fall back to an implicit full-database build.
 
-#### Scenario: Missing selected word
-- **WHEN** one of the required selected words has no source row
-- **THEN** the build returns a diagnostic identifying the missing word and does not claim that the first slice completed successfully
+#### Scenario: Multiple flag words
 
-### Requirement: Assemble searchable lexical records
-The builder SHALL emit one canonical record per Level 1 lexical identity and one searchable record per independently defined phrase or defined phrase-local alternative. Phrase-local alternatives SHALL use dictionary-deinflection records pointing to the canonical phrase rather than duplicate structured definitions. The builder SHALL deduplicate only exact Unicode searchable-expression and source-identity pairs, without case-folding or removing punctuation or diacritics, and SHALL not create records from example-only expressions, raw alternate-table rows alone, or undefined `.uro` run-ons.
+- **WHEN** the command runs with `--words give in "take the word"`
+- **THEN** the requested roots are `give`, `in`, and `take the word` in that
+  order
 
-#### Scenario: Parent and phrase records
-- **WHEN** the converted `take` entry includes `take a bath` as a defined phrase
-- **THEN** the archive contains a searchable `take a bath` record and the rendered `take` record still contains its phrase section
+#### Scenario: Words file
 
-#### Scenario: Raw alternate metadata
-- **WHEN** an expression occurs only in the SQLite `alt` table and has no owned MWU definition
-- **THEN** the builder does not create a dictionary entry from that row alone
+- **WHEN** a readable words file contains one target per line with blank lines
+  and boundary whitespace
+- **THEN** nonblank trimmed targets are selected in file order
 
-### Requirement: Emit Yomitan-compatible term records
-The builder SHALL serialize definitions as Yomitan structured content, SHALL leave the term-bank reading field empty for MWU pronunciations, and SHALL emit machine-readable lookup rules separately from inline visual labels.
+#### Scenario: Combined and deduplicated selection
 
-#### Scenario: Phrasal-verb rule
-- **WHEN** a canonical defined phrase has validated interposed-object evidence
-- **THEN** its searchable term record contains the `v_phr` rule while its part-of-speech and usage labels remain structured definition content
+- **WHEN** the same exact spelling occurs in `--words` and the words file
+- **THEN** it is planned once at its first occurrence while distinct case,
+  punctuation, spacing, hyphens, and diacritics remain distinct
 
-#### Scenario: Ordinary expression
-- **WHEN** a multiword expression has no validated interposed-object evidence
-- **THEN** its record does not receive `v_phr`
+#### Scenario: No selected words
 
-### Requirement: Export a deterministic dictionary archive
-The builder SHALL use the existing Yomitan dictionary builder to produce a schema-valid ZIP whose record ordering and structured content are deterministic for the same SQLite input and selected words.
+- **WHEN** neither option supplies a nonblank target
+- **THEN** the command prints usage, exits unsuccessfully, and does not scan or
+  export the full database
 
-#### Scenario: Repeated build
-- **WHEN** the first-slice dictionary is built twice from identical input
-- **THEN** the serialized semantic records and build report are identical in content and order
+#### Scenario: Unreadable words file
+
+- **WHEN** `--words-file` cannot be read
+- **THEN** the build reports the file error and does not publish a successful
+  ZIP
+
+### Requirement: Resolve selected roots and canonical dependencies
+
+The builder SHALL resolve each requested target through the deterministic
+decoded source-row index, load its HTML on demand, and add every dedicated row
+required by Level 1 dependency closure. It SHALL distinguish requested roots
+from added dependencies.
+
+#### Scenario: Missing root
+
+- **WHEN** an explicitly requested word has no readable source row
+- **THEN** the report identifies that root as missing and the build does not
+  publish a successful ZIP
+
+#### Scenario: Dedicated dependency
+
+- **WHEN** a root relationship targets a canonical spelling owned by another
+  row
+- **THEN** that row is loaded once, its reason is recorded, and its canonical
+  definition is included
+
+#### Scenario: Closed selected build
+
+- **WHEN** selection and dependency planning succeeds
+- **THEN** every serialized soft-link target has at least one canonical record
+  in the selected archive
+
+### Requirement: Assemble canonical and soft-link records
+
+The builder SHALL emit one valid structured-content term record for every
+successfully converted `main-canonical-entry`,
+`alternative-spelling-canonical-entry`, or `drp-phrase-canonical-entry` plan
+and one dictionary-deinflection term record for every serialized
+`soft-link-entry` plan. It SHALL NOT copy canonical definitions into soft-link
+records.
+
+#### Scenario: Main or alternative-spelling canonical entry
+
+- **WHEN** an independent `<mean>` owns a `main-canonical-entry` or `alternative-spelling-canonical-entry` plan
+- **THEN** its converted owner-local definition is emitted under its canonical
+  searchable spelling
+
+#### Scenario: DRP phrase canonical entry
+
+- **WHEN** `take a bath` owns a `drp-phrase-canonical-entry` plan
+- **THEN** the archive contains an independently searchable canonical
+  `take a bath` record
+
+#### Scenario: Main-to-alternative-spelling soft link
+
+- **WHEN** root `o` has an approved route to a dedicated canonical `oh` record
+- **THEN** the `main-to-alternative-spelling-soft-link` record targets `oh`, contains no copied
+  definition, and the archive also contains canonical `oh`
+
+#### Scenario: Phrase alternate soft link
+
+- **WHEN** `take up the word` points to canonical `take the word`
+- **THEN** the `phrase-alternate-soft-link` record targets `take the word` with the
+  `alternative` rule and contains no copied definition
+
+#### Scenario: Bare-affix soft link
+
+- **WHEN** `il` is derived from marked alternate `il-` targeting `in-`
+- **THEN** one `bare-affix-soft-link` targets canonical `in-` with the `alternative`
+  rule
+
+### Requirement: Rank canonical records by selected-root ownership
+
+The builder SHALL assign popularity `100` to a canonical record when its
+searchable term exactly equals the decoded `word.w` spelling of one selected
+root row. It SHALL assign popularity `0` to other canonical records, including
+different spellings emitted from a root row and canonical records loaded only
+as dedicated dependency rows. Soft-link records SHALL retain popularity
+`-100`.
+
+#### Scenario: Direct canonical record has the highest rank
+
+- **WHEN** a canonical plan's term equals a selected root row's decoded
+  `word.w`
+- **THEN** its serialized term-bank record has popularity `100`
+- **WHEN** a canonical plan's term does not equal any selected root spelling
+- **THEN** its serialized term-bank record has popularity `0`
+- **AND** an emitted soft-link record has popularity `-100`
+
+### Requirement: Prefer direct canonical records
+
+For the same lookup spelling, the builder SHALL use deterministic record
+ordering so direct canonical records precede soft-link routes. Independent
+same-spelling canonical records SHALL remain distinct.
+
+#### Scenario: Direct and linked results
+
+- **WHEN** a spelling owns canonical definitions and also participates in
+  soft-link-entry relationships
+- **THEN** direct canonical records appear first in stable source order and the
+  linked routes remain available
+
+### Requirement: Emit one deterministic first-version build report
+
+The builder SHALL write `build-report.json` for every attempted build when the
+output directory is writable. The report SHALL contain:
+
+- effective CLI roots in order;
+- loaded root rows, added dependency rows, and dependency reasons;
+- every independent `<mean>` ownership decision;
+- `main-canonical-entry`, `alternative-spelling-canonical-entry`,
+  `drp-phrase-canonical-entry`, and `soft-link-entry` plans;
+- every serialized or reused soft-link-entry route, rule chain, qualifier, and source
+  evidence;
+- alternative-local metadata and distinct-meaning rejections;
+- conversion findings, missing roots or dependencies, rejected owners, and
+  fatal errors;
+- canonical-entry, soft-link-entry, dependency, finding, and output-record totals;
+- the successful archive path when one is produced.
+
+#### Scenario: Successful report
+
+- **WHEN** a selected build succeeds
+- **THEN** the report describes every root, dependency, planned relationship,
+  finding, and emitted record in deterministic order
+
+#### Scenario: Failed report
+
+- **WHEN** a missing root, missing dependency, empty canonical definition, or
+  schema error makes the build fatal
+- **THEN** the report records the failure and no successful ZIP containing
+  partial or dangling records is published
+
+#### Scenario: Reused main-to-alternative-spelling route
+
+- **WHEN** bare-affix evidence reuses an existing exact `main-to-alternative-spelling-soft-link` route
+- **THEN** the report retains both evidence occurrences and identifies the one
+  serialized route
+
+### Requirement: Export a deterministic valid archive
+
+The builder SHALL use the existing dictionary-builder dependency and supported
+Yomitan schemas. Identical database input and effective target order SHALL
+produce equal semantic term-bank content and equal build-report content and
+ordering.
+
+#### Scenario: Repeated selected build
+
+- **WHEN** the same selected roots are built twice from identical source data
+- **THEN** semantic term-bank records and build-report data are equal in content
+  and order
 
 #### Scenario: Archive validation
-- **WHEN** the generated ZIP is inspected by the repository's Yomitan validation test
-- **THEN** its index and term-bank files conform to the supported Yomitan dictionary schema
 
-### Requirement: Emit a deterministic build report
-The builder SHALL write one deterministic `build-report.json`. The report SHALL contain build totals, counts by recognized information unit, ignored-unit counts, unrecognized source findings, rejected rows, conversion errors, a complete inventory of emitted `v_phr` candidates, and a phrase-alternative metadata audit.
+- **WHEN** a successful ZIP is inspected
+- **THEN** its index and term-bank files conform to the repository-supported
+  Yomitan schemas and contain no dangling soft links
 
-#### Scenario: Build statistics
-- **WHEN** a dictionary build completes
-- **THEN** the report contains source-row, accepted-row, rejected-row, lexical-entry, phrase-entry, alternate-entry, ignored-unit, unrecognized-unit, and `v_phr` candidate totals
+### Requirement: Verify Level 1 behavior independently
 
-#### Scenario: Interposed-object candidate inventory
-- **WHEN** the builder emits `v_phr` for a canonical phrase
-- **THEN** the report includes its canonical term, source word, owner path, evidence example, highlighted components, intervening text, and emitted-rule status for manual review
+The automated suite SHALL contain focused tests for `main-canonical-entry`,
+`alternative-spelling-canonical-entry`, `drp-phrase-canonical-entry`,
+`main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
+`phrase-alternate-soft-link`, `bare-affix-soft-link`, and dedicated dependency
+rows. Each family SHALL cover its positive behavior, relevant negative
+behavior, retained evidence, deterministic deduplication, and serialized or
+fatal outcome without depending on the complete hand-authored fixture.
 
-#### Scenario: Phrase-alternative metadata audit
-- **WHEN** the builder creates a dictionary-deinflection record for a phrase-local alternative
-- **THEN** the report records its canonical expression, alternative expression, qualifier, and any alternative-local pronunciation, part of speech, usage restriction, inflection, definition, or unrecognized content
+#### Scenario: Isolated domain test
 
-#### Scenario: Build with unrecognized content
-- **WHEN** a selected source row converts successfully but contains preserved unrecognized content
-- **THEN** the ZIP is produced and the build report records that content by source word and position without presenting the build as lossless
+- **WHEN** one Level 1 behavior is tested
+- **THEN** the test constructs the smallest source rows and HTML needed for
+  that behavior and asserts the domain plan and diagnostics directly
 
-#### Scenario: Rejected lexical row
-- **WHEN** a selected row lacks the information required to establish a lexical identity
-- **THEN** the build report identifies the rejected row and the builder does not silently emit a partial canonical record
+#### Scenario: Fixture disagreement
 
-### Requirement: Verify representative behavior before expansion
-The first-slice build SHALL have automated parser, renderer, record-assembly, findings, and archive-structure tests, and SHALL define manual Yomitan checks for the representative hierarchy and phrase behaviors before the full database path is changed.
+- **WHEN** production behavior satisfies the approved ownership/link rules but
+  differs from the provisional fixture
+- **THEN** the test is not failed solely to preserve the fixture snapshot
 
-#### Scenario: Acceptance verification
-- **WHEN** the automated first-slice tests pass and the generated archive is imported into Yomitan
-- **THEN** `what`, `turn`, `take`, and `run` can be compared with their GoldenDict source structure, including retained phrases, pronunciations, ordered attachments, and `v_phr` behavior where supported
+### Requirement: Verify the selected build end to end
+
+Integration tests SHALL cover flag-only, file-only, and combined selection;
+missing-input and missing-row failures; deterministic reporting; archive
+schemas; and browser import of a representative selected build.
+
+#### Scenario: Browser import
+
+- **WHEN** a representative first-version ZIP is imported with the established
+  browser harness
+- **THEN** import progress completes, no import error is shown, and the
+  installed dictionary count increases
+
+#### Scenario: First-version boundary
+
+- **WHEN** the representative selected build passes
+- **THEN** the result proves the Level 1 ownership/link and conservative
+  conversion slice only, not final six-level presentation or full-database
+  coverage

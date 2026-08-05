@@ -21,7 +21,7 @@ export type TermEntry = [
   score: number,
   definitions: Array<string | Record<string, unknown>>,
   sequence: number,
-  termTags: string
+  termTags: string,
 ];
 
 export type TagEntry = [
@@ -29,7 +29,7 @@ export type TagEntry = [
   category: string,
   order: number,
   notes: string,
-  score: number
+  score: number,
 ];
 
 export interface DictionaryFiles {

@@ -1,89 +1,74 @@
-# Merriam-Webster Unabridged Dictionary Parser
+# Merriam-Webster Unabridged selected-word dictionary
 
-## Reference projects
+This package builds a Yomitan-compatible ZIP from the MWU SQLite source at
+`assets/MWU.db`.
 
-https://github.com/yomidevs/wiktionary-to-yomitan
-
-This package processes Merriam-Webster Unabridged dictionary data and converts it to Yomitan-compatible dictionary format.
-
-## Origin data
-
-Origin data is download from [Merriam Webster's Unabridged 2024 modified 04.05.2025 (MDX).7z](https://cloud.freemdict.com/index.php/s/pgKcDcbSDTCzXCs/download?path=%2FENGLISH%2FEng-Eng%2FMerriam-Webster%27s%20Dictionaries%2FMerriam-Webster%E2%80%99s%20Unabridged&files=Merriam%20Webster%27s%20Unabridged%202024%20modified%2004.05.2025%20(MDX).7z) which is located at [Merriam-Webster’s Unabridged - ファイル - FreeMdict Cloud](https://cloud.freemdict.com/index.php/s/pgKcDcbSDTCzXCs?path=%2FENGLISH%2FEng-Eng%2FMerriam-Webster%27s%20Dictionaries%2FMerriam-Webster%E2%80%99s%20Unabridged).
-The MDX files are then processed to a sqlite database format for easier access and manipulation by using [ilius/pyglossary: A tool for converting dictionary files aka glossaries. Mainly to help use our offline glossaries in any Open Source dictionary we like on any modern operating system / device.](https://github.com/ilius/pyglossary).
-
-If the golden dict can't load downloaded MDX dictionary make sure the current user has write and read permissions for those files.
-
-## Features
-
-- Parses MDX dictionary HTML content into structured format
-- Extracts term, reading, and definitions from HTML
-- Supports example sentences and part of speech data
-- Progress reporting during dictionary construction
-
-## Usage
-
-### Setup
+## Setup
 
 ```bash
-# Install dependencies
 pnpm install
 ```
 
-### Building the Dictionary
+## Build selected words
+
+v1 requires explicit target words. A multiword target must be quoted when it
+is passed as a shell argument:
 
 ```bash
-# Run the build process
-bun src/index.ts
+bun run src/index.ts --words give in "take the word"
+bun run src/index.ts --words-file words.txt
+bun run src/index.ts --words give --words-file words.txt
 ```
 
-### Using the MDX Parser
+The two input sources are combined in first-seen order. Boundary whitespace is
+trimmed, blank file lines are ignored, and exact Unicode spellings are
+deduplicated. The command does not read stdin or perform an implicit
+full-database build.
 
-The package includes functionality to parse Merriam-Webster MDX HTML format into structured data:
+Successful builds write:
 
-```typescript
-// Import the parser
-import { parseMdxDictionaryHtml } from './path/to/parser';
+- `build/Merriam Webster Unabridged.zip`
+- `build/build-report.json`
 
-// Parse MDX HTML content
-const result = parseMdxDictionaryHtml(htmlContent);
-// Result contains: { term, reading, definitions }
+The report records selected roots, source rows, dedicated dependencies,
+ownership decisions, canonical entry plans, soft-link entry plans, source
+evidence, findings, rejections, and fatal errors.
+
+## v1 boundary
+
+The first version implements selected-word Level 1 ownership and approved
+`main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
+`phrase-alternate-soft-link`, and `bare-affix-soft-link` relationships. It emits
+conservative readable definitions, deterministic reports, and schema-valid
+Yomitan archives. The final six-level presentation model, full-database
+coverage, pronunciation audio, and richer media rendering remain future work.
+
+## Verification
+
+Focused planner, conversion, assembly, report, integration, archive-schema,
+and determinism tests are under `tests/`. The browser harness can import a
+production ZIP with:
+
+```bash
+bun run tests/import_dict.ts \
+  "build/Merriam Webster Unabridged.zip" \
+  --query "what, take the word, in, o, il" \
+  --close
+
+bun run tests/import_dict.ts \
+  "build/Merriam Webster Unabridged.zip" \
+  --query-file tests/testWords.txt \
+  --close
 ```
 
-### Creating Dictionary Entries
+The harness accepts either one comma- or newline-delimited `--query` value or a
+newline-delimited `--query-file`. The two options are mutually exclusive. If
+neither is supplied, it uses `tests/testWords.txt`. It uses bundled Chromium
+and checks that import progress completes, no import error is shown, and the
+installed dictionary count increases.
 
-```typescript
-// Parse the MDX HTML and create a dictionary entry
-const entryData = createDictionaryEntryFromMdx(htmlContent);
+## Origin data
 
-// Add to dictionary
-await dictionary.addTerm(entryData);
-```
-
-## Testing the Parser
-
-To test the MDX parser with a sample entry, uncomment the test function call at the end of `index.ts`:
-
-```typescript
-// Uncomment to run the test
-await testMdxParsing();
-```
-
-## Schema
-
-The dictionary adheres to the Yomitan dictionary schema for structured content, ensuring compatibility with the Yomitan extension.
-
-## Database Structure
-
-The database contains word records with the following structure:
-
-```typescript
-interface WordRecord {
-  id: number;
-  w: string; // word text
-  m: string; // meaning/content - can be MDX HTML format
-}
-```
-
-## License
-
-See the project's LICENSE file for details. 
+The SQLite source is derived from the Merriam-Webster Unabridged 2024 MDX
+release using [pyglossary](https://github.com/ilius/pyglossary). The source
+license and download details are maintained with the project data.

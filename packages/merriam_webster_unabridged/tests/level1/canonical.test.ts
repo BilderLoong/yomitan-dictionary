@@ -1,15 +1,14 @@
 import { describe, expect, test } from "bun:test";
-
+import {
+  extractSearchableHeadword,
+  planCanonicalOwners,
+} from "../../src/level1/planCanonical";
 import {
   buildSourceIndex,
   type SourceIndex,
   type SourceRow,
   type SourceRowSummary,
 } from "../../src/source/rows";
-import {
-  extractSearchableHeadword,
-  planCanonicalOwners,
-} from "../../src/level1/planCanonical";
 import { definition, example, mean, phrase } from "../helpers/mwuHtml";
 
 const sourceRow = (
@@ -26,7 +25,7 @@ const sourceRow = (
 const sourceIndex = (rows: readonly SourceRowSummary[]): SourceIndex =>
   buildSourceIndex(rows);
 
-describe("canonical lexical ownership", () => {
+describe("canonical entry ownership", () => {
   test("keeps same-spelling means separate and defers a dedicated target", () => {
     const row = sourceRow(
       1,
@@ -42,14 +41,16 @@ describe("canonical lexical ownership", () => {
 
     const result = planCanonicalOwners(row, index);
 
-    expect(result.canonical.map(({ kind, term }) => [kind, term])).toEqual([
-      ["canonical-lexical", "o"],
-      ["canonical-lexical", "O"],
+    expect(
+      result.canonicalEntries.map(({ kind, term }) => [kind, term]),
+    ).toEqual([
+      ["main-canonical-entry", "o"],
+      ["alternative-spelling-canonical-entry", "O"],
     ]);
     expect(result.decisions.map(({ rule }) => rule)).toEqual([
-      "case-1-current-row",
-      "case-2-embedded",
-      "case-3-dedicated-row",
+      "main-canonical-entry",
+      "alternative-spelling-canonical-entry",
+      "alternative-spelling-canonical-entry",
     ]);
     expect(result.requiredDependencyIds).toEqual([2]);
   });
@@ -66,9 +67,14 @@ describe("canonical lexical ownership", () => {
       sourceIndex([{ id: 7, encodedKey: "set" }]),
     );
 
-    expect(result.canonical.map(({ term }) => term)).toEqual(["set", "set"]);
+    expect(result.canonicalEntries.map(({ term }) => term)).toEqual([
+      "set",
+      "set",
+    ]);
     expect(result.decisions.map(({ meanIndex }) => meanIndex)).toEqual([0, 1]);
-    expect(result.canonical.map(({ source }) => source.ownerHtml)).toEqual([
+    expect(
+      result.canonicalEntries.map(({ source }) => source.ownerHtml),
+    ).toEqual([
       mean("set", definition("put in position")),
       mean("set", definition("fixed or established")),
     ]);
@@ -85,11 +91,11 @@ describe("canonical lexical ownership", () => {
       sourceIndex([{ id: 11, encodedKey: "process" }]),
     );
 
-    expect(result.canonical.map(({ term }) => term)).toEqual([
+    expect(result.canonicalEntries.map(({ term }) => term)).toEqual([
       "process",
       "in-",
     ]);
-    expect(result.canonical[0]).toMatchObject({
+    expect(result.canonicalEntries[0]).toMatchObject({
       displayHeadword: "1 pro\u00b7cess",
       source: { ownerHtml: decoratedMean },
     });
@@ -116,7 +122,9 @@ describe("canonical lexical ownership", () => {
       sourceIndex([{ id: 13, encodedKey: "hand%20cheese" }]),
     );
 
-    expect(result.canonical.map(({ term }) => term)).toEqual(["hand cheese"]);
+    expect(result.canonicalEntries.map(({ term }) => term)).toEqual([
+      "hand cheese",
+    ]);
     expect(result.findings).toEqual([]);
   });
 
@@ -134,7 +142,7 @@ describe("canonical lexical ownership", () => {
       sourceIndex([{ id: 14, encodedKey: "parent" }]),
     );
 
-    expect(result.canonical).toEqual([]);
+    expect(result.canonicalEntries).toEqual([]);
     expect(result.decisions).toEqual([]);
     expect(result.findings.map(({ kind }) => kind)).toEqual([
       "unresolved-mean",
@@ -142,14 +150,14 @@ describe("canonical lexical ownership", () => {
     ]);
   });
 
-  test("does not emit a lexical canonical for a definition-free mean", () => {
+  test("does not emit a canonical entry for a definition-free mean", () => {
     const html = mean("example-only", example("example-only text"));
     const result = planCanonicalOwners(
       sourceRow(15, "example-only", html),
       sourceIndex([{ id: 15, encodedKey: "example-only" }]),
     );
 
-    expect(result.canonical).toEqual([]);
+    expect(result.canonicalEntries).toEqual([]);
     expect(result.decisions).toEqual([]);
     expect(result.findings).toEqual([
       {
@@ -174,7 +182,7 @@ describe("canonical lexical ownership", () => {
       ]),
     );
 
-    expect(result.canonical).toEqual([]);
+    expect(result.canonicalEntries).toEqual([]);
     expect(result.requiredDependencyIds).toEqual([18]);
     expect(result.decisions).toEqual([]);
     expect(result.findings).toEqual([

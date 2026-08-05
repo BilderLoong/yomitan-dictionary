@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "keywords": [],
   "author": "",
@@ -15,10 +17,10 @@
     "archiver": "^7.0.1",
     "cheerio": "^1.0.0",
     "commander": "^13.1.0",
-    "eslint": "^9.22.0",
     "yomichan-dict-builder": "^2.10.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.6",
     "@types/bun": "^1.2.5"
   }
 }

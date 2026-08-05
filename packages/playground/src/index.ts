@@ -1,10 +1,5 @@
-import {
-  Dictionary,
-  DictionaryIndex,
-  TermEntry,
-  KanjiEntry,
-} from "yomichan-dict-builder";
-import {
+import { Dictionary, DictionaryIndex, TermEntry } from "yomichan-dict-builder";
+import type {
   DetailedDefinition,
   StructuredContent,
 } from "yomichan-dict-builder/dist/types/yomitan/termbank";
@@ -16,7 +11,7 @@ import {
 
   // index
   const index = new DictionaryIndex()
-    .setTitle("Test Dictionary" + Math.floor(Math.random() * 1000))
+    .setTitle(`Test Dictionary${Math.floor(Math.random() * 1000)}`)
     .setRevision("1.0")
     .setAuthor("Marv")
     .setDescription("Test dictionary for yomichan-dict-builder")

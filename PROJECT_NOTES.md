@@ -1,10 +1,17 @@
 # MDX to Yomitan: Project Notes and Research Log
 
-Last updated: 2026-08-01
+Last updated: 2026-08-03
 
-Status: research and design. This document records source understanding,
-Yomitan behavior, user requirements, and survey findings. Converter
-implementation is outside this research record.
+Status: research and design log. This document records source understanding,
+Yomitan behavior, user requirements, and survey findings. The first selected-
+word converter is specified separately in the `build-mwu-dictionary-first-slice`
+OpenSpec change.
+
+The current work is archived as a status checkpoint in
+[`docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md`](docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md).
+That archive records completed reconnaissance, verified fixture behavior, and
+the remaining richer-converter TODO; it does not claim the full converter is
+done.
 
 ## Goal
 
@@ -26,9 +33,18 @@ because that is easier to export.
 
 ## Scope boundary
 
-This phase is about understanding the source and agreeing on the data model.
-The survey comes before parser and converter changes. Converter implementation
-work is outside this phase.
+This document remains the source-research record. The first production version
+now implements the approved selected-word Level 1 ownership and link rules
+while richer Level 1-6 presentation research continues. Production
+implementation details belong in the OpenSpec change rather than being
+inferred from this history.
+
+The verified v1 path accepts only explicit `--words` and `--words-file`
+targets, reads selected SQLite rows on demand, closes dedicated canonical
+dependencies, converts readable owner-local definitions, records findings and
+rejected relationships, validates the emitted Yomitan tuples, and writes a
+deterministic ZIP plus `build-report.json`. It is intentionally not a
+full-database fallback or the final six-level renderer.
 
 ## Project orientation
 
@@ -48,16 +64,109 @@ Yomitan dictionary ZIP
 
 Relevant repository areas:
 
-- [`packages/merriam_webster_unabridged/src/db.ts`](packages/merriam_webster_unabridged/src/db.ts)
-  documents the SQLite access layer and schema.
-- [`packages/merriam_webster_unabridged/src/parser.ts`](packages/merriam_webster_unabridged/src/parser.ts)
-  is the existing HTML parser entry point; its assumptions must be checked
-  against raw HTML during the survey.
+- [`packages/merriam_webster_unabridged/src/source/sqlite.ts`](packages/merriam_webster_unabridged/src/source/sqlite.ts)
+  contains the read-only SQLite source adapter.
+- [`packages/merriam_webster_unabridged/src/source/rows.ts`](packages/merriam_webster_unabridged/src/source/rows.ts)
+  builds the lightweight decoded source-row index.
 - [`packages/merriam_webster_unabridged/src/index.ts`](packages/merriam_webster_unabridged/src/index.ts)
-  is the build entry point to understand later, after the source model is
-  settled.
+  is the selected-word production build entry point.
 - [`packages/merriam_webster_unabridged/assets/MWU.db`](packages/merriam_webster_unabridged/assets/MWU.db)
   is the read-only source database for reconnaissance.
+
+### Structured-content design fixture
+
+The current design job uses
+[`packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json`](packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json)
+as a hand-authored provisional reference. It is a real-text semantic/Yomitan
+experiment for `what`, not a production data model, parser output, final
+visual contract, or acceptance snapshot.
+`what/write-zip.ts` only packages this JSON into a Yomitan ZIP; no HTML parser
+or SQLite query runs in this design job. The JSON is edited directly so the
+implementer can inspect one possible structured-content shape without reading
+a transformation pipeline. Production behavior may replace fixture choices
+when source evidence and focused ownership/link tests support a better result.
+
+This fixture added two named information units to the survey vocabulary:
+`origin-section-title` for a titled collapsed origin boundary and
+`superscript-reference` for visual reference numbers such as `1whatever` and
+`whoever 1`.
+The fixture also records one-line IPA, one-line inflection metadata, scoped
+labels, local `.sgram` grammar labels, the distinct `.see-in-addition` related
+line, nested usage notes, one-visible-example/collapsed-extra behavior,
+  defined phrase entries, and dictionary-deinflection soft links. The base
+expansion contains 77 hand-authored records for ten high-coverage source
+families: `turn`, `take`, `run`, `process`, `have`, `set`, `hand`, `give`, `in`,
+and `o`. The current JSON also adds four marked-affix soft links, four
+bare-form soft links (`il`, `im`, `ir`, and `ino`) targeting `in-`, 30 `set`
+phrase/alternative records, the two definition-bearing `hand cheese`/`hand game`
+means, and the definition-bearing variant-only `O` mean, bringing the design
+ZIP to 136 term records.
+The expansion is intentionally a compact structural slice using real source
+text, not a claim that every definition in those large articles was copied.
+The source-to-JSON comparison and explicit omissions are recorded in
+[`packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md`](packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md).
+
+The latest design ZIP contains 136 records in total. A local Yomitan Chromium
+render audit covered all ten added source families plus `what`, `give up`,
+`sett`, and `take the stage`; it confirmed that the experimental ZIP imports
+and renders its compact nested-list layout, collapsed origin/phrase sections,
+one-visible-example policy, normalized `process`/`pro·cess`,
+`main-to-alternative-spelling-soft-link` routes, and newly added grammar and
+related-information units. It does not
+establish that those choices are final. The audit also caught one unsupported raw
+structured-content `strong` tag, which was replaced with a styled supported
+`span`.
+
+The new fixture records confirm the direction of
+`main-to-alternative-spelling-soft-link` routes: the
+source `word.w` spelling is the Yomitan term and the canonical local `<mean>`
+headword is the dictionary-deinflection target. For example, the JSON contains
+`in` → `in-`/`-in`, the bare forms `il`/`im`/`ir`/`ino` → `in-`, and `o` →
+`O`/`o-`/`-o`/`-o-`/`o'`/`oh`, while each target also has its own canonical
+record. The `O` target is the variant-reference-only Case 2 record; `oh` and
+`o'` demonstrate dedicated-row ownership. The marked `il-`/`im-`/`ir-`/`ino-`
+links and bare `il`/`im`/`ir`/`ino` links both target `in-`, with the bare links
+using the `alternative` rule. Phrase alternatives use the same
+dictionary-deinflection shape with the `alternative` rule. `process` demonstrates that `process` is the
+searchable term while `pro·cess` remains display metadata.
+
+The selected-word production builder now also serializes the explicit marked
+`vr-mean-alternate-soft-link` routes with the `alternative` rule. The provisional hand-authored
+fixture may retain its earlier tuple shape; it is not the production contract.
+
+The design job has three source-evidence commands. `design:fragments` extracts
+selected rows into an ignored JSON report for copying real source text into
+the hand-authored fixture. `design:update-metadata` copies only stable,
+explicitly mapped header metadata such as homograph numbers, entry qualifiers,
+and local variant references into the existing JSON, normalizes header
+pronunciation nodes to stay inline with those numbers, and writes a match
+report; it does not
+generate definitions. `design:survey --all` inventories broad source
+markers and reports `.sgram` (216 rows), `.see-in-addition` (433 rows, with
+five outside synonym discussions), superscripts (52,982 rows), line-break
+markers (173,702 rows), and defined phrase rows (3,661). Neither command
+generates the design term bank or runs during ZIP packaging.
+
+The five `.see-in-addition` rows outside `.synonym-discussion` are `because`,
+`finalize`, `he`, `one`, and `they`. Source ownership is now confirmed:
+`because`, `finalize`, `one`, and `they` use the `#usage-notes` section, while
+`he` uses a definition-local `.usage` block. This is the same information unit
+at Level 6, not a new kind of related entry. The selected fixture demonstrates
+the Level 1 synonym-discussion form with `turn`.
+
+The selected eleven-word survey report currently has zero `notYetNoticed`
+findings. The `.sen` class observed in dense articles is a transparent sense
+wrapper, and class fragments from labels such as `(with "thou")` are
+presentation tokens rather than new information units. The broad all-source
+report remains an inventory, not proof that every uncommon descendant has been
+understood.
+
+Deferred work includes the complete Level 1-6 semantic renderer, surveying
+uncommon markup and images, building the future label inventory, broader
+soft-link validation in Yomitan, and deciding the final origin/First Known Use
+and audio policies. The first production implementation is narrower: it builds
+only explicit `--words`/`--words-file` targets, implements Level 1 ownership
+and links, and emits conservative readable definitions.
 
 ### SQLite source shape
 
@@ -82,6 +191,8 @@ for the survey. They are useful leads, not a complete semantic specification:
 - `.if` — inflection/form information candidate;
 - `.pr` — pronunciation information candidate;
 - `.vd` — grammar or verb-group candidate;
+- `.sgram` — local grammar-label candidate, such as `transitive` inside a
+  numbered sense;
 - `.sdsense` — subordinate-sense candidate;
 - `.sd` — subordinate-definition qualifier candidate;
 - `.vr`/`.va` — alternate phrase display-form candidates;
@@ -90,7 +201,8 @@ for the survey. They are useful leads, not a complete semantic specification:
   `Ignore=true`;
 - `.dx-jump` and `.ca` — cross-reference/related-information candidates;
 - related-to, `.syn`, `.mw_t_sc`, `.see-in-addition`, and `.sa-link` —
-  synonym-discussion and related-entry information candidates;
+  synonym-discussion and related-entry information candidates; the
+  `.see-in-addition` line is now a named related unit;
 - `.ex-sent-group` — example-sentence candidate;
 - `.hword`, `.fl`, `.sb`, `.sbNum`, and `.sense` — headword, label, and sense
   structure candidates.
@@ -278,7 +390,7 @@ the current dictionary output.
   `example-sentence`, `example-source`, `example-date`, `alternate-form`,
   `variant-qualifier`, `phrase`, `undefined-run-on`, `defined-derivative`,
   `related-item`, `called-also`,
-  `synonym-discussion`, `synonym-discussion-reference`,
+  `see-in-addition`, `synonym-discussion`, `synonym-discussion-reference`,
   `entry-status-image`, and `interposed-object-candidate`.
 
 These are survey names, not claims that every word contains every type, and
@@ -366,7 +478,7 @@ neighboring .drp items remain separate. The eventual Yomitan records may share
 or deduplicate the structured definition content; that is an export detail,
 not a reason to remove a searchable phrase expression.
 
-The take row also gives two phrase-local alternate shapes:
+The take row also gives two `phrase-alternate-soft-link` shapes:
 
 | Canonical .drp | Relation | .va alternate | Definition |
 | --- | --- | --- | --- |
@@ -377,7 +489,7 @@ Because .vr and .va occur after the phrase's .drp and before its definition
 .vg, those alternatives belong to that phrase in the source. `take stage`,
 `take the stage`, `take the word`, and `take up the word` should all be
 searchable expressions for their phrase meaning. The canonical expression
-stores the structured definition. Each phrase-local alternative uses
+stores the structured definition. Each `phrase-alternate-soft-link` uses
 Yomitan's dictionary-deinflection tuple to point to the canonical expression,
 so the source definition is parsed and stored only once. Unrelated phrases
 remain separate.
@@ -414,8 +526,9 @@ separate .mw_t_wi spans:
 
 The intervening objects remain ordinary text between the two target spans.
 This is concrete evidence for an interposed-object-candidate attached to the
-Level 6 examples. The canonical lexical owner is the Level 1 phrase entry
-take apart; the eventual Yomitan v_phr rule belongs there. The converter
+Level 6 examples. The canonical owner is the Level 1
+`drp-phrase-canonical-entry` for take apart; the eventual Yomitan v_phr rule
+belongs there. The converter
 should not create a wildcard term such as take XXX apart.
 
 This evidence also confirms why .mw_t_it must not be used alone: it marks
@@ -466,15 +579,14 @@ path, full evidence example, highlighted components, intervening text, and
 whether the builder emitted the rule. This lets us catch cases where paired
 highlights do not actually describe a separable phrasal verb.
 
-The build produces one deterministic `build-report.json` for tests and manual
-inspection. It includes source-row and emitted-entry totals, counts by
-recognized information-unit name, ignored-unit counts, unrecognized findings,
-rejected rows, conversion errors, the `v_phr` candidate inventory, and a
-phrase-alternative audit. Each phrase-alternative audit item records any local
-pronunciation, part of speech, usage restriction, inflection, definition, or
-unrecognized content so that the initial shared-definition model cannot hide
-a source difference. “Findings” means source content that the parser
-encountered but could not yet classify semantically; it is not dictionary
+The v1 build produces one deterministic `build-report.json` for tests and
+manual inspection. It includes effective CLI roots and input evidence, loaded
+source rows and dependency reasons, ownership decisions, canonical entry and
+soft-link-entry plans with all relationship evidence, planner findings,
+alternate rejections, conversion findings, fatal errors,
+canonical-entry/soft-link-entry/output record totals, and the successful archive
+path. “Findings” means source
+content encountered but not yet classified semantically; it is not dictionary
 definition content.
 
 References:
@@ -576,19 +688,50 @@ atomic fallbacks: preserve their visible subtree once and do not also parse
 their descendants separately. This prevents a known-looking nested example
 from being rendered twice while the unknown wrapper's own text is also kept.
 
+### General bare lookup for marked affix forms
+
+Affix notation in the source must not make the boundary hyphen mandatory for
+search. This is a general rule for every source-confirmed prefix, suffix, or
+infix term, not a special case for `il-`, `im-`, `ir-`, and `ino-`.
+
+For each eligible marked expression:
+
+1. Keep the marked expression as the canonical displayed/searchable form, for
+   example `in-`, `-in`, or `-i-`.
+2. Derive one additional bare lookup by removing only the boundary hyphen(s):
+   `in-` → `in`, `-in` → `in`, and `-i-` → `i`.
+3. Point that bare term to the same canonical Level 1 entry with the
+   dictionary-deinflection rule `alternative`. A marked alternate such as
+   `il-` therefore gives `il` → `in-`, not `il` → a copied definition.
+4. If a source-word-row relationship already provides the exact same
+   term-to-target route, reuse it instead of emitting a duplicate record.
+5. Do not apply this rule to ordinary hyphenated words or arbitrary substrings;
+   the source must identify the expression as an affix or marked alternate.
+
+The result is that searching `in` can find both `in-` and `-in`, searching `i`
+can find `-i-` when MWU provides that affix entry, and searching `il` can find
+the `in-` entry. The canonical display keeps its markers so the user can see
+whether the item is a prefix, suffix, or infix. The bare route never replaces
+the marked entry and never copies its definition. The current fixture contains
+the four `il`/`im`/`ir`/`ino` examples plus existing `in`/`o` source-row
+routes; future source-assisted generation must apply the rule by shape and
+source role rather than by a fixed word list.
+
 ### Alternate forms
 
 Prefer searchable alternate forms that point to a canonical lemma rather than
 duplicating a full definition. Yomitan term-bank definitions support a
 dictionary-deinflection tuple containing the canonical term and a rule chain;
 the translator follows that tuple and displays the canonical definition. For
-the currently observed defined run-on phrases, each `.drp` phrase is canonical
-and each phrase-local `.va` form receives this lightweight pointer, while the
+the currently observed defined run-on phrases, each `.drp` phrase is a
+`drp-phrase-canonical-entry` and each `.va` form receives a
+`phrase-alternate-soft-link`, while the
 parent keeps its `.dro` section. Remaining `alt` rows without a defined `.dro`
 tree still need source classification before choosing their final shape.
 
-“Sharing one definition” means the canonical phrase owns one parsed definition
-tree and its phrase-local alternative points to that canonical term. For
+“Sharing one definition” means the `drp-phrase-canonical-entry` owns one parsed
+definition tree and its `phrase-alternate-soft-link` points to that canonical
+term. For
 example, `take the word` stores the structured definition and `take up the
 word` points to `take the word`; both are searchable without repeated
 definition JSON.

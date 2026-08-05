@@ -8,11 +8,12 @@ import {
   type SourceRow,
 } from "../source/rows";
 import type {
-  CanonicalLexicalPlan,
-  CanonicalPhrasePlan,
-  CanonicalPlan,
+  AlternativeSpellingCanonicalEntryPlan,
+  CanonicalEntryPlan,
   CanonicalPlanningResult,
+  DrpPhraseCanonicalEntryPlan,
   Level1Finding,
+  MainCanonicalEntryPlan,
   OwnershipDecision,
   OwnershipRule,
 } from "./types";
@@ -33,7 +34,7 @@ interface MissingHeadwordIdentity {
 type HeadwordInspection = HeadwordIdentity | MissingHeadwordIdentity;
 
 interface MeanPlanningResult {
-  readonly canonical: readonly CanonicalPlan[];
+  readonly canonicalEntries: readonly CanonicalEntryPlan[];
   readonly decisions: readonly OwnershipDecision[];
   readonly requiredDependencyIds: readonly number[];
   readonly findings: readonly Level1Finding[];
@@ -116,11 +117,9 @@ export const extractSearchableHeadword = (headwordHtml: string): string => {
 const ownershipRule = (
   searchableHeadword: string,
   row: SourceRow,
-  dedicatedRows: readonly IndexedSourceRow[],
 ): OwnershipRule => {
-  if (searchableHeadword === row.decodedKey) return "case-1-current-row";
-  if (dedicatedRows.length > 0) return "case-3-dedicated-row";
-  return "case-2-embedded";
+  if (searchableHeadword === row.decodedKey) return "main-canonical-entry";
+  return "alternative-spelling-canonical-entry";
 };
 
 const lexicalPlan = (
@@ -128,8 +127,11 @@ const lexicalPlan = (
   meanIndex: number,
   ownerHtml: string,
   identity: HeadwordIdentity,
-): CanonicalLexicalPlan => ({
-  kind: "canonical-lexical",
+  kind:
+    | MainCanonicalEntryPlan["kind"]
+    | AlternativeSpellingCanonicalEntryPlan["kind"],
+): MainCanonicalEntryPlan | AlternativeSpellingCanonicalEntryPlan => ({
+  kind,
   term: identity.searchableHeadword,
   displayHeadword: identity.displayHeadword,
   source: {
@@ -240,7 +242,7 @@ const planPhrases = (
   meanIndex: number,
   row: SourceRow,
   parentTerm: string,
-): readonly CanonicalPhrasePlan[] =>
+): readonly DrpPhraseCanonicalEntryPlan[] =>
   root(mean)
     .find(".dro > .drp")
     .toArray()
@@ -248,13 +250,13 @@ const planPhrases = (
       (
         phrase: Element,
         phraseIndex: number,
-      ): readonly CanonicalPhrasePlan[] => {
+      ): readonly DrpPhraseCanonicalEntryPlan[] => {
         const term = root(phrase).text().trim();
         if (term.length === 0 || !hasLocalDefinition(root, phrase)) return [];
 
         return [
           {
-            kind: "canonical-phrase",
+            kind: "drp-phrase-canonical-entry",
             term,
             parentTerm,
             source: {
@@ -283,7 +285,7 @@ const planMean = (
 
   if (identity.kind === "missing-headword-identity") {
     return {
-      canonical: [],
+      canonicalEntries: [],
       decisions: [],
       requiredDependencyIds: [],
       findings: [
@@ -305,7 +307,7 @@ const planMean = (
   );
   const hasMeanDefinition = hasLocalMeanDefinition(root, mean);
   const dedicatedRows = findSourceRows(index, identity.searchableHeadword);
-  const rule = ownershipRule(identity.searchableHeadword, row, dedicatedRows);
+  const rule = ownershipRule(identity.searchableHeadword, row);
   const dedicatedRow = dedicatedRows[0];
   const decision: OwnershipDecision = {
     rowId: row.id,
@@ -314,7 +316,8 @@ const planMean = (
     searchableHeadword: identity.searchableHeadword,
     rule,
     dedicatedRowId:
-      rule === "case-3-dedicated-row" && dedicatedRow !== undefined
+      rule === "alternative-spelling-canonical-entry" &&
+      dedicatedRow !== undefined
         ? dedicatedRow.id
         : null,
   };
@@ -325,9 +328,12 @@ const planMean = (
     ? findings
     : [...findings, definitionFreeMeanFinding(row, meanIndex, ownerHtml)];
 
-  if (rule === "case-3-dedicated-row") {
+  if (
+    rule === "alternative-spelling-canonical-entry" &&
+    dedicatedRows.length > 0
+  ) {
     return {
-      canonical: [],
+      canonicalEntries: [],
       decisions: hasMeanDefinition ? [decision] : [],
       requiredDependencyIds: dedicatedRows.map(
         ({ id }: IndexedSourceRow): number => id,
@@ -338,7 +344,7 @@ const planMean = (
 
   if (!hasMeanDefinition) {
     return {
-      canonical: phrases,
+      canonicalEntries: phrases,
       decisions: [],
       requiredDependencyIds: [],
       findings: meanFindings,
@@ -346,7 +352,10 @@ const planMean = (
   }
 
   return {
-    canonical: [lexicalPlan(row, meanIndex, ownerHtml, identity), ...phrases],
+    canonicalEntries: [
+      lexicalPlan(row, meanIndex, ownerHtml, identity, rule),
+      ...phrases,
+    ],
     decisions: [decision],
     requiredDependencyIds: [],
     findings,
@@ -372,9 +381,10 @@ export const planCanonicalOwners = (
     );
 
   return {
-    canonical: plannedMeans.flatMap(
-      ({ canonical }: MeanPlanningResult): readonly CanonicalPlan[] =>
-        canonical,
+    canonicalEntries: plannedMeans.flatMap(
+      ({
+        canonicalEntries,
+      }: MeanPlanningResult): readonly CanonicalEntryPlan[] => canonicalEntries,
     ),
     decisions: plannedMeans.flatMap(
       ({ decisions }: MeanPlanningResult): readonly OwnershipDecision[] =>

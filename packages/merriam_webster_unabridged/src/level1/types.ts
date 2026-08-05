@@ -29,26 +29,35 @@ export type Level1Finding =
       readonly preview: string;
     };
 
-export interface CanonicalLexicalPlan {
-  readonly kind: "canonical-lexical";
+export interface MainCanonicalEntryPlan {
+  readonly kind: "main-canonical-entry";
   readonly term: string;
   readonly displayHeadword: string;
   readonly source: CanonicalSource;
 }
 
-export interface CanonicalPhrasePlan {
-  readonly kind: "canonical-phrase";
+export interface AlternativeSpellingCanonicalEntryPlan {
+  readonly kind: "alternative-spelling-canonical-entry";
+  readonly term: string;
+  readonly displayHeadword: string;
+  readonly source: CanonicalSource;
+}
+
+export interface DrpPhraseCanonicalEntryPlan {
+  readonly kind: "drp-phrase-canonical-entry";
   readonly term: string;
   readonly parentTerm: string;
   readonly source: CanonicalSource;
 }
 
-export type CanonicalPlan = CanonicalLexicalPlan | CanonicalPhrasePlan;
+export type CanonicalEntryPlan =
+  | MainCanonicalEntryPlan
+  | AlternativeSpellingCanonicalEntryPlan
+  | DrpPhraseCanonicalEntryPlan;
 
 export type OwnershipRule =
-  | "case-1-current-row"
-  | "case-2-embedded"
-  | "case-3-dedicated-row";
+  | "main-canonical-entry"
+  | "alternative-spelling-canonical-entry";
 
 export interface OwnershipDecision {
   readonly rowId: number;
@@ -60,7 +69,7 @@ export interface OwnershipDecision {
 }
 
 export interface CanonicalPlanningResult {
-  readonly canonical: readonly CanonicalPlan[];
+  readonly canonicalEntries: readonly CanonicalEntryPlan[];
   readonly decisions: readonly OwnershipDecision[];
   readonly requiredDependencyIds: readonly number[];
   readonly findings: readonly Level1Finding[];

@@ -2,10 +2,9 @@
  * ZIP file utilities for Yomitan dictionary packaging using JSZip
  */
 
-import JSZip from 'jszip';
-import { readFile, readdir } from 'fs/promises';
-import { join, basename } from 'path';
-import { writeFile } from 'fs/promises';
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import JSZip from "jszip";
 
 /**
  * Creates a ZIP file from a directory using JSZip
@@ -13,22 +12,22 @@ import { writeFile } from 'fs/promises';
  */
 export async function zipDirectory(
   sourceDir: string,
-  outputZipPath: string
+  outputZipPath: string,
 ): Promise<void> {
   const zip = new JSZip();
-  
+
   // Recursively add all files from the directory to the zip
-  await addDirectoryToZip(zip, sourceDir, '');
-  
+  await addDirectoryToZip(zip, sourceDir, "");
+
   // Generate the zip file
   const zipContent = await zip.generateAsync({
-    type: 'nodebuffer',
-    compression: 'DEFLATE',
+    type: "nodebuffer",
+    compression: "DEFLATE",
     compressionOptions: {
-      level: 6
-    }
+      level: 6,
+    },
   });
-  
+
   // Write the zip file to disk
   await writeFile(outputZipPath, zipContent);
 }
@@ -39,14 +38,14 @@ export async function zipDirectory(
 async function addDirectoryToZip(
   zip: JSZip,
   directoryPath: string,
-  zipPath: string
+  zipPath: string,
 ): Promise<void> {
   const files = await readdir(directoryPath, { withFileTypes: true });
-  
+
   for (const file of files) {
     const fullPath = join(directoryPath, file.name);
     const relativePath = join(zipPath, file.name);
-    
+
     if (file.isDirectory()) {
       await addDirectoryToZip(zip, fullPath, relativePath);
     } else {
@@ -63,7 +62,7 @@ async function addDirectoryToZip(
 export async function createZipFilesForSplits(
   splitDirectories: Array<{ outputPath: string }>,
   outputDir: string,
-  originalDictName: string
+  originalDictName: string,
 ): Promise<Array<{ zipPath: string; partNumber: number }>> {
   const zipResults: Array<{ zipPath: string; partNumber: number }> = [];
 

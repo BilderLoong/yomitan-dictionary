@@ -1,102 +1,48 @@
 import type { Result } from "../shared/result";
 
-export type InputEvidence =
-  | { readonly kind: "flag"; readonly argumentIndex: number }
-  | { readonly kind: "file"; readonly path: string; readonly line: number };
-
-export interface RequestedWord {
-  readonly word: string;
-  readonly evidence: readonly InputEvidence[];
-}
-
 export interface SelectionInput {
   readonly flagWords: readonly string[];
   readonly wordsFile: {
-    readonly path: string;
     readonly text: string;
   } | null;
 }
 
 export type SelectionError = { readonly kind: "no-words" };
 
-interface RequestedWordOccurrence {
-  readonly word: string;
-  readonly evidence: InputEvidence;
-}
-
 const collectFlagOccurrences = (
   flagWords: readonly string[],
-): readonly RequestedWordOccurrence[] =>
+): readonly string[] =>
   flagWords
-    .map(
-      (word: string, argumentIndex: number): RequestedWordOccurrence => ({
-        word: word.trim(),
-        evidence: { kind: "flag", argumentIndex },
-      }),
-    )
-    .filter(
-      (occurrence: RequestedWordOccurrence): boolean =>
-        occurrence.word.length > 0,
-    );
+    .map((word: string): string => word.trim())
+    .filter((word: string): boolean => word.length > 0);
 
 const collectFileOccurrences = (
   wordsFile: SelectionInput["wordsFile"],
-): readonly RequestedWordOccurrence[] => {
+): readonly string[] => {
   if (wordsFile === null) return [];
 
   return wordsFile.text
     .split(/\r?\n/u)
-    .map(
-      (word: string, lineIndex: number): RequestedWordOccurrence => ({
-        word: word.trim(),
-        evidence: {
-          kind: "file",
-          path: wordsFile.path,
-          line: lineIndex + 1,
-        },
-      }),
-    )
-    .filter(
-      (occurrence: RequestedWordOccurrence): boolean =>
-        occurrence.word.length > 0,
-    );
+    .map((word: string): string => word.trim())
+    .filter((word: string): boolean => word.length > 0);
 };
 
 const appendOccurrence = (
-  requestedWords: readonly RequestedWord[],
-  occurrence: RequestedWordOccurrence,
-): readonly RequestedWord[] => {
-  const existingIndex = requestedWords.findIndex(
-    (requestedWord: RequestedWord): boolean =>
-      requestedWord.word === occurrence.word,
-  );
-
-  if (existingIndex === -1) {
-    return [
-      ...requestedWords,
-      { word: occurrence.word, evidence: [occurrence.evidence] },
-    ];
-  }
-
-  return requestedWords.map(
-    (requestedWord: RequestedWord, index: number): RequestedWord =>
-      index === existingIndex
-        ? {
-            ...requestedWord,
-            evidence: [...requestedWord.evidence, occurrence.evidence],
-          }
-        : requestedWord,
-  );
-};
+  requestedWords: readonly string[],
+  occurrence: string,
+): readonly string[] =>
+  requestedWords.includes(occurrence)
+    ? requestedWords
+    : [...requestedWords, occurrence];
 
 export const collectRequestedWords = (
   input: SelectionInput,
-): Result<readonly RequestedWord[], SelectionError> => {
+): Result<readonly string[], SelectionError> => {
   const occurrences = [
     ...collectFlagOccurrences(input.flagWords),
     ...collectFileOccurrences(input.wordsFile),
   ];
-  const requestedWords = occurrences.reduce<readonly RequestedWord[]>(
+  const requestedWords = occurrences.reduce<readonly string[]>(
     appendOccurrence,
     [],
   );

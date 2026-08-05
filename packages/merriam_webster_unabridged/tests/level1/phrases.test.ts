@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
-
+import { planCanonicalOwners } from "../../src/level1/planCanonical";
+import type {
+  CanonicalEntryPlan,
+  DrpPhraseCanonicalEntryPlan,
+} from "../../src/level1/types";
 import {
   buildSourceIndex,
   type SourceIndex,
   type SourceRow,
   type SourceRowSummary,
 } from "../../src/source/rows";
-import { planCanonicalOwners } from "../../src/level1/planCanonical";
-import type {
-  CanonicalPhrasePlan,
-  CanonicalPlan,
-} from "../../src/level1/types";
 import { definition, example, mean, phrase, runOn } from "../helpers/mwuHtml";
 
 const sourceRow = (
@@ -27,10 +26,12 @@ const sourceRow = (
 const sourceIndex = (rows: readonly SourceRowSummary[]): SourceIndex =>
   buildSourceIndex(rows);
 
-const isCanonicalPhrase = (plan: CanonicalPlan): plan is CanonicalPhrasePlan =>
-  plan.kind === "canonical-phrase";
+const isDrpPhraseCanonicalEntry = (
+  plan: CanonicalEntryPlan,
+): plan is DrpPhraseCanonicalEntryPlan =>
+  plan.kind === "drp-phrase-canonical-entry";
 
-describe("canonical defined phrases", () => {
+describe("drp phrase canonical entries", () => {
   test("plans each definition-bearing phrase and rejects example-only text", () => {
     const firstPhrase = phrase("take a bath", definition("bathe"));
     const secondPhrase = phrase("take the word", definition("speak"));
@@ -49,7 +50,7 @@ describe("canonical defined phrases", () => {
       sourceRow(10, "take", html),
       sourceIndex([{ id: 10, encodedKey: "take" }]),
     );
-    const phrases = result.canonical.filter(isCanonicalPhrase);
+    const phrases = result.canonicalEntries.filter(isDrpPhraseCanonicalEntry);
 
     expect(phrases.map(({ term }) => term)).toEqual([
       "take a bath",
@@ -83,7 +84,7 @@ describe("canonical defined phrases", () => {
       sourceRow(12, "parent", mean("parent", collection)),
       sourceIndex([{ id: 12, encodedKey: "parent" }]),
     );
-    const phrases = result.canonical.filter(isCanonicalPhrase);
+    const phrases = result.canonicalEntries.filter(isDrpPhraseCanonicalEntry);
 
     expect(phrases.map(({ term }) => term)).toEqual([
       "first phrase",
@@ -114,7 +115,7 @@ describe("canonical defined phrases", () => {
       sourceRow(16, "parent", mean("parent", collection)),
       sourceIndex([{ id: 16, encodedKey: "parent" }]),
     );
-    const phrases = result.canonical.filter(isCanonicalPhrase);
+    const phrases = result.canonicalEntries.filter(isDrpPhraseCanonicalEntry);
 
     expect(phrases.map(({ term }) => term)).toEqual([
       "first phrase",

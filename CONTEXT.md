@@ -1,0 +1,143 @@
+# Merriam-Webster Unabridged Dictionary
+
+The context that converts the Merriam-Webster Unabridged 2024 source (SQLite
+`word`/`alt` rows containing HTML articles) into a Yomitan term-bank
+dictionary. It separates the source model (levels and information units),
+Level 1 entry generation (canonical entries and soft-link entries), and the
+serialized Yomitan output model (records, sequence, popularity).
+
+## Language
+
+### Source model
+
+**Source word row**:
+One row of the SQLite `word(id, w, m)` table: a source article and its lookup
+spelling. A row is not an entry; one row may host several entries.
+_Avoid_: entry, article
+
+**Independent mean**:
+An MWU headword/POS block (`<mean>`) with its own lexical identity and
+definition tree. Same-spelling means stay separate entries.
+_Avoid_: entry, definition block
+
+**Dedicated word row**:
+A source row whose decoded `word.w` equals an embedded mean's spelling; it
+owns that spelling without semantic comparison.
+_Avoid_: owner row
+
+**Searchable headword**:
+The lookup spelling extracted from `.hword` after removing the homograph
+number and confirmed syllabification markers and trimming boundary whitespace.
+Punctuation, internal spaces, and diacritics remain significant.
+
+**Headword display**:
+The rich visible headword form (homograph number, syllable dots) preserved
+for rendering.
+
+**Syllabification marker**:
+A display-only `·` (U+00B7) marking syllable boundaries; removed from the
+searchable headword, kept in the display.
+
+**Homograph number**:
+The small `<sup>` number distinguishing same-spelling means; identity
+metadata, not part of the searchable term.
+
+**Alt index row**:
+An `alt(id, w)` lookup-index row whose semantic relationship is
+unclassified; the build skips it.
+_Avoid_: alternate form, variant row
+
+**Information unit**:
+One recognizable kind of dictionary information — content, marker,
+relationship, presentation, or derived observation — recognized through
+`DOM node → unit → nearest owner → level → status`.
+
+**Level**:
+The source semantic depth position: 1 lexical entry, 2 verb subgroup,
+3 numbered sense, 4 lettered subsense, 5 individual definition, 6 example,
+note, or reference.
+
+### Level 1 entries
+
+**Canonical entry**:
+A Level 1 entry that owns one parsed definition tree and normally serializes
+to one term-bank record. Kinds: `main-canonical-entry`,
+`alternative-spelling-canonical-entry`, `drp-phrase-canonical-entry`.
+_Avoid_: definition record
+
+**main-canonical-entry**:
+A canonical entry whose searchable spelling matches its row's decoded
+`word.w` (ownership Case 1).
+
+**alternative-spelling-canonical-entry**:
+A canonical entry emitted from an embedded mean whose spelling differs from
+its row's key, when no dedicated row exists (Case 2). The name also covers
+the Case 3 target family, where the dedicated row emits the entry instead.
+
+**drp-phrase-canonical-entry**:
+A canonical entry owned by a defined `.drp` phrase; the parent entry retains
+the phrase section.
+
+**soft-link-entry**:
+A Level 1 entry that owns a searchable relationship instead of a definition:
+a lookup spelling and a canonical target spelling. It serializes to a
+dictionary-deinflection tuple and never copies the target's definition.
+
+**Ownership decision**:
+The per-mean ruling on who emits the entry: `emit-current`,
+`emit-embedded`, or `defer-to-dedicated-row`.
+
+### Soft-link relationships
+
+**main-to-alternative-spelling-soft-link**:
+The lookup route from a row's decoded `word.w` spelling to a hosted
+different-spelling mean headword (Cases 2 and 3 both receive it).
+
+**vr-mean-alternate-soft-link**:
+An explicit alternate (`.va`) attached to an independent mean, pointing to
+that mean's headword. `vr` is the domain label; the current source marker is
+`.va`.
+
+**phrase-alternate-soft-link**:
+An explicit alternate attached to a defined phrase, pointing to the phrase's
+canonical spelling.
+
+**bare-affix-soft-link**:
+The extra lookup route made by removing only the boundary hyphen of a marked
+affix or marked alternate (for example `il` → `in-`).
+
+**Variant qualifier**:
+Text describing how an alternate relates to its canonical form (`or`,
+`or less commonly`), preserved beside the relationship.
+
+### Output model
+
+**Term-bank record**:
+One serialized Yomitan `TermInformation` tuple (term, reading, tags,
+popularity, definitions, sequence). Records and entries are not one-to-one.
+_Avoid_: entry
+
+**Sequence**:
+The Yomitan field that groups canonical records by searchable spelling for
+display; not a unique record counter. Soft-link records keep their own
+sequence.
+
+**Popularity**:
+A selected-root rank, not a count: `100` when the term equals a selected
+root's `word.w`, `0` for other canonical terms, `-100` for soft links.
+
+**Structured content**:
+Yomitan's node-based content representation that carries the rendered
+definition tree of a canonical record.
+
+**Dictionary-deinflection tuple**:
+The Yomitan shape a soft-link record serializes to: a target canonical term
+plus an inflection-rule chain (for example `alternative`).
+
+**Selected root**:
+A user-requested lookup word whose row starts the build and defines the
+`100` popularity set.
+
+**Dependency row**:
+A row pulled into the build because a canonical target needs it (dedicated
+row deferral), recorded with its reason.

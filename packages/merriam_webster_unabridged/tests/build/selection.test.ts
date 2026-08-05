@@ -7,7 +7,6 @@ describe("collectRequestedWords", () => {
     const result = collectRequestedWords({
       flagWords: ["give", "in", "give"],
       wordsFile: {
-        path: "/tmp/words.txt",
         text: " in \n take the word \n\nIN\n",
       },
     });
@@ -15,19 +14,11 @@ describe("collectRequestedWords", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.value.map(({ word }) => word)).toEqual([
+    expect(result.value).toEqual([
       "give",
       "in",
       "take the word",
       "IN",
-    ]);
-    expect(result.value[0]?.evidence).toEqual([
-      { kind: "flag", argumentIndex: 0 },
-      { kind: "flag", argumentIndex: 2 },
-    ]);
-    expect(result.value[1]?.evidence).toEqual([
-      { kind: "flag", argumentIndex: 1 },
-      { kind: "file", path: "/tmp/words.txt", line: 1 },
     ]);
   });
 
@@ -41,7 +32,6 @@ describe("collectRequestedWords", () => {
   test("trims inputs, ignores blanks, and leaves caller data unchanged", () => {
     const flagWords = Object.freeze([" give ", " ", "give"]);
     const wordsFile = Object.freeze({
-      path: "/tmp/words.txt",
       text: "\r\n take \r\n",
     });
 
@@ -49,19 +39,7 @@ describe("collectRequestedWords", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: [
-        {
-          word: "give",
-          evidence: [
-            { kind: "flag", argumentIndex: 0 },
-            { kind: "flag", argumentIndex: 2 },
-          ],
-        },
-        {
-          word: "take",
-          evidence: [{ kind: "file", path: "/tmp/words.txt", line: 2 }],
-        },
-      ],
+      value: ["give", "take"],
     });
     expect(flagWords).toEqual([" give ", " ", "give"]);
     expect(wordsFile.text).toBe("\r\n take \r\n");
@@ -71,7 +49,7 @@ describe("collectRequestedWords", () => {
     expect(
       collectRequestedWords({
         flagWords: ["  "],
-        wordsFile: { path: "/tmp/words.txt", text: "\n \r\n" },
+        wordsFile: { text: "\n \r\n" },
       }),
     ).toEqual({
       ok: false,

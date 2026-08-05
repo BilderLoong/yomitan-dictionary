@@ -1,50 +1,60 @@
-## 1. Conversion Contracts and Fixtures
+## 1. First-Version Contract
 
-- [ ] 1.1 Add focused MWU HTML fixtures or fixture extractors for `what`, `turn`, `take`, and `run`, with assertions that each required source row is present.
-- [ ] 1.2 Add failing type-level and unit tests for the immutable Level 1 entry, Level 2 verb group, Level 3–5 sense node, Level 6 attachment, rich-text, phrase, form, and source-finding contracts.
-- [ ] 1.3 Implement the intermediate-model and result types with level-specific ordered-content unions and no I/O dependencies.
+- [x] 1.1 Create a compact coverage matrix for `main-canonical-entry`, `alternative-spelling-canonical-entry`, `drp-phrase-canonical-entry`, `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`, `phrase-alternate-soft-link`, `bare-affix-soft-link`, and dedicated dependency rows. Map each behavior to positive cases, negative cases, evidence assertions, deduplication assertions, and representative real MWU rows.
+- [x] 1.2 Record the hand-authored design fixture as provisional reference evidence only. Remove it as a production snapshot, visual authority, required record count, or acceptance gate.
+- [x] 1.3 Record the first-version boundary: explicit selected words, Level 1 ownership and links, conservative readable definitions, deterministic reporting, and an importable ZIP; defer the polished Level 1-6 renderer.
 
-## 2. Source Traversal and Findings
+## 2. CLI and Source Selection
 
-- [ ] 2.1 Add failing tests that classify direct children as semantic content, recursive structural wrappers, intentionally ignored units, or unrecognized content without treating a known parent as complete coverage.
-- [ ] 2.2 Implement immutable source traversal that preserves sibling order and nearest-owner paths, recursively dispatches known transparent containers, and treats unknown subtrees atomically so their text is not duplicated or reordered.
-- [ ] 2.3 Implement recognized-and-ignored handling for pronunciation audio, first-known-use text, entry-status artwork, and discarded internal navigation targets.
-- [ ] 2.4 Implement deterministic `SourceFinding` and neutral visible-text fallback generation for unrecognized text or media-like descendants, including tests for unknown children inside `.dt`.
+- [x] 2.1 Add failing CLI parsing tests for `--words <word...>`, quoted multiword arguments, `--words-file <path>`, combined selection, blank file lines, boundary trimming, exact Unicode deduplication, and first-seen ordering.
+- [x] 2.2 Add failing CLI error tests for no selected words, an empty words file, unreadable files, unknown options, removed `--limit`/`--additional-words-list-file` options, and confirmation that stdin is not an input source.
+- [x] 2.3 Implement the immutable CLI selection model and edge adapter. Remove the old selection flags and any implicit full-database fallback.
+- [x] 2.4 Add failing source-index tests for deterministic row IDs, decoded keys such as `o%27`, exact target resolution, repeated decoded spellings, and unfamiliar encoding diagnostics without parsing every `word.m` payload.
+- [x] 2.5 Implement the lightweight source-row index and on-demand HTML loading adapter.
 
-## 3. MWU Semantic Parsing
+## 3. Level 1 Planning Tests and Implementation
 
-- [ ] 3.1 Add failing hierarchy tests for separate `<mean>` entries, direct Level 3 senses, integer-ordered `.vd` groups, inherited markers, and nested Levels 3–5.
-- [ ] 3.2 Implement lexical-entry, verb-group, sense-marker, sense-label, definition-label, and ordered definition parsing for the hierarchy tests.
-- [ ] 3.3 Add failing entry-metadata tests for part of speech, visible rich headword display, all entry and form pronunciations, origin references, and ordered inflection groups with `.il`, `.ix`, and `.prt-a` children; verify that responsive `.breakpoint` boundaries are not interpreted as linguistic syllables.
-- [ ] 3.4 Implement entry metadata, rich inline text, inflection groups, form-local qualifiers and readings, and origin parsing without populating a Yomitan reading value.
-- [ ] 3.5 Add failing attachment tests for nested usage notes, examples, target highlighting, attribution dates, subordinate definitions after examples, comparisons, local cross-references, called-also text, and related or synonym content at their nearest owners.
-- [ ] 3.6 Implement the Level 6 attachment and related-content parsers while preserving exact owner-local order.
-- [ ] 3.7 Add failing phrase tests for retained parent `.dro` sections, independent `.drp` boundaries, phrase-local `.fl`, `.va` and `.vl`, example-only expressions, and positive and negative interposed-object evidence.
-- [ ] 3.8 Implement defined-phrase parsing, phrase-local alternatives, parent-only `.uro` undefined run-ons, defined-derivative/related relation support, and conservative `v_phr` evidence derivation.
+- [x] 3.1 Add focused failing canonical-entry tests for `main-canonical-entry`, separate same-spelling means, `alternative-spelling-canonical-entry` embedded ownership, dedicated-row deferral, rich display versus searchable identity, and missing lexical identity.
+- [x] 3.2 Implement pure canonical-entry planning with one inspectable decision per independent `<mean>`.
+- [x] 3.3 Add focused failing canonical-defined-phrase tests for independent `.drp` ownership, parent relationship retention, adjacent phrase boundaries, and example-only and undefined-run-on negatives.
+- [x] 3.4 Implement pure canonical phrase planning without merging adjacent phrases or promoting non-definition expressions.
+- [x] 3.5 Add focused failing `main-to-alternative-spelling-soft-link` tests for embedded and dedicated routes, empty rule chains, exact route deduplication, retained repeated evidence, target availability, and no copied definitions.
+- [x] 3.6 Implement pure `main-to-alternative-spelling-soft-link` planning.
+- [x] 3.7 Add focused failing `vr-mean-alternate-soft-link` tests for the correct local canonical target, qualifier and metadata retention, confirmed rule chains, exact Unicode identity, and rejection when local content establishes a distinct meaning.
+- [x] 3.8 Implement pure VR mean alternate planning and explicit distinct-meaning diagnostics.
+- [x] 3.9 Add focused failing `phrase-alternate-soft-link` tests for the correct phrase owner, `alternative` rule, qualifier retention, adjacent phrase isolation, exact deduplication, and no copied definitions.
+- [x] 3.10 Implement pure phrase alternate planning.
+- [x] 3.11 Add focused failing `bare-affix-soft-link` tests for confirmed prefix, suffix, infix, and marked-alternate identities; ordinary-hyphen and arbitrary-substring negatives; exact route reuse; rule-chain behavior; and retention of every evidence occurrence.
+- [x] 3.12 Implement pure source-assisted `bare-affix-soft-link` derivation without a hardcoded word list.
+- [x] 3.13 Add focused failing dependency tests for Case 3 targets, transitive closure, repeated dependencies, cycles, deterministic row-ID deduplication, missing owners, roots-versus-dependencies reporting, and the invariant that no serialized link dangles.
+- [x] 3.14 Implement deterministic canonical dependency closure and fatal missing-owner diagnostics.
 
-## 4. Yomitan Structured-Content Rendering
+## 4. Conservative Canonical Conversion
 
-- [ ] 4.1 Add failing renderer tests for Levels 1–6, inline labels and emphasis, all visible pronunciations, discarded internal link targets, target highlights, and source-ordered subordinate definitions.
-- [ ] 4.2 Implement pure rich-text and hierarchy renderers that leave the Yomitan reading field empty and keep labels inline during this change.
-- [ ] 4.3 Add failing example-rendering tests that show the first three examples and collapse later examples while retaining attribution and highlighting.
-- [ ] 4.4 Implement example, usage-note, reference, origin, related-content, and parent phrase-section rendering with neutral fallback styling for unrecognized content.
+- [x] 4.1 Add failing conversion tests proving that a `main-canonical-entry` or `alternative-spelling-canonical-entry` plan reads only its owning `<mean>` and a `drp-phrase-canonical-entry` plan reads only its owning definition-bearing phrase subtree.
+- [x] 4.2 Add failing readable-content tests for source-order text, basic block boundaries, useful visible link text without GoldenDict targets, empty Yomitan readings, and fatal empty definitions.
+- [x] 4.3 Add failing fallback tests proving that unsupported visible subtrees render once as neutral content, produce one ordered finding, and do not duplicate recognizable descendants.
+- [x] 4.4 Implement immutable first-version conversion results and conservative supported Yomitan structured-content rendering without the final Level 1-6 presentation model.
 
-## 5. Searchable Record Assembly
+## 5. Record Assembly and Reporting
 
-- [ ] 5.1 Add failing assembly tests for one record per Level 1 lexical identity, independent defined phrases, phrase-local alternatives represented by dictionary-deinflection records, exact Unicode expression-and-identity deduplication, preservation of case/punctuation/diacritic distinctions, and exclusion of example-only, raw-alt-only, and undefined `.uro` expressions.
-- [ ] 5.2 Implement pure term-record assembly from converted entries and phrases, storing structured content on canonical phrases and dictionary-deinflection tuples on phrase-local alternatives.
-- [ ] 5.3 Add and satisfy tests that emit `v_phr` only for canonical phrases with validated interposed-object evidence and keep visual labels out of the lookup-rule field.
+- [x] 5.1 Add failing assembly tests for distinct canonical entry records, `drp-phrase-canonical-entry` records, every soft-link-entry family, empty readings, no copied definitions, direct-canonical priority, and stable record ordering.
+- [x] 5.2 Implement pure Yomitan canonical and dictionary-deinflection record assembly.
+- [x] 5.3 Add failing report tests for effective CLI roots, loaded rows, dependencies and reasons, every ownership decision, all serialized or reused soft-link evidence, alternative-local metadata, rejected owners, conversion findings, fatal errors, totals, and archive path.
+- [x] 5.4 Implement one deterministic `build-report.json` model and serializer shared by successful and failed attempts.
+- [x] 5.5 Add the real-source archive assertion that same-spelling canonical records reuse one Yomitan sequence and document the sequence contract.
 
-## 6. First-Slice Build and Export
+## 6. End-to-End Selected Builds
 
-- [ ] 6.1 Add failing integration tests for exact selection of `what`, `turn`, `take`, and `run`, including a diagnostic when a required word is absent or a row lacks lexical identity.
-- [ ] 6.2 Implement the selected-word build orchestration with SQLite and filesystem effects confined to adapters around the pure conversion pipeline.
-- [ ] 6.3 Implement one deterministic `build-report.json` containing build statistics, information-unit and ignored-unit counts, unrecognized findings, errors, complete `v_phr` evidence inventory, and phrase-alternative metadata audits; keep stable term-record ordering and export the ZIP through the existing dictionary-builder dependency.
-- [ ] 6.4 Add archive tests that inspect the generated index and term-bank data against the repository's supported Yomitan schema and verify repeatable semantic output.
+- [x] 6.1 Add integration tests using isolated SQLite/file fixtures for flag-only, file-only, and combined selection; quoted phrases; exact deduplication; stable ordering; no input; unreadable files; missing roots; and missing dependencies.
+- [x] 6.2 Replace the old build entry point with the new CLI and connect SQLite reads, pure planning, conversion, assembly, reporting, schema validation, and ZIP export.
+- [x] 6.3 Build representative selected roots covering all seven Level 1 families, including researched rows from `what`, `take`, `in`, and `o`, plus discovered dedicated dependencies.
+- [x] 6.4 Build the representative selection twice and assert equal semantic term-bank content and equal build-report content and ordering.
+- [x] 6.5 Add archive tests for the repository-supported Yomitan index and term-bank schemas and assert that every soft-link target has a canonical record.
+- [x] 6.6 Import the representative ZIP with the browser harness and verify completed progress, no import error, increased dictionary count, and smoke searches for canonical, alternate, phrase, and bare-affix routes.
 
-## 7. Acceptance and Documentation
+## 7. Replacement and Handoff
 
-- [ ] 7.1 Run the focused parser, renderer, assembler, findings, database, and archive test suites and resolve failures attributable to this change.
-- [ ] 7.2 Generate the four-word dictionary and `build-report.json`; inspect every unrecognized finding, every `v_phr` candidate, and every phrase alternative with additional local metadata, recording whether each case needs a new typed information unit or representation.
-- [ ] 7.3 Import the first-slice ZIP into Yomitan and compare `what`, `turn`, `take`, and `run` with GoldenDict for hierarchy, pronunciation, attachment order, phrase entries, alternatives, example collapsing, and interposed-object lookup behavior.
-- [ ] 7.4 Update the project notes and MWU survey catalog with confirmed implementation behavior and any newly recognized source structures, without adding experimental implementation claims that were not verified.
+- [x] 7.1 Run the focused CLI, source-index, seven-family planner, converter, assembler, report, integration, schema, and browser-import gates and resolve failures attributable to this change.
+- [x] 7.2 Remove obsolete builder, parser, types, tests, and CLI options directly superseded by the verified first-version path. Do not retain a compatibility adapter or fallback builder.
+- [x] 7.3 Update the package README, project notes, status checkpoint, and living survey with confirmed first-version behavior, observed findings, and the explicit boundary that polished Level 1-6 presentation remains future work.

@@ -31,6 +31,6 @@
       "name": "Attach Bun",
       "url": "ws://localhost:6499/vscode",
       "stopOnEntry": false
-    },
+    }
   ]
 }
