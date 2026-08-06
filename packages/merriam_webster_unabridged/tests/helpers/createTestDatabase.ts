@@ -3,7 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { BuildRequest } from "../../src/build/runBuild";
+import type { BuildRequest } from "../../src/pipeline/runBuild";
 import { definition, mean } from "./mwuHtml";
 
 export interface TestDatabaseRow {

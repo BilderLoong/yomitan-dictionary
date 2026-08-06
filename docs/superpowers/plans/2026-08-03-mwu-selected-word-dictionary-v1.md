@@ -54,7 +54,7 @@ Create these focused modules:
   - Canonical and dictionary-deinflection term tuples.
 - packages/merriam_webster_unabridged/src/build/report.ts
   - Deterministic report model and JSON serialization.
-- packages/merriam_webster_unabridged/src/build/runBuild.ts
+- packages/merriam_webster_unabridged/src/pipeline/runBuild.ts
   - Selected-build orchestration across the edge adapters.
 - packages/merriam_webster_unabridged/src/index.ts
   - Minimal executable entry point.
@@ -1295,7 +1295,7 @@ Expected: PASS.
 
 **Files:**
 
-- Create: packages/merriam_webster_unabridged/src/build/runBuild.ts
+- Create: packages/merriam_webster_unabridged/src/pipeline/runBuild.ts
 - Replace: packages/merriam_webster_unabridged/src/index.ts
 - Modify: packages/merriam_webster_unabridged/package.json
 - Test: packages/merriam_webster_unabridged/tests/helpers/createTestDatabase.ts

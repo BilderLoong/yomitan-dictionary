@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { runBuild, type BuildRequest } from "../../src/build/runBuild";
+import { runBuild, type BuildRequest } from "../../src/pipeline/runBuild";
 import {
   createTestBuildRequest,
   representativeRows,
 } from "../helpers/createTestDatabase";
-import { collectRequestedWords } from "../../src/build/selection";
+import { collectRequestedWords } from "../../src/pipeline/selection";
 
 const createSelectedRequest = async (input: {
   readonly flagWords: readonly string[];

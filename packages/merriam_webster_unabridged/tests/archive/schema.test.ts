@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runBuild } from "../../src/build/runBuild";
+import { runBuild } from "../../src/pipeline/runBuild";
 import {
   dictionaryIndex,
   dictionaryTermBankV3,
