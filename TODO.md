@@ -54,3 +54,8 @@ they are not source-research tasks.
 - [ ] [Decide and implement cross-reference-only mean soft-link generation](docs/mwu-level-1-entry-generation.md#todo-cross-reference-only-mean-soft-link-generation).
   Keep `.cxl-ref` out of canonical-entry ownership while evaluating it as
   possible relationship evidence.
+
+
+## Tags
+How is tag works?
+I think we need .sl convert to tag. We need a tag generation rules too.
