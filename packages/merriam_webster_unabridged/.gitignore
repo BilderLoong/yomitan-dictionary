@@ -5,6 +5,8 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-build/
+# Anchored: only the package-root build output dir; src/build and tests/build
+# are real source and must stay trackable.
+/build/
 assets
 fixture/
