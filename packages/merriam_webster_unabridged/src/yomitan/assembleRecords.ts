@@ -1,7 +1,7 @@
 import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
 import type { ConvertedCanonical } from "../conversion/convertCanonical";
-import type { SoftLinkEntryPlan } from "../level1/planLinks";
+import type { SoftLinkEntryPlan } from "../level1/types";
 
 export const assembleCanonicalRecord = (
   converted: ConvertedCanonical,

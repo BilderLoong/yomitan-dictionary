@@ -1,13 +1,11 @@
 import type { ConvertedCanonical } from "../conversion/convertCanonical";
+import type { LinkRejection } from "../level1/planLinks";
 import type {
   CanonicalEntryPlan,
   Level1Finding,
   OwnershipDecision,
-} from "../level1/types";
-import type {
-  LinkRejection,
   SoftLinkEntryPlan,
-} from "../level1/planLinks";
+} from "../level1/types";
 import type { IndexedSourceRow } from "../source/rows";
 
 export interface DependencyReportEntry {

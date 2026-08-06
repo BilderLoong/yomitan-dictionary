@@ -7,6 +7,10 @@ import {
   type SourceIndex,
   type SourceRow,
 } from "../source/rows";
+import {
+  type CxlRefPlanningResult,
+  planCxlRefVariantSoftLinks,
+} from "./planLinks";
 import type {
   AlternativeSpellingCanonicalEntryPlan,
   CanonicalEntryPlan,
@@ -16,6 +20,7 @@ import type {
   MainCanonicalEntryPlan,
   OwnershipDecision,
   OwnershipRule,
+  SoftLinkEntryPlan,
 } from "./types";
 
 interface HeadwordIdentity {
@@ -37,6 +42,7 @@ interface MeanPlanningResult {
   readonly canonicalEntries: readonly CanonicalEntryPlan[];
   readonly decisions: readonly OwnershipDecision[];
   readonly requiredDependencyIds: readonly number[];
+  readonly softLinkEntries: readonly SoftLinkEntryPlan[];
   readonly findings: readonly Level1Finding[];
 }
 
@@ -288,6 +294,7 @@ const planMean = (
       canonicalEntries: [],
       decisions: [],
       requiredDependencyIds: [],
+      softLinkEntries: [],
       findings: [
         unresolvedMeanFinding(
           row,
@@ -338,16 +345,30 @@ const planMean = (
       requiredDependencyIds: dedicatedRows.map(
         ({ id }: IndexedSourceRow): number => id,
       ),
+      softLinkEntries: [],
       findings: meanFindings,
     };
   }
 
   if (!hasMeanDefinition) {
+    const cxlRefResult: CxlRefPlanningResult = planCxlRefVariantSoftLinks({
+      root,
+      mean,
+      meanIndex,
+      lookup: identity.searchableHeadword,
+      row,
+      index,
+    });
+    const hasCxlRef = root(mean).find(".cxl-ref").length > 0;
+
     return {
       canonicalEntries: phrases,
       decisions: [],
-      requiredDependencyIds: [],
-      findings: meanFindings,
+      requiredDependencyIds: cxlRefResult.requiredDependencyIds,
+      softLinkEntries: cxlRefResult.links,
+      findings: hasCxlRef
+        ? [...findings, ...cxlRefResult.findings]
+        : meanFindings,
     };
   }
 
@@ -358,6 +379,7 @@ const planMean = (
     ],
     decisions: [decision],
     requiredDependencyIds: [],
+    softLinkEntries: [],
     findings,
   };
 };
@@ -395,6 +417,10 @@ export const planCanonicalOwners = (
         ({ requiredDependencyIds }: MeanPlanningResult): readonly number[] =>
           requiredDependencyIds,
       ),
+    ),
+    softLinkEntries: plannedMeans.flatMap(
+      ({ softLinkEntries }: MeanPlanningResult): readonly SoftLinkEntryPlan[] =>
+        softLinkEntries,
     ),
     findings: [
       ...index.findings,

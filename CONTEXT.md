@@ -106,6 +106,14 @@ canonical spelling.
 The extra lookup route made by removing only the boundary hyphen of a marked
 affix or marked alternate (for example `il` → `in-`).
 
+**cxl-ref-variant-reference-soft-link**:
+The lookup route from a definition-free mean's `.cxl-ref` variant reference
+to its referenced spelling (for example `O` → `oh` with the relation phrase
+`variant spelling of` as the rule). The target comes from the `.cxt`
+`bword://` href, never the visible anchor text; only confirmed variant
+family phrases emit a link, and the referenced row joins the build
+dependencies.
+
 **Variant qualifier**:
 Text describing how an alternate relates to its canonical form (`or`,
 `or less commonly`), preserved beside the relationship.

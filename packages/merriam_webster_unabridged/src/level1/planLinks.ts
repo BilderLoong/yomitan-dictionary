@@ -1,66 +1,30 @@
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
-
 import type { Result } from "../shared/result";
+import {
+  findSourceRows,
+  type SourceIndex,
+  type SourceRow,
+} from "../source/rows";
 import type {
   AlternativeSpellingCanonicalEntryPlan,
+  BareLookupError,
   CanonicalSource,
+  ConfirmedAffixEvidence,
   DrpPhraseCanonicalEntryPlan,
+  Level1Finding,
+  LinkEvidence,
+  LinkPlanningResult,
+  LinkRejection,
   MainCanonicalEntryPlan,
   OwnershipDecision,
+  SoftLinkEntryPlan,
+  SoftLinkEntryRelationship,
 } from "./types";
 
 type MeanCanonicalEntryPlan =
   | MainCanonicalEntryPlan
   | AlternativeSpellingCanonicalEntryPlan;
-
-export type SoftLinkEntryRelationship =
-  | "main-to-alternative-spelling-soft-link"
-  | "vr-mean-alternate-soft-link"
-  | "phrase-alternate-soft-link"
-  | "bare-affix-soft-link";
-
-export interface LinkEvidence {
-  readonly rowId: number;
-  readonly rowKey: string;
-  readonly meanIndex: number;
-  readonly phraseIndex: number | null;
-  readonly selector: string;
-  readonly qualifier: string | null;
-  readonly localText: string;
-}
-
-export interface SoftLinkEntryPlan {
-  readonly kind: "soft-link-entry";
-  readonly relationship: SoftLinkEntryRelationship;
-  readonly lookup: string;
-  readonly target: string;
-  readonly rules: readonly string[];
-  readonly evidence: readonly LinkEvidence[];
-}
-
-export interface LinkPlanningResult {
-  readonly softLinkEntries: readonly SoftLinkEntryPlan[];
-  readonly rejections: readonly LinkRejection[];
-}
-
-export interface ConfirmedAffixEvidence {
-  readonly marked: string;
-  readonly bare: string;
-  readonly target: string;
-  readonly evidence: LinkEvidence;
-}
-
-export type BareLookupError = {
-  readonly kind: "not-confirmed-affix";
-};
-
-export interface LinkRejection {
-  readonly kind: "alternate-distinct-meaning";
-  readonly lookup: string;
-  readonly target: string;
-  readonly evidence: readonly LinkEvidence[];
-}
 
 const sameRules = (
   left: readonly string[],
@@ -364,3 +328,236 @@ export const deriveBareAffixSoftLinks = (
     ]),
   rejections: [],
 });
+
+const VARIANT_RELATION_PHRASES: readonly string[] = [
+  "variant spelling of",
+  "variant of",
+  "archaic variant of",
+  "obsolete variant of",
+  "dialectal variant of",
+  "scottish variant of",
+  "chiefly scottish variant of",
+  "chiefly british spelling of",
+];
+
+const isApprovedVariantRelation = (relation: string): boolean =>
+  VARIANT_RELATION_PHRASES.includes(relation.toLowerCase());
+
+const cxlRefTargetFromHref = (href: string | null): string | null => {
+  if (href === null) return null;
+  const withoutScheme = href.startsWith("bword://")
+    ? href.slice("bword://".length)
+    : href;
+  const target = withoutScheme.replace(/\[\d+\]$/, "");
+  if (target.length === 0) return null;
+  try {
+    return decodeURIComponent(target);
+  } catch {
+    return target;
+  }
+};
+
+export interface CxlRefPlanningResult {
+  readonly links: readonly SoftLinkEntryPlan[];
+  readonly requiredDependencyIds: readonly number[];
+  readonly findings: readonly Level1Finding[];
+}
+
+export interface CxlRefInput {
+  readonly root: cheerio.CheerioAPI;
+  readonly mean: Element;
+  readonly meanIndex: number;
+  readonly lookup: string;
+  readonly row: SourceRow;
+  readonly index: SourceIndex;
+}
+
+interface CxlRefReference {
+  readonly relation: string;
+  readonly target: string | null;
+  readonly anchorText: string;
+  readonly preview: string;
+}
+
+const inspectCxlRef = (
+  root: cheerio.CheerioAPI,
+  reference: Element,
+): CxlRefReference => {
+  const relation = root(reference).find(".cxl").first().text().trim();
+  const anchor = root(reference).find(".cxt").first();
+  return {
+    relation,
+    target: cxlRefTargetFromHref(anchor.attr("href") ?? null),
+    anchorText: anchor.text().trim(),
+    preview: root(reference).prop("outerHTML") ?? "",
+  };
+};
+
+type CxlRefDecision =
+  | {
+      readonly kind: "link";
+      readonly link: SoftLinkEntryPlan;
+      readonly dependencyIds: readonly number[];
+    }
+  | {
+      readonly kind: "finding";
+      readonly finding: Level1Finding;
+    };
+
+const cxlRefNotEmittedFinding = (
+  input: CxlRefInput,
+  reference: CxlRefReference,
+  reason: "unapproved-relation" | "missing-target" | "self-link",
+): Level1Finding => ({
+  kind: "cxl-ref-not-emitted",
+  rowId: input.row.id,
+  meanIndex: input.meanIndex,
+  relation: reference.relation.length === 0 ? null : reference.relation,
+  target: reference.target,
+  reason,
+  preview: reference.preview,
+});
+
+const planCxlRefReference = (
+  input: CxlRefInput,
+  reference: Element,
+): CxlRefDecision => {
+  const inspected = inspectCxlRef(input.root, reference);
+
+  if (
+    inspected.relation.length === 0 ||
+    !isApprovedVariantRelation(inspected.relation)
+  ) {
+    return {
+      kind: "finding",
+      finding: cxlRefNotEmittedFinding(input, inspected, "unapproved-relation"),
+    };
+  }
+
+  if (inspected.target === null) {
+    return {
+      kind: "finding",
+      finding: cxlRefNotEmittedFinding(input, inspected, "missing-target"),
+    };
+  }
+
+  if (inspected.target === input.lookup) {
+    return {
+      kind: "finding",
+      finding: cxlRefNotEmittedFinding(input, inspected, "self-link"),
+    };
+  }
+
+  const targetRows = findSourceRows(input.index, inspected.target);
+  if (targetRows.length === 0) {
+    return {
+      kind: "finding",
+      finding: cxlRefNotEmittedFinding(input, inspected, "missing-target"),
+    };
+  }
+
+  return {
+    kind: "link",
+    link: {
+      kind: "soft-link-entry",
+      relationship: "cxl-ref-variant-reference-soft-link",
+      lookup: input.lookup,
+      target: inspected.target,
+      rules: [inspected.relation],
+      evidence: [
+        {
+          rowId: input.row.id,
+          rowKey: input.row.decodedKey,
+          meanIndex: input.meanIndex,
+          phraseIndex: null,
+          selector: ".cxl-ref",
+          qualifier: null,
+          localText: inspected.anchorText,
+        },
+      ],
+    },
+    dependencyIds: targetRows.map(({ id }: IndexedSourceRow): number => id),
+  };
+};
+
+export const planCxlRefVariantSoftLinks = (
+  input: CxlRefInput,
+): CxlRefPlanningResult => {
+  const decisions = input
+    .root(input.mean)
+    .find(".cxl-ref")
+    .toArray()
+    .map(
+      (reference: Element): CxlRefDecision =>
+        planCxlRefReference(input, reference),
+    );
+
+  return {
+    links: decisions.flatMap(
+      (decision: CxlRefDecision): readonly SoftLinkEntryPlan[] =>
+        decision.kind === "link" ? [decision.link] : [],
+    ),
+    requiredDependencyIds: decisions.flatMap(
+      (decision: CxlRefDecision): readonly number[] =>
+        decision.kind === "link" ? decision.dependencyIds : [],
+    ),
+    findings: decisions.flatMap(
+      (decision: CxlRefDecision): readonly Level1Finding[] =>
+        decision.kind === "finding" ? [decision.finding] : [],
+    ),
+  };
+};
+
+const isShadowedAlternate = (
+  links: readonly SoftLinkEntryPlan[],
+  link: SoftLinkEntryPlan,
+): boolean =>
+  (link.relationship === "vr-mean-alternate-soft-link" ||
+    link.relationship === "phrase-alternate-soft-link") &&
+  links.some(
+    (candidate: SoftLinkEntryPlan): boolean =>
+      candidate.relationship === "cxl-ref-variant-reference-soft-link" &&
+      candidate.lookup === link.lookup &&
+      candidate.target === link.target,
+  );
+
+const sameLookupTarget = (
+  left: SoftLinkEntryPlan,
+  right: SoftLinkEntryPlan,
+): boolean => left.lookup === right.lookup && left.target === right.target;
+
+export const replaceShadowedAlternateLinks = (
+  links: readonly SoftLinkEntryPlan[],
+): readonly SoftLinkEntryPlan[] => {
+  const shadowedAlternates = links.filter((link: SoftLinkEntryPlan): boolean =>
+    isShadowedAlternate(links, link),
+  );
+
+  return links
+    .filter(
+      (link: SoftLinkEntryPlan): boolean => !shadowedAlternates.includes(link),
+    )
+    .map(
+      (link: SoftLinkEntryPlan): SoftLinkEntryPlan =>
+        link.relationship === "cxl-ref-variant-reference-soft-link" &&
+        shadowedAlternates.some((shadowed: SoftLinkEntryPlan): boolean =>
+          sameLookupTarget(link, shadowed),
+        )
+          ? {
+              ...link,
+              evidence: [
+                ...link.evidence,
+                ...shadowedAlternates
+                  .filter((shadowed: SoftLinkEntryPlan): boolean =>
+                    sameLookupTarget(link, shadowed),
+                  )
+                  .flatMap(
+                    ({
+                      evidence,
+                    }: SoftLinkEntryPlan): readonly LinkEvidence[] => evidence,
+                  ),
+              ],
+            }
+          : link,
+    );
+};

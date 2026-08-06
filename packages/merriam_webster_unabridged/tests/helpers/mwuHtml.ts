@@ -32,3 +32,16 @@ export const alternate = (
   (qualifier === null ? "" : `<span class="vl">${qualifier}</span>`) +
   extraHtml +
   "</span>";
+
+export const cxlRef = (
+  relation: string,
+  visibleTarget: string,
+  href?: string,
+): string =>
+  '<p class="cxl-ref"><span class="cxl">' +
+  relation +
+  '</span><a rel="prev" href="' +
+  (href ?? `bword://${visibleTarget}`) +
+  '" class="cxt">' +
+  visibleTarget +
+  "</a></p>";

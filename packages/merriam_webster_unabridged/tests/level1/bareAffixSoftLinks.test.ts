@@ -3,8 +3,8 @@ import { expect, test } from "bun:test";
 import {
   deriveBareAffixSoftLinks,
   deriveBareLookup,
-  type SoftLinkEntryPlan,
 } from "../../src/level1/planLinks";
+import type { SoftLinkEntryPlan } from "../../src/level1/types";
 import { linkEvidence, softLinkEntryPlan } from "../helpers/level1Factories";
 
 test.each([

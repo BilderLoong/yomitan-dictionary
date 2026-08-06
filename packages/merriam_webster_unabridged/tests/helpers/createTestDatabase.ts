@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { BuildRequest } from "../../src/pipeline/runBuild";
-import { definition, mean } from "./mwuHtml";
+import { alternate, cxlRef, definition, mean } from "./mwuHtml";
 
 const stylesPath = fileURLToPath(new URL("../../styles.css", import.meta.url));
 
@@ -52,8 +52,9 @@ export const representativeRows: readonly TestDatabaseRow[] = [
     html:
       mean("o", definition("letter")) +
       mean("o'", definition("apostrophe form")) +
-      mean("oh", definition("exclamation")),
+      mean("oh", definition("exclamation")) +
+      mean("O", cxlRef("variant spelling of", "oh")),
   },
   { id: 2, encodedKey: "o%27", html: mean("o'", definition("apostrophe")) },
-  { id: 3, encodedKey: "oh", html: mean("oh", definition("exclamation")) },
+  { id: 3, encodedKey: "oh", html: mean("oh", definition("exclamation") + alternate("O", "or", "")) },
 ];
