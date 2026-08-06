@@ -843,15 +843,28 @@ later audio phase.
 
 ## Source survey tool
 
-The current read-only inventory tool scans `.sl`, `.fl`,
-`.vd`, `.sd`, `.lb`, `.il`, `.vl`, parenthetical labels, phrase-local labels,
-example-attribution labels, and any other label-bearing nodes found during
-reconnaissance. It will report each label's text, source class, example words,
-frequency, nearest level, ancestor path, and possible WTY/Yomitan mapping. It
-does not generate a tag bank or rewrite the design JSON. The separate
-`design:update-metadata` helper only copies explicitly mapped repetitive header
-facts (`<h1><sup>`, `.lbs`, and variant-only `.cxl-ref`) into the hand-authored
-fixture and emits a match report; it is not a general parser.
+The repeatable read-only inspector ships as `bun run survey:inspect --words
+<words...>` (package `merriam_webster_unabridged`,
+`tests/survey_inspector.ts` + `src/survey/inspector.ts` + the class catalog
+in `src/survey/catalog.ts`). It opens the source database read-only and
+never emits Yomitan entries.
+
+- Inspect mode walks every element of the requested rows and emits one
+  finding per classified element: word, information name, unit level,
+  nearest semantic owner, source selector (tag + full class tokens), DOM
+  owner path, parser status, and finding section.
+- Inventory mode aggregates the same findings across words into
+  `build/survey-inventory.json`: per-selector unit/status/section, row
+  counts, and the example words that exhibit each selector. Unknown or
+  unrecognized selectors are listed explicitly, never silently discarded.
+- The output follows the three-section contract (`interesting`,
+  `notNeeded`, `notYetNoticed`) and the vocabulary of this survey; the
+  class catalog mirrors the information-unit table above, including the
+  2026-08-07 additions (`.pn`, `.l`, `.iw`, media units, …). The separate
+  `design:update-metadata` helper only copies explicitly mapped repetitive
+  header facts (`<h1><sup>`, `.lbs`, and variant-only `.cxl-ref`) into the
+  hand-authored fixture and emits a match report; it is not a general
+  parser.
 
 Its report has the three requested finding sections: `interesting`,
 `notNeeded`, and `notYetNoticed`. The selected-word report is written to
