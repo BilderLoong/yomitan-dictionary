@@ -51,6 +51,21 @@ they are not source-research tasks.
 
 ## Open Level 1 generation TODOs
 
-- [ ] [Decide and implement cross-reference-only mean soft-link generation](docs/mwu-level-1-entry-generation.md#todo-cross-reference-only-mean-soft-link-generation).
+- [ ] [Decide and implement cross-reference-only mean soft-link generation](docs/mwu-level-1-entry-generation.md#confirmed-cxl-ref-variant-reference-soft-link).
   Keep `.cxl-ref` out of canonical-entry ownership while evaluating it as
   possible relationship evidence.
+  - Status (2026-08-06): the renderer side is done — means *with* a
+    definition tree render `.cxl-ref` as `variant-reference` content (Fix G
+    in the structure-content worktree). The planner side is not implemented:
+    `src/level1/planLinks.ts` has no `cxl-ref-variant-reference-soft-link`
+    relationship and no `.cxl`/`.cxt` handling; the definition-free `O` mean
+    in the `o` row still emits only a `definition-free-mean` finding. The
+    docs spec the full behavior (target from `.cxt` `bword://` href, variant
+    phrase family, tuple `[[oh, ["variant spelling of"]]]`, dedup by
+    `(lookup, target)`, target joins `requiredDependencyIds`). Deferred by
+    user decision.
+
+## Information coverage
+Is there any programmatic way to determine there no information loss?
+
+## Is there any way to test the finally render result?

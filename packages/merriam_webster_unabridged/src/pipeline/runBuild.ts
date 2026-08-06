@@ -1,22 +1,27 @@
+import type Database from "bun:sqlite";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-
-import Database from "bun:sqlite";
 import { Dictionary, DictionaryIndex } from "yomichan-dict-builder";
 import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
-import { convertCanonical, type ConvertedCanonical } from "../conversion/convertCanonical";
-import { closeDependencies, type DependencyEdge } from "../level1/closeDependencies";
+import {
+  type ConvertedCanonical,
+  convertCanonical,
+} from "../conversion/convertCanonical";
+import {
+  closeDependencies,
+  type DependencyEdge,
+} from "../level1/closeDependencies";
 import { planCanonicalOwners } from "../level1/planCanonical";
 import {
+  type ConfirmedAffixEvidence,
   deriveBareAffixSoftLinks,
   deriveBareLookup,
+  type LinkEvidence,
+  type LinkRejection,
   planMainToAlternativeSpellingSoftLinks,
   planPhraseAlternateSoftLinks,
   planVrMeanAlternateSoftLinks,
-  type ConfirmedAffixEvidence,
-  type LinkEvidence,
-  type LinkRejection,
   type SoftLinkEntryPlan,
 } from "../level1/planLinks";
 import type {
@@ -24,8 +29,6 @@ import type {
   Level1Finding,
   OwnershipDecision,
 } from "../level1/types";
-import { assembleCanonicalRecord, assembleSoftLinkRecord } from "../yomitan/assembleRecords";
-import { createBuildReport, type BuildFatalError, type BuildReport } from "./report";
 import {
   buildSourceIndex,
   findSourceRows,
@@ -38,10 +41,20 @@ import {
   loadSourceRow,
   openSourceDatabase,
 } from "../source/sqlite";
+import {
+  assembleCanonicalRecord,
+  assembleSoftLinkRecord,
+} from "../yomitan/assembleRecords";
+import {
+  type BuildFatalError,
+  type BuildReport,
+  createBuildReport,
+} from "./report";
 
 export interface BuildPaths {
   readonly outputDirectory: string;
   readonly reportPath: string;
+  readonly stylesPath: string;
 }
 
 export interface BuildRequest {
@@ -103,9 +116,7 @@ const sameRules = (
   right: readonly string[],
 ): boolean =>
   left.length === right.length &&
-  left.every(
-    (rule: string, index: number): boolean => rule === right[index],
-  );
+  left.every((rule: string, index: number): boolean => rule === right[index]);
 
 const sameSoftLinkRoute = (
   left: SoftLinkEntryPlan,
@@ -168,8 +179,11 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
         : planVrMeanAlternateSoftLinks(plan),
   );
   const localSoftLinkEntries = alternateResults.flatMap(
-    ({ softLinkEntries }: { readonly softLinkEntries: readonly SoftLinkEntryPlan[] }): readonly SoftLinkEntryPlan[] =>
+    ({
       softLinkEntries,
+    }: {
+      readonly softLinkEntries: readonly SoftLinkEntryPlan[];
+    }): readonly SoftLinkEntryPlan[] => softLinkEntries,
   );
   const existingSoftLinkEntries = [
     ...planMainToAlternativeSpellingSoftLinks({
@@ -180,17 +194,18 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
   ];
   const affixEvidence = localSoftLinkEntries.flatMap(createAffixEvidence);
   const softLinkEntries = deduplicateSoftLinks(
-    deriveBareAffixSoftLinks(
-      existingSoftLinkEntries,
-      affixEvidence,
-    ).softLinkEntries,
+    deriveBareAffixSoftLinks(existingSoftLinkEntries, affixEvidence)
+      .softLinkEntries,
   );
   const findings = canonicalResult.findings.filter(
     (finding: Level1Finding): boolean => finding.kind !== "source-key-decode",
   );
   const rejections = alternateResults.flatMap(
-    ({ rejections: alternateRejections }: { readonly rejections: readonly LinkRejection[] }): readonly LinkRejection[] =>
-      alternateRejections,
+    ({
+      rejections: alternateRejections,
+    }: {
+      readonly rejections: readonly LinkRejection[];
+    }): readonly LinkRejection[] => alternateRejections,
   );
   const dependencyEdges = canonicalResult.decisions.flatMap(
     (decision: OwnershipDecision): readonly DependencyEdge[] =>
@@ -234,14 +249,12 @@ const resolveRootRows = (
 } => {
   const rows = requestedWords.reduce(
     (resolvedRows: readonly IndexedSourceRow[], requested: string) =>
-      findSourceRows(index, requested).reduce(
-        addUniqueRow,
-        resolvedRows,
-      ),
+      findSourceRows(index, requested).reduce(addUniqueRow, resolvedRows),
     [],
   );
-  const missingWords = requestedWords
-    .filter((word: string): boolean => findSourceRows(index, word).length === 0);
+  const missingWords = requestedWords.filter(
+    (word: string): boolean => findSourceRows(index, word).length === 0,
+  );
 
   return { rows, missingWords };
 };
@@ -275,8 +288,9 @@ const addDependencyEntry = (
   row: IndexedSourceRow,
   reason: string,
 ): readonly BuildState["dependencyRows"][number][] =>
-  entries.some(({ row: existing }: BuildState["dependencyRows"][number]): boolean =>
-    existing.id === row.id,
+  entries.some(
+    ({ row: existing }: BuildState["dependencyRows"][number]): boolean =>
+      existing.id === row.id,
   )
     ? entries
     : [...entries, { row, reason }];
@@ -285,8 +299,9 @@ const addError = (
   errors: readonly BuildFatalError[],
   error: BuildFatalError,
 ): readonly BuildFatalError[] =>
-  errors.some((existing: BuildFatalError): boolean =>
-    JSON.stringify(existing) === JSON.stringify(error),
+  errors.some(
+    (existing: BuildFatalError): boolean =>
+      JSON.stringify(existing) === JSON.stringify(error),
   )
     ? errors
     : [...errors, error];
@@ -375,7 +390,8 @@ const planSelectedRows = (
         dependencyReason(planned, dependencyId),
       );
       const isQueued = pendingRows.some(
-        ({ row: queuedRow }: PendingRow): boolean => queuedRow.id === dependencyId,
+        ({ row: queuedRow }: PendingRow): boolean =>
+          queuedRow.id === dependencyId,
       );
       if (!isQueued && !processedRowIds.includes(dependencyId)) {
         pendingRows = [
@@ -392,9 +408,7 @@ const planSelectedRows = (
 
   const closure = closeDependencies({
     rootRowIds: rootIds,
-    availableRowIds: index.rows.map(
-      ({ id }: IndexedSourceRow): number => id,
-    ),
+    availableRowIds: index.rows.map(({ id }: IndexedSourceRow): number => id),
     edges: plannedRows.flatMap(
       ({ dependencyEdges }: PlannedRow): readonly DependencyEdge[] =>
         dependencyEdges,
@@ -504,6 +518,7 @@ const buildRecords = (
 const exportDictionary = async (
   records: readonly TermInformation[],
   outputDirectory: string,
+  stylesPath: string,
 ): Promise<void> => {
   const index = new DictionaryIndex()
     .setTitle("Merriam Webster Unabridged")
@@ -519,6 +534,7 @@ const exportDictionary = async (
   for (const record of records) {
     await dictionary.addTerm(record);
   }
+  await dictionary.addFile(stylesPath, "styles.css");
   await dictionary.export(outputDirectory);
 };
 
@@ -645,7 +661,11 @@ const buildSelectedDictionary = async (
 
   try {
     await mkdir(request.buildPaths.outputDirectory, { recursive: true });
-    await exportDictionary(records, request.buildPaths.outputDirectory);
+    await exportDictionary(
+      records,
+      request.buildPaths.outputDirectory,
+      request.buildPaths.stylesPath,
+    );
   } catch (error: unknown) {
     errors = addError(errors, {
       kind: "io",

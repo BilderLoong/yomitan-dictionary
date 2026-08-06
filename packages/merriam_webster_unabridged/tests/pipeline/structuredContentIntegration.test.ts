@@ -11,6 +11,8 @@ type JsonObject = Record<string, unknown>;
 const sourceDatabasePath = new URL("../../assets/MWU.db", import.meta.url)
   .pathname;
 
+const stylesPath = new URL("../../styles.css", import.meta.url).pathname;
+
 const isObject = (value: unknown): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -46,6 +48,7 @@ test("renders real MWU what records as structured content", async () => {
     buildPaths: {
       outputDirectory,
       reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
     },
   });
 

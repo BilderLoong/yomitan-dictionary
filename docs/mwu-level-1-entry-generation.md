@@ -615,41 +615,56 @@ source order:
 
 The renderer recognizes the following source classes and emits the named
 units. Levels follow the six-level source model (1 entry, 2 verb group,
-3 sense, 4 subsense, 5 definition, 6 note/example/reference).
+3 sense, 4 subsense, 5 definition, 6 note/example/reference). Styling is
+delivered by the dictionary stylesheet `styles.css` (selectors on
+`data-sc-content`); the renderer emits no inline styles.
 
 | Source evidence | Unit | Tag and styling |
 | --- | --- | --- |
 | `.hword > sup` | `homograph-number` | `span`, superscript, 0.75em |
 | `.hword` when display differs from the searchable term | `headword-display` > `syllabification-marker` | `div`/`span`, italic |
 | `.lbs` / `.lb` | `entry-qualifier` | `span` |
-| `.prs` / `.pr` | `pronunciation` | `span`, italic, margin-left; each reading wrapped in `/…/`; `¦` normalized to `ˈ`, zero-width spaces removed |
-| `.vg-ins`, `.il`, `.if`, `.ix`, `.prt-a`, `.mw` | `inflection-group`, `inflection-label`, `inflection-marker`, `form-pronunciation` | `div`/`span`, italic labels |
-| `.entry-attr.vrs > .vr`, `.vl`, `.va` | `alternate-form`, `variant-qualifier` | `div`/`span`, italic |
+| `.prs` / `.pr` | `pronunciation` | `span`, italic, margin-left; source-supported readings are wrapped in `/…/`; `¦` normalized to `ˈ`, zero-width spaces removed; annotation prose (segments with `.mw_t_it` markup, whether containing or contained by a `.pr`) and inter-element punctuation (`.addPunct`, `.pun`) are preserved outside reading delimiters; ambiguous text receives no invented IPA delimiters |
+| `.vg-ins`, `.il`, `.if`, `.ix` | `inflection-group`, `inflection-label`, `inflection-marker` | `div`/`span`, italic labels; header forms retain their ordered group, while sense-local form text stays in one source-order flow |
+| `.prt-a`, `.mw` | `form-pronunciation` | `span`, italic; preserve every alternate-form reading and its local qualifier in source order |
+| `.vr` (header, phrase, and run-in inside sense bodies), `.vl`, `.va` | `alternate-form`, `variant-qualifier` | block `div` in header/phrase contexts, inline `span` for run-in variants inside senses; italic |
 | `.vd` | `verb-subtype` | `div`, bold |
 | `.sgram` | `grammar-label` | `span`, italic |
-| `.sls > .sl` | `tag` (category `usage`, sourceUnit `sense-label`) | `span`, italic, title = label |
+| `.sl` / `.sls > .sl` / `.lb` | `tag` (category `usage` or `definition`, sourceUnit `sense-label` or `definition-label`) | `span`, italic, title = label; local structured content only, never global tag-bank metadata |
 | `.sn` with `.num`/`.letter`/`.sub-num` | `mwu-level` `ol` + `sense-number`/`subsense-letter`/`definition-number` `li` | nested `ol`, decimal / lower-alpha / decimal |
 | `.dt` | `definition` | `span`, or `div` when it contains block units |
-| `.uns` / `.un` / `.mdash` / `.unText` | `usage-note` | `div`, italic, margin-left 1em; the em dash gets a trailing space |
+| `.uns` / `.un` / `.mdash` / `.unText` | `usage-note` | `div`, italic, margin-left 1em; the em dash gets a trailing space; nested `.un` notes are each emitted as their own `usage-note`, with examples scoped to the note that owns them |
 | `.vis` / `.vi` / `.ex-sent-group` / `.ex-sent` | `example-sentence`, `extra-examples` | `div`, margin-left 1em; first example visible, the rest collapsed in a `details` with an `N more examples` summary |
 | `.mw_t_wi` | `target-highlight` | `span`, orange background, bold |
-| `.aq` / `.auth` / `.aqdate` | `example-source` | `div`, italic, 0.9em, margin-left 1em |
+| `.aq` / `.auth` / `.aqdate` | `example-source` | `div`, italic, 0.9em, margin-left 1em; one attribution per example, matched to its own `ex-sent-group` (never inherited from a sibling) |
+| `.source` / `.auth` not under `.aq` | `example-source-inline` | `span`, italic; an attribution or citation kept inline within its sentence at normal size |
 | `.dx-jump` / `.mw_t_dxt` | `comparison-reference` + `cross-reference` (relation `compare`) | `div` / `span`, underline |
 | `.cxl-ref` / `.cxl` / `.cxt` | `variant-reference` + `cross-reference` (relation `variant`) | `span` |
 | `.mw_t_mat`, `.mw_t_sx`, `.mw_t_sc` | `cross-reference` (relations `origin`, `see`, `related`) | `span`, underline |
 | `.ca`, `.intro`, `.cat`, `.ucat` | `called-also` | `span` |
 | `.sdsense`, `.sd` | definition continuation (no separate unit) | inline |
 | `.see-in-addition` | `see-in-addition` | `div` |
+| `.urefs .ur` | `usage-discussion-reference` | `span`/`div`, source-order text; preserve the visible target but emit no interactive link and do not copy the target discussion |
 | `.section[data-id=origin]` | `origin` details + `origin-section-title` + `origin-text` | `details` (collapsed) / `summary` / `div` |
-| `.section[data-id=related-to]` | `related-item` details + `synonym-discussion` | `details` (collapsed) / `div` |
+| `.section[data-id=related-to]` | `related-item` details + `synonym-discussion` | `details` (collapsed) / `div`; the body keeps an introductory synonym-term-group, term-specific synonym-entry units, examples, sources, and a separate see-in-addition line |
 | `.dro` / `.drp` | `phrase` details + `definition-flow` | `details` (collapsed) / `div` |
 
 Internal navigation targets are discarded (`bword://`, `gdlookup://`, and
 `sound://` hrefs never survive); visible link text is kept. `em`/`mw_t_it`
-become italic `emphasis` spans, `strong` becomes bold, `sup` becomes
-`superscript-reference`, and `p` is transparent. `.mw_t_bc` is rendered as
+become italic `span` nodes with `data-content = emphasis` (Yomitan's
+structured-content generator drops unknown tags, so `<em>` is never emitted
+as a tag), `strong`/`b` become bold `data-content = strong` spans, `sup`
+becomes `data-content = superscript-reference` spans, and `p` is
+transparent. `.mw_t_bc` is rendered as
 plain colon text. `First Known Use` paragraphs and `.entry-status` images are
 excluded from output, matching the information-unit catalog's ignore list.
+
+The `tag` unit in this table is a local structured-content marker. It must not
+be confused with Yomitan's term or definition tag-bank fields: labels such as
+`archaic`, `British`, `slang`, and `of a blade` stay beside the exact owner
+that they qualify. A usage-discussion reference follows the same fidelity
+rule: its visible source pointer remains, but it has no false navigation
+affordance.
 
 ### Sense hierarchy
 
@@ -679,6 +694,52 @@ example is collapsed into an `extra-examples` `details` with a
 `N more examples` summary. Attributions (`— Author`) stay attached to their
 own example. The `→` arrow prefix of a source example is presentation
 metadata and is dropped.
+
+### Undefined run-ons and local form flow
+
+An undefined `.uro` derivative is rendered as a compact child of its parent
+entry. Its form, pronunciation, part of speech, labels, and inflection markers
+remain in source order, for example:
+
+```text
+in–ness /ˈin-nəs/ noun, plural -es
+```
+
+The derivative has no independent definition tree, so it never creates a
+canonical record or soft link. A sense-local form such as `turns` remains
+ordinary inline text. Its `plural` label and the `menses` cross-reference stay
+in the same responsive flow:
+
+```text
+c turns plural : menses
+```
+
+The renderer must not introduce a block break merely because the source uses
+separate inline spans for the form and label.
+
+### Synonym discussion
+
+The related section is one collapsed `related-item` disclosure by default.
+When opened, its `synonym-discussion` body has this semantic shape:
+
+```text
+synonym-term-group: seize, grasp, clutch, snatch, grab
+synonym-entry: seize
+synonym-entry: grasp
+synonym-entry: clutch
+synonym-entry: snatch
+synonym-entry: grab
+see-in-addition: attract, receive
+```
+
+The introductory explanation may contain `take` as a normal cross-reference;
+`take` is not an additional synonym entry. Each synonym entry owns its
+explanation, linked terms, target highlights, examples, and attributions.
+Each local example group shows one example first and collapses additional
+examples behind the normal extra-example disclosure. The presentation is
+text-led and dictionary-like: linked term headings, readable prose, indented
+examples, subtle separators, and responsive wrapping rather than generic
+nested containers or a card grid.
 
 ### Part-of-speech tags
 

@@ -2,9 +2,12 @@ import Database from "bun:sqlite";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { BuildRequest } from "../../src/pipeline/runBuild";
 import { definition, mean } from "./mwuHtml";
+
+const stylesPath = fileURLToPath(new URL("../../styles.css", import.meta.url));
 
 export interface TestDatabaseRow {
   readonly id: number;
@@ -37,6 +40,7 @@ export const createTestBuildRequest = async (input: {
     buildPaths: {
       outputDirectory: join(directory, "build"),
       reportPath: join(directory, "build", "build-report.json"),
+      stylesPath,
     },
   };
 };

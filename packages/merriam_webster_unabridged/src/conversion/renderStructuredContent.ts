@@ -3,7 +3,6 @@ import type { AnyNode, Element } from "domhandler";
 import type {
   StructuredContent,
   StructuredContentData,
-  StructuredContentStyle,
 } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
 import type { CanonicalEntryPlan } from "../level1/types";
@@ -39,7 +38,6 @@ interface SenseRecord {
 
 interface NodeOptions {
   readonly data?: StructuredContentData;
-  readonly style?: StructuredContentStyle;
   readonly title?: string;
   readonly open?: boolean;
 }
@@ -57,24 +55,6 @@ interface InlineOptions {
   readonly stripLeadingArrow?: boolean;
   readonly skipClasses?: readonly string[];
 }
-
-const targetStyle: StructuredContentStyle = {
-  backgroundColor: "orange",
-  fontWeight: "bold",
-};
-
-const italicStyle: StructuredContentStyle = { fontStyle: "italic" };
-
-const labelStyle: StructuredContentStyle = {
-  fontStyle: "italic",
-  marginRight: "0.35em",
-};
-
-const sourceStyle: StructuredContentStyle = {
-  fontStyle: "italic",
-  fontSize: "0.9em",
-  marginLeft: "1em",
-};
 
 const knownTags = [
   "a",
@@ -167,7 +147,6 @@ const container = (
     tag,
     content: normalizedContent,
     ...(options.data === undefined ? {} : { data: options.data }),
-    ...(options.style === undefined ? {} : { style: options.style }),
     ...(options.title === undefined ? {} : { title: options.title }),
     ...(options.open === undefined ? {} : { open: options.open }),
   };
@@ -481,11 +460,61 @@ const renderInlineNode = (
   if (hasClass(root, element, "ex-sent-group")) {
     return renderExampleGroup(root, element, path, plan);
   }
+  if (hasClass(root, element, "vr")) {
+    const parts = alternateFormParts(root, element);
+    return parts.length === 0
+      ? emptyResult()
+      : renderResult([
+          container("span", parts, {
+            data: unitData("alternate-form", { level: 1 }),
+          }),
+        ]);
+  }
   if (hasClass(root, element, "uns")) {
     return renderUsageNotes(root, element, path, plan);
   }
   if (hasClass(root, element, "sdsense")) {
     return renderScopedDefinition(root, element, path, plan);
+  }
+  if (hasClass(root, element, "ca")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("called-also", { level: 6 }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "dx-jump")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("comparison-reference", { level: 6 }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "cxl-ref")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("variant-reference", { level: 6 }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "see-in-addition")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [container("div", child.nodes, { data: unitData("see-in-addition") })],
+      child.findings,
+    );
   }
   if (hasClass(root, element, "mw_t_wi")) {
     const child = renderInlineChildren(root, element, path, plan, options);
@@ -493,7 +522,6 @@ const renderInlineNode = (
       [
         container("span", child.nodes, {
           data: unitData("target-highlight"),
-          style: targetStyle,
         }),
       ],
       child.findings,
@@ -502,7 +530,14 @@ const renderInlineNode = (
   if (hasClass(root, element, "mw_t_it")) {
     const child = renderInlineChildren(root, element, path, plan, options);
     return renderResult(
-      [container("span", child.nodes, { style: italicStyle })],
+      [container("span", child.nodes, { data: unitData("emphasis") })],
+      child.findings,
+    );
+  }
+  if (element.tagName === "em") {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [container("span", child.nodes, { data: unitData("emphasis") })],
       child.findings,
     );
   }
@@ -516,7 +551,7 @@ const renderInlineNode = (
             sourceUnit: "sense-label",
             level: 5,
           }),
-          style: labelStyle,
+          title: elementText(root, element),
         }),
       ],
       child.findings,
@@ -528,7 +563,6 @@ const renderInlineNode = (
       [
         container("span", child.nodes, {
           data: unitData("grammar-label"),
-          style: italicStyle,
         }),
       ],
       child.findings,
@@ -540,17 +574,34 @@ const renderInlineNode = (
   if (hasClass(root, element, "source") || hasClass(root, element, "auth")) {
     const child = renderInlineChildren(root, element, path, plan, options);
     return renderResult(
-      [container("span", child.nodes, { style: italicStyle })],
+      [
+        container("span", child.nodes, {
+          data: unitData("example-source-inline"),
+        }),
+      ],
       child.findings,
     );
   }
   if (element.tagName === "a") {
     const child = renderInlineChildren(root, element, path, plan, options);
+    const relation = hasClass(root, element, "mw_t_mat")
+      ? "origin"
+      : hasClass(root, element, "mw_t_sx")
+        ? "see"
+        : hasClass(root, element, "mw_t_sc")
+          ? "related"
+          : hasClass(root, element, "mw_t_dxt")
+            ? "compare"
+            : hasClass(root, element, "cxt")
+              ? "variant"
+              : undefined;
     return renderResult(
       [
         container("span", child.nodes, {
-          data: unitData("cross-reference"),
-          style: { textDecorationLine: "underline" },
+          data:
+            relation === undefined
+              ? unitData("cross-reference")
+              : unitData("cross-reference", { relation }),
         }),
       ],
       child.findings,
@@ -561,7 +612,7 @@ const renderInlineNode = (
     return renderResult(
       [
         container("span", child.nodes, {
-          style: { verticalAlign: "super", fontSize: "0.75em" },
+          data: unitData("superscript-reference"),
         }),
       ],
       child.findings,
@@ -573,7 +624,7 @@ const renderInlineNode = (
   if (element.tagName === "strong" || element.tagName === "b") {
     const child = renderInlineChildren(root, element, path, plan, options);
     return renderResult(
-      [container("span", child.nodes, { style: { fontWeight: "bold" } })],
+      [container("span", child.nodes, { data: unitData("strong") })],
       child.findings,
     );
   }
@@ -610,7 +661,6 @@ const renderAttribution = (
   return isVisible(text)
     ? container("div", text, {
         data: unitData("example-source", { level: 6 }),
-        style: sourceStyle,
       })
     : null;
 };
@@ -631,13 +681,18 @@ const renderExampleGroups = (
           root(sentence).closest(".ex-sent-group").get(0) === group,
       ),
   );
-  const attributions = groups
-    .flatMap((group: Element): Element[] => root(group).find(".aq").toArray())
-    .map((aq: Element): StructuredContent | null => renderAttribution(root, aq))
-    .filter(
-      (value: StructuredContent | null): value is StructuredContent =>
-        value !== null,
-    );
+  const attributions = groups.map(
+    (group: Element): StructuredContent | null => {
+      const aq = root(group)
+        .find(".aq")
+        .toArray()
+        .find(
+          (candidate: Element): boolean =>
+            root(candidate).parents(".aq").length === 0,
+        );
+      return aq === undefined ? null : renderAttribution(root, aq);
+    },
+  );
 
   const examples = sentences.map(
     (sentence: Element, index: number): RenderResult => {
@@ -650,7 +705,11 @@ const renderExampleGroups = (
           stripLeadingArrow: true,
         },
       );
-      const source = attributions[index];
+      const group = root(sentence).closest(".ex-sent-group").get(0);
+      const source =
+        group === undefined
+          ? undefined
+          : (attributions[groups.indexOf(group)] ?? undefined);
       return renderResult(
         [
           container(
@@ -658,7 +717,6 @@ const renderExampleGroups = (
             source === undefined ? content.nodes : [...content.nodes, source],
             {
               data: unitData("example-sentence", { level: 6 }),
-              style: { marginLeft: "1em" },
             },
           ),
         ],
@@ -707,16 +765,19 @@ const renderExampleGroup = (
   plan: CanonicalEntryPlan,
 ): RenderResult => renderExampleGroups(root, [element], path, plan);
 
+const collectUsageNotes = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): Element[] => root(element).find(".un").toArray();
+
 const renderUsageNotes = (
   root: cheerio.CheerioAPI,
   element: Element,
   path: readonly number[],
   plan: CanonicalEntryPlan,
 ): RenderResult => {
-  const usageNodes = root(element)
-    .children(".un")
-    .toArray()
-    .map((usage: Element, index: number): RenderResult => {
+  const usageNodes = collectUsageNotes(root, element).map(
+    (usage: Element, index: number): RenderResult => {
       const textParts = root(usage)
         .children()
         .toArray()
@@ -729,6 +790,9 @@ const renderUsageNotes = (
       const examples = root(usage)
         .find(".vis")
         .toArray()
+        .filter(
+          (vis: Element): boolean => root(vis).closest(".un").get(0) === usage,
+        )
         .map(
           (vis: Element, exampleIndex: number): RenderResult =>
             renderInlineNode(root, vis, [...path, index, exampleIndex], plan),
@@ -743,12 +807,12 @@ const renderUsageNotes = (
         [
           container("div", [...spacedText, ...exampleResults.nodes], {
             data: unitData("usage-note", { level: 6 }),
-            style: { ...italicStyle, marginLeft: "1em" },
           }),
         ],
         [...text.findings, ...exampleResults.findings],
       );
-    });
+    },
+  );
   return combineResults(usageNodes);
 };
 
@@ -990,7 +1054,6 @@ const renderSenseList = (
   const listLevel = nextPaths[0]?.[nextPaths[0].length - 1]?.level ?? 3;
   return container("ol", items, {
     data: unitData("mwu-level", { level: listLevel }),
-    style: { listStyleType: listLevel === 4 ? "lower-alpha" : "decimal" },
   });
 };
 
@@ -1072,7 +1135,6 @@ const renderVerbSubtypeList = (
       const labelText = elementText(root, label);
       const labelNode = container("span", labelText, {
         data: unitData("verb-subtype", { level: 2 }),
-        style: { fontWeight: "bold" },
       });
       return renderResult(
         [
@@ -1092,7 +1154,6 @@ const renderVerbSubtypeList = (
     [
       container("ol", renderedItems.nodes, {
         data: unitData("mwu-level", { level: 2 }),
-        style: { listStyleType: "decimal" },
       }),
     ],
     renderedItems.findings,
@@ -1211,7 +1272,6 @@ const renderOrigin = (
           }),
           container("div", renderedBody.nodes, {
             data: unitData("origin-text", { level: 1 }),
-            style: { ...italicStyle, marginLeft: "0.5em" },
           }),
         ],
         { data: unitData("origin", { level: 1 }), open: false },
@@ -1249,7 +1309,7 @@ const renderRelated = (
       container(
         "details",
         [
-          container("summary", summaryText, { style: { fontWeight: "bold" } }),
+          container("summary", summaryText),
           container("div", renderedBody.nodes, {
             data: unitData("synonym-discussion", { level: 1 }),
           }),
@@ -1305,12 +1365,7 @@ const renderPhraseSection = (
       container(
         "details",
         [
-          container(
-            "summary",
-            container("span", elementText(root, title), {
-              style: { ...italicStyle, fontWeight: "bold" },
-            }),
-          ),
+          container("summary", container("span", elementText(root, title))),
           container("div", body.nodes, {
             data: unitData("definition-flow", { level: 3 }),
           }),
@@ -1429,7 +1484,6 @@ const renderInflectionNode = (
       [
         container("span", child.nodes, {
           data: unitData("inflection-label", { level: 1 }),
-          style: italicStyle,
         }),
       ],
       child.findings,
@@ -1446,7 +1500,6 @@ const renderInflectionNode = (
     return renderResult([
       container("span", readings.join(", "), {
         data: unitData("form-pronunciation", { level: 1 }),
-        style: { ...italicStyle, marginLeft: "0.35em" },
       }),
     ]);
   }
@@ -1472,27 +1525,25 @@ const renderInflectionGroup = (
     [
       container("div", content.nodes, {
         data: unitData("inflection-group", { level: 1 }),
-        style: { marginLeft: "0.5em" },
       }),
     ],
     content.findings,
   );
 };
 
-const renderAlternateForm = (
+const alternateFormParts = (
   root: cheerio.CheerioAPI,
   element: Element,
-): RenderResult => {
+): StructuredContent[] => {
   const qualifier = root(element).children(".vl").first().get(0);
   const alternate = root(element).children(".va").first().get(0);
-  const nodes: StructuredContent[] = [];
+  const parts: StructuredContent[] = [];
   if (qualifier !== undefined) {
     const text = elementText(root, qualifier);
     if (isVisible(text)) {
-      nodes.push(
+      parts.push(
         container("span", text, {
           data: unitData("variant-qualifier", { level: 1 }),
-          style: italicStyle,
         }),
         " ",
       );
@@ -1501,18 +1552,25 @@ const renderAlternateForm = (
   if (alternate !== undefined) {
     const text = elementText(root, alternate);
     if (isVisible(text)) {
-      nodes.push(
+      parts.push(
         container("span", text, {
           data: unitData("alternate-form", { level: 1 }),
-          style: italicStyle,
         }),
       );
     }
   }
-  return nodes.length === 0
+  return parts;
+};
+
+const renderAlternateForm = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): RenderResult => {
+  const parts = alternateFormParts(root, element);
+  return parts.length === 0
     ? emptyResult()
     : renderResult([
-        container("div", nodes, {
+        container("div", parts, {
           data: unitData("alternate-form", { level: 1 }),
         }),
       ]);
@@ -1551,14 +1609,67 @@ const renderHeader = (
             )
             .join(""),
         );
-  const pronunciationElements = root(header ?? owner)
-    .find(".prs .pr")
-    .toArray();
-  const pronunciations = pronunciationElements
-    .map((element: Element): string =>
-      formatPronunciation(elementText(root, element)),
-    )
-    .filter((pronunciation: string): boolean => pronunciation.length > 0);
+  const prs = root(header ?? owner)
+    .find(".prs")
+    .first()
+    .get(0);
+  const pronunciationText =
+    prs === undefined
+      ? ""
+      : (() => {
+          const pronunciationScope = (): readonly AnyNode[] => {
+            const contents = root(prs).contents().toArray();
+            if (root(prs).find(".last-slash").length > 0) return contents;
+            // MWU sometimes leaves the header prs unterminated (no last
+            // slash) and continues the pronunciation as loose siblings of
+            // the prs in the same container, ending with the last slash.
+            const parent = root(prs).parent().get(0);
+            if (parent === undefined) return contents;
+            const siblings = root(parent).contents().toArray();
+            return siblings.slice(siblings.indexOf(prs));
+          };
+          let closed = false;
+          const pronunciationPart = (child: AnyNode): string => {
+            if (closed) return "";
+            if (child.type === "text") {
+              return child.data.trim().length === 0 ? "" : child.data;
+            }
+            if (child.type !== "tag") return "";
+            if (hasClass(root, child, "first-slash")) return "";
+            if (hasClass(root, child, "last-slash")) {
+              closed = true;
+              return "";
+            }
+            if (
+              child.type === "tag" &&
+              hasAnyClass(root, child, ignoredClasses) &&
+              !hasClass(root, child, "addPunct")
+            ) {
+              return "";
+            }
+            if (hasClass(root, child, "prs")) {
+              return root(child)
+                .contents()
+                .toArray()
+                .map(pronunciationPart)
+                .join("");
+            }
+            if (hasClass(root, child, "pr")) {
+              const text = root(child).text();
+              const annotated =
+                root(child).find(".mw_t_it").length > 0 ||
+                root(child).parents(".mw_t_it").length > 0;
+              return annotated ? text : formatPronunciation(text);
+            }
+            return root(child).text();
+          };
+          return normalizeWhitespace(
+            pronunciationScope()
+              .map(pronunciationPart)
+              .join("")
+              .replace(/\/(?=\/)/gu, "/ "),
+          ).trim();
+        })();
   const inflection =
     root(owner).find(".headword-row .vg-ins").first().get(0) ??
     root(owner).find(".vg-ins").first().get(0);
@@ -1580,7 +1691,6 @@ const renderHeader = (
       : [
           container("span", homograph, {
             data: unitData("homograph-number", { level: 1 }),
-            style: { verticalAlign: "super", fontSize: "0.75em" },
           }),
           " ",
         ]),
@@ -1588,7 +1698,6 @@ const renderHeader = (
       ? [
           container("div", displayHeadword, {
             data: unitData("headword-display", { level: 1 }),
-            style: { ...italicStyle, marginLeft: "0.5em" },
           }),
         ]
       : []),
@@ -1600,16 +1709,14 @@ const renderHeader = (
             renderInlineChildren(root, qualifierLabel, [0], plan).nodes,
             {
               data: unitData("entry-qualifier", { level: 1 }),
-              style: labelStyle,
             },
           ),
         ]),
-    ...(pronunciations.length === 0
+    ...(pronunciationText.length === 0
       ? []
       : [
-          container("span", pronunciations.join(" "), {
+          container("span", pronunciationText, {
             data: unitData("pronunciation", { level: 1 }),
-            style: { ...italicStyle, marginLeft: "0.5em" },
           }),
         ]),
     ...(inflection === undefined
@@ -1677,6 +1784,35 @@ const renderLooseNode = (
   }
   if (hasClass(root, element, "uns")) {
     return renderUsageNotes(root, element, path, plan);
+  }
+  if (hasClass(root, element, "ca")) {
+    const child = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("called-also", { level: 6 }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "cxl-ref")) {
+    const child = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("variant-reference", { level: 6 }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "see-in-addition")) {
+    const child = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [container("div", child.nodes, { data: unitData("see-in-addition") })],
+      child.findings,
+    );
   }
   if (hasClass(root, element, "vg-ins")) {
     return renderInflectionGroup(root, element, path, plan);

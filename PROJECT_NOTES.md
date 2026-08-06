@@ -675,6 +675,39 @@ References:
 
 ## User decisions and working design
 
+### Information-preservation principle
+
+When implementing this project, prefer output that retains information over
+output that improves presentation. If a choice must be made between a
+lossless but plain rendering and a richer rendering that may drop source
+content, keep the information first and improve its presentation later.
+Information dropped from the result is hard to become aware of afterward: it
+never shows up in per-word tests, and it only surfaces through
+full-database output audits.
+
+Concrete working rules:
+
+- unknown or unsupported wrappers become atomic fallbacks that preserve the
+  visible subtree once and report a finding for the owner and level (see
+  "Level ownership and inheritance" above), rather than being discarded;
+- a node whose faithful rendering is not yet implemented keeps its text in
+  plain fallback form instead of being omitted from the output;
+- when a source unit cannot be emitted at all, record a finding with its
+  row, mean, and preview so the loss remains visible in `build-report.json`;
+- a shape assumed rare or absent must be checked against the full database
+  before the assumption is relied on. For example, "no mean has a second
+  definition section" and "the pronunciation tail walk only touches
+  pronunciation material" are both currently proven by full-database scans,
+  not by the six-word sample;
+- a presentation change that strips a style must map every affected node to
+  a replacement rule in `styles.css`; if no rule exists, the node loses its
+  styling silently, and the loss is only detectable by comparing the built
+  output with the source;
+- the ZIP stylesheet must only affect the dictionary's own structured-content
+  units (`[data-sc-content]`); Yomitan's own DOM — definition-tag chips,
+  tag lists, and other UI chrome — keeps Yomitan's default styling and is
+  never targeted by the dictionary's CSS.
+
 ### Source links
 
 MWU links such as `gdlookup://localhost/word` do not need to survive. Remove

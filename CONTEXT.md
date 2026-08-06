@@ -130,6 +130,54 @@ root's `word.w`, `0` for other canonical terms, `-100` for soft links.
 Yomitan's node-based content representation that carries the rendered
 definition tree of a canonical record.
 
+### Structured-content vocabulary
+
+**Structured-content unit**:
+A named piece of dictionary content, marker, relationship, or presentation
+metadata that remains attached to its nearest source owner and source order,
+even when it renders inline.
+_Avoid_: anonymous wrapper, flattened text
+
+**Local label**:
+A usage, grammar, or definition qualifier owned by a nearby sense, form, or
+definition. It is visible structured content, not global Yomitan tag-bank
+metadata.
+_Avoid_: global tag, term tag (when the scope is local)
+
+**Pronunciation reading**:
+A source-marked phonetic reading that may be styled as IPA-like display text.
+Only source-supported readings receive reading delimiters; ambiguous text is
+preserved without invented pronunciation styling.
+
+**Pronunciation note**:
+Explanatory pronunciation text, such as a condition or usage note, that stays
+outside reading delimiters and remains attached to the pronunciation owner.
+
+**Undefined run-on**:
+A derivative displayed under a parent entry without its own definition tree.
+It may carry form, pronunciation, label, and inflection information but does
+not become an independent searchable entry or soft link.
+_Avoid_: searchable derivative, soft-link entry
+
+**Synonym discussion**:
+Related entry-level prose that compares terms and their usage differences. It
+has one introductory term group, one structured entry per compared term, and
+separate example and additional-reference content.
+
+**Synonym entry**:
+One term-specific explanation inside a synonym discussion, owning its term,
+explanation, examples, attributions, and local cross-references.
+
+**Usage-discussion reference**:
+A visible source pointer from a definition to a separate usage discussion. It
+preserves the source relationship and target text but is not an interactive
+link or a copied discussion.
+
+**Unclassified visible content**:
+Visible source content whose semantic class is not yet recognized. Preserve it
+inside its known owner and report the missing classification rather than
+silently dropping or flattening it.
+
 **Dictionary-deinflection tuple**:
 The Yomitan shape a soft-link record serializes to: a target canonical term
 plus an inflection-rule chain (for example `alternative`).

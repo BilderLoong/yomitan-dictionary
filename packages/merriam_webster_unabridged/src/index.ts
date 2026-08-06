@@ -54,6 +54,7 @@ const main = async (): Promise<void> => {
     buildPaths: {
       outputDirectory: join(packageDirectory, "build"),
       reportPath: join(packageDirectory, "build", "build-report.json"),
+      stylesPath: join(packageDirectory, "styles.css"),
     },
   });
 

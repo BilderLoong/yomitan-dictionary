@@ -15,6 +15,8 @@ const sourceDatabasePath = fileURLToPath(
   new URL("../../assets/MWU.db", import.meta.url),
 );
 
+const stylesPath = fileURLToPath(new URL("../../styles.css", import.meta.url));
+
 // The source index is pure input data shared by every build in this file;
 // rebuilding it per test would repeat ~1.5s of decode/sort work.
 const sourceIndex: SourceIndex = (() => {
@@ -102,6 +104,7 @@ describe("term-bank level 1 generation test", () => {
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
+        stylesPath,
       },
     });
 
@@ -164,6 +167,7 @@ describe("term-bank level 1 generation test", () => {
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
+        stylesPath,
       },
     });
 
@@ -238,6 +242,7 @@ describe("term-bank level 1 generation test", () => {
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
+        stylesPath,
       },
     });
 

@@ -119,9 +119,12 @@ inferred from an ancestor, or still needs a more targeted survey.
 | related-item | A related word or entry reference outside the main definition. | a word in a see-also section | .related-to; .mw_t_sc | Usually Level 1 in related-to content, but local related references may be Level 6. | false |
 | see-in-addition | A compact pointer line that lists additional entries for synonym or usage information. It is the same information unit in both locations; only its nearest semantic owner changes. | `synonyms see in addition depend`; `usages see in addition -ize` | .see-in-addition; .sa-link; .sc; `#usage-notes`; `.usage` | Level 1 inside a synonym discussion; Level 6 when inside `#usage-notes` or a definition-local `.usage` block. Bind it to the nearest owner and discard only the navigation target. | false |
 | called-also | A named alternative for the thing described by a definition. | called also another term | .ca; .cat; .ucat | Level 6 when it occurs inside .dt. | false |
-| synonym-discussion | Explanatory comparison of synonyms and their usage differences. | Synonym Discussion: related terms | .related-to; .syn; .synonym-discussion; .mw_t_sc | Level 1 related information attached to the lexical entry. | false |
+| synonym-discussion | Explanatory comparison of synonyms and their usage differences. It contains an introductory term group, one term-specific synonym entry per compared term, and separate examples, sources, and see-in-addition content. | Synonym Discussion: seize, grasp, clutch, snatch, grab | .related-to; .syn; .synonym-discussion; .mw_t_sc | Level 1 related information attached to the lexical entry; collapsed as one related-item disclosure by default. | false |
+| synonym-term-group | The introductory list of terms compared by a synonym discussion. | seize, grasp, clutch, snatch, grab | `.mw_t_sc` siblings before the introductory explanation | Level 1 child of synonym-discussion. Keep each term distinct and preserve its source order. | false |
+| synonym-entry | One term-specific explanation inside a synonym discussion. | seize suggests sudden and forcible taking | `.mw_t_sc` term boundary and following prose/examples | Level 1 child of synonym-discussion. Owns its explanation, examples, attributions, cross-references, and target highlights. | false |
 | synonym-discussion-reference | A pointer from an entry to a named synonym discussion. | See Synonym Discussion at fun, play:2, room | .srefs.synonym-discussion; .sr | Level 1 related information. Keep the pointer separate from the actual synonym discussion and discard internal link targets. | false |
-| usage-discussion-reference | A visible pointer from a local definition to a separate usage discussion. | `See Usage Discussion at bring` | .urefs; .ur | Bound to the nearest definition that contains it. Preserve the line and visible target text; the final related-section behavior is deferred. | false |
+| usage-discussion-reference | A visible, non-interactive pointer from a local definition to a separate usage discussion. | `See Usage Discussion at bring` | .urefs; .ur | Bound to the nearest definition that contains it. Preserve the line and visible target text; discard navigation targets, create no clickable affordance, and do not copy the target discussion. | false |
+| unclassified-visible-content | Visible source content whose semantic class is not yet recognized. | an unfamiliar related-section child | Any unsupported visible source subtree | Bind to the nearest known owner, preserve its text, and report a finding rather than silently dropping or flattening it. | false |
 | target-highlight | Presentation metadata marking the looked-up expression inside an example. | highlighted lookup word in an example | .mw_t_wi; .mw_t_sp | Level 6 example metadata. .mw_t_wi is useful for display but is not meaning text. | false |
 | superscript-reference | Small visual reference number attached to a visible cross-reference. | `1whatever`; `whoever 1` | `.text-lowercase`; `sup` | Bound to the nearest cross-reference, often Level 6. Keep it visually superscripted and do not treat it as a new sense number. | false |
 | entry-status-image | Image used as an entry status or update marker rather than dictionary meaning. | `_images_definition_update-new.jpg` | .entry-status; `<img>` | Level 1 header presentation. The survey reports it, but the current dictionary ignores it. | true |
@@ -171,8 +174,8 @@ These units have evidence for their meaning and nearest-level ownership:
 - comparison-reference, cross-reference, and variant-reference;
 - phrase, `drp-phrase-canonical-entry`, and `phrase-alternate-soft-link`;
 - variant-qualifier, grammar-label, related-item, see-in-addition,
-  called-also, synonym-discussion, synonym-discussion-reference, and
-  usage-discussion-reference;
+  called-also, synonym-discussion, synonym-term-group, synonym-entry,
+  synonym-discussion-reference, and usage-discussion-reference;
 - target-highlight and superscript-reference.
 
 The same unit can bind to different levels. For example, `.fl` is Level 1 for
@@ -212,8 +215,10 @@ inheritance), definitions, usage notes, example groups with one visible
 example and an `N more examples` collapse, example attributions, orange
 target highlighting, called-also, comparison and cross references, collapsed
 origin and synonym-discussion sections, and collapsed phrase sections.
-Definition tags are WTY-style chips derived from `.fl` (`noun` → `n`,
-`transitive verb` → `v`, …). The full unit contract is documented in
+Definition tags are Yomitan-rendered chips derived from `.fl` (`noun` → `n`,
+`transitive verb` → `v`, …) with Yomitan's default styling; the dictionary
+stylesheet does not restyle Yomitan's own UI. The full unit contract is
+documented in
 [MWU Level 1 entry generation](../mwu-level-1-entry-generation.md). Audio,
 full-database coverage, and richer media remain future work.
 
@@ -508,6 +513,13 @@ refine, or contradict them.
 - `.mw_t_mat` is a Level 1 cross-reference inside origin, while `.sr` is a
   Level 1 pointer to a synonym discussion. Both retain visible text but lose
   their internal navigation targets.
+- `.urefs .ur` is a Level 6 usage-discussion-reference. It preserves the
+  source pointer as non-interactive text; it must not become a false link or
+  duplicate the target discussion.
+- A `.related-to` synonym discussion is one collapsed related-item whose body
+  has an introductory synonym-term-group, one synonym-entry per compared
+  term, and a separate `.see-in-addition` line. The introductory `take`
+  reference belongs to its explanation, not to the term group.
 - An image under `.entry-status` is presentation/status artwork and is
   cataloged with `Ignore=true`; this does not decide how definition images
   will be handled if later reconnaissance finds them.

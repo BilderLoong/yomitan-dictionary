@@ -370,3 +370,368 @@ test("rejects an empty canonical owner", () => {
     },
   });
 });
+
+test("renders nested usage notes as separate notes", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">def' +
+            '<span class="uns"><span class="un">' +
+            '<span class="mdash">—</span><span class="unText">first note' +
+            '<span class="vis"><span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ first example</span>' +
+            "</span></span></span></span>" +
+            '<span class="un"><span class="unText">second note</span></span>' +
+            '<span class="un"><span class="unText">third note' +
+            '<span class="vis"><span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ third example</span>' +
+            "</span></span></span></span></span></span></span>" +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const notes = unitsOf(result.value.content, "usage-note");
+  expect(notes).toHaveLength(3);
+  expect(textOf(notes[0])).toContain("first note");
+  expect(textOf(notes[0])).toContain("first example");
+  expect(textOf(notes[0])).not.toContain("third example");
+  expect(textOf(notes[1])).toContain("second note");
+  expect(textOf(notes[2])).toContain("third note");
+  expect(textOf(notes[2])).toContain("third example");
+});
+
+test("pairs each example with its own attribution", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">sense text' +
+            '<span class="vis">' +
+            '<span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ first sentence</span>' +
+            '<span class="ex-sent aq"><span class="aq">' +
+            '<span class="auth"> — Shakespeare</span></span></span>' +
+            "</span></span>" +
+            '<span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ second sentence</span>' +
+            '<span class="ex-sent aq"><span class="aq">' +
+            '<span class="source"> — Psalms 8:4</span></span></span>' +
+            "</span></span></span></span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const examples = unitsOf(result.value.content, "example-sentence");
+  expect(examples).toHaveLength(2);
+  expect(textOf(examples[0])).toContain("Shakespeare");
+  expect(textOf(examples[0])).not.toContain("Psalms");
+  expect(textOf(examples[1])).toContain("Psalms");
+  expect(textOf(examples[1])).not.toContain("Shakespeare");
+});
+
+test("does not invent attributions for earlier examples", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">sense text' +
+            '<span class="vis">' +
+            '<span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ first sentence</span>' +
+            "</span></span>" +
+            '<span class="vi"><span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ second sentence</span>' +
+            '<span class="ex-sent aq"><span class="aq">' +
+            '<span class="auth"> — Christian Science Monitor</span></span></span>' +
+            "</span></span></span></span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "example-source")).toHaveLength(1);
+  const examples = unitsOf(result.value.content, "example-sentence");
+  expect(textOf(examples[0])).not.toContain("— ");
+  expect(textOf(examples[1])).toContain("Christian Science Monitor");
+});
+
+test("marks inline source and auth citations as example-source-inline", () => {
+  const result = convert(
+    "<mean>" +
+      header("give", "verb", "¦giv") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to transfer possession<span class="source"> — J. Doe</span>' +
+            '<span class="auth">, author</span></span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const sources = unitsOf(result.value.content, "example-source-inline");
+  expect(sources).toHaveLength(2);
+  expect(textOf(sources[0])).toBe(" — J. Doe");
+  expect(textOf(sources[1])).toBe(", author");
+  expect(sources[0].data).not.toHaveProperty("level");
+});
+
+test("preserves punctuation and annotation in multi-part pronunciations", () => {
+  const result = convert(
+    "<mean>" +
+      '<div class="entry-header"><h1 class="hword"><sup>1</sup>in</h1>' +
+      '<span class="fl">preposition</span>' +
+      '<span class="prs"><span class="first-slash">\\</span>' +
+      '<span class="pr">(¦)in</span><span class="addPunct">, </span>' +
+      '<span class="pr">ən</span><span class="pun">;</span>' +
+      '<span class="pr"> <em class="mw_t_it">usually</em> ᵊn <em class="mw_t_it">after</em> t</span>' +
+      '<span class="addPunct">, </span><span class="pr">d</span>' +
+      '<span class="last-slash">\\</span></span></div>' +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(sense('<span class="num">1</span>', '<span class="dt ">def</span>')) +
+      "</div></div></div></mean>",
+    "in",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const pronunciations = unitsOf(result.value.content, "pronunciation");
+  expect(pronunciations).toHaveLength(1);
+  expect(textOf(pronunciations[0])).toBe(
+    "/(ˈ)in/, /ən/; usually ᵊn after t, /d/",
+  );
+});
+
+test("marks run-in variants as alternate forms", () => {
+  const result = convert(
+    "<mean>" +
+      header("O", "noun", "¦ō") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="vr"><span class="va">O</span></span>' +
+            '<span class="dt ">the one of the four blood groups</span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "O",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(
+    unitsOf(result.value.content, "alternate-form").some(
+      (node: JsonObject): boolean =>
+        node.tag === "span" && textOf(node) === "O",
+    ),
+  ).toBe(true);
+});
+
+test("marks called-also units", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "noun", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">an event in any gambling game</span>' +
+            '<p class="ca"><span class="mdash">—</span> ' +
+            '<span class="intro">called also ' +
+            '<a href="bword://coup" class="cat">coup</a></span></p>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const calledAlso = unitsOf(result.value.content, "called-also");
+  expect(calledAlso).toHaveLength(1);
+  expect(textOf(calledAlso[0])).toContain("called also");
+  expect(textOf(calledAlso[0])).toContain("coup");
+});
+
+test("marks comparison references with compare relations", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">' +
+            '<span class="dx-jump"> — compare ' +
+            '<a href="bword://that[4]" class="mw_t_dxt"> <sup>4</sup>that</a> 1</span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const comparisons = unitsOf(result.value.content, "comparison-reference");
+  expect(comparisons).toHaveLength(1);
+  expect(textOf(comparisons[0])).toContain("compare");
+  expect(
+    unitsOf(result.value.content, "cross-reference")[0]?.data?.relation,
+  ).toBe("compare");
+  const superscripts = unitsOf(result.value.content, "superscript-reference");
+  expect(superscripts).toHaveLength(1);
+  expect(textOf(superscripts[0])).toBe("4");
+});
+
+test("marks variant references with variant relations", () => {
+  const result = convert(
+    "<mean>" +
+      header("O", "noun", "¦ō") +
+      '<div class="section" data-id="definition">' +
+      '<p class="cxl-ref"> <span class="cxl">variant spelling of</span> ' +
+      '<a href="bword://oh" class="cxt">oh</a> </p></div></mean>',
+    "O",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const variants = unitsOf(result.value.content, "variant-reference");
+  expect(variants).toHaveLength(1);
+  expect(
+    unitsOf(result.value.content, "cross-reference")[0]?.data?.relation,
+  ).toBe("variant");
+});
+
+test("tags cross-reference relations from source classes", () => {
+  const result = convert(
+    "<mean>" +
+      header("who", "pronoun", "¦hü") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">' +
+            '<a href="bword://who" class="mw_t_mat">who</a>, ' +
+            '<a href="bword://who[1]" class="mw_t_sx"><sup>1</sup>who</a>, ' +
+            '<a href="bword://depend" class="mw_t_sc">depend</a>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "who",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(
+    unitsOf(result.value.content, "cross-reference").map(
+      (node: JsonObject): unknown => node.data?.relation,
+    ),
+  ).toEqual(["origin", "see", "related"]);
+});
+
+test("marks see-in-addition units", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "noun", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense('<span class="num">1</span>', '<span class="dt ">a place</span>'),
+      ) +
+      "</div></div></div>" +
+      '<div class="section" data-id="related-to"><div class="section-content">' +
+      '<p class="see-in-addition"><strong>synonyms</strong> see in addition ' +
+      '<a href="bword://depend" class="sa-link sc">depend</a></p>' +
+      "</div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const seeInAddition = unitsOf(result.value.content, "see-in-addition");
+  expect(seeInAddition).toHaveLength(1);
+  expect(textOf(seeInAddition[0])).toContain("synonyms");
+  expect(textOf(seeInAddition[0])).toContain("depend");
+  const strong = unitsOf(result.value.content, "strong");
+  expect(strong).toHaveLength(1);
+  expect(textOf(strong[0])).toContain("synonyms");
+});
+
+test("renders em and mw_t_it as emphasis units", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt "><em>plain</em> <em class="mw_t_it">styled</em> text</span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const emphasis = unitsOf(result.value.content, "emphasis");
+  expect(emphasis).toHaveLength(2);
+  expect(textOf(emphasis[0])).toBe("plain");
+  expect(textOf(emphasis[1])).toBe("styled");
+});
+
+test("sets the tag title from the label text", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="sl">chiefly dialectal</span> <span class="dt ">def</span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const tags = unitsOf(result.value.content, "tag");
+  expect(tags).toHaveLength(1);
+  expect(tags[0]?.title).toBe("chiefly dialectal");
+});
