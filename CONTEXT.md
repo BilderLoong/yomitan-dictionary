@@ -141,3 +141,17 @@ A user-requested lookup word whose row starts the build and defines the
 **Dependency row**:
 A row pulled into the build because a canonical target needs it (dedicated
 row deferral), recorded with its reason.
+
+## Tooling
+
+**Yomitan fixture**:
+The unpacked Yomitan extension under
+`packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright`
+used by the e2e loop (`inspect:dict`) and by the archive schema tests
+(its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
+`bun run update:fixture` (defaults to the newest upstream release tag;
+`--ref master` for the latest development build, `--ref <tag>` to pin an
+older release); provenance is recorded in
+`tests/fixture/UPSTREAM.json`, and the source cache lives in
+`tests/fixture/yomitan-src` (excluded from `bun test` discovery via
+`bunfig.toml`).

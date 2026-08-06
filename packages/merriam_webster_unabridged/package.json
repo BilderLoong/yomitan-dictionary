@@ -8,6 +8,7 @@
     "build:selected": "bun run src/index.ts",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
     "inspect:dict": "bun run tests/inspect_dict.ts \"/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip\" --chrome-flag \"--remote-debugging-port=9222\" --chrome-flag \"--remote-allow-origins=*\"",
+    "update:fixture": "bun run tests/update-fixture.ts",
     "debug:unittest": "bun test --inspect-wait=/vscode",
     "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && biome format --write \"build/Merriam Webster Unabridged\" *.json"
   },
