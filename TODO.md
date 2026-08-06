@@ -71,3 +71,8 @@ Is there any programmatic way to determine there no information loss?
 ## Is there any way to test the finally render result?
 E2E
 
+
+
+## Tags
+How is tag works?
+I think we need .sl convert to tag. We need a tag generation rules too.

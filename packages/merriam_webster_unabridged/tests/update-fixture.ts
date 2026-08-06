@@ -197,6 +197,7 @@ const main = async (): Promise<number> => {
     import.meta.dirname,
     "fixture/UPSTREAM.json",
   );
+  const provenanceTmpPath = `${provenancePath}.tmp`;
   const stagingDir = path.resolve(
     import.meta.dirname,
     "fixture/.yomitan-staging",
@@ -340,9 +341,13 @@ const main = async (): Promise<number> => {
       console.error(`Failed to extract build zip: ${extract.error}`);
       return 1;
     }
+    await writeFile(
+      provenanceTmpPath,
+      `${JSON.stringify(provenance, null, 2)}\n`,
+    );
     await rm(fixtureDir, { recursive: true, force: true });
     await rename(stagingDir, fixtureDir);
-    await writeFile(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`);
+    await rename(provenanceTmpPath, provenancePath);
   } catch (error) {
     console.error(
       `Failed to install fixture: ${error instanceof Error ? error.message : String(error)}`,
