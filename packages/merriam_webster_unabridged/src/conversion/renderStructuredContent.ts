@@ -641,15 +641,17 @@ const renderInlineNode = (
     }
     const relation = hasClass(root, element, "mw_t_mat")
       ? "origin"
-      : hasClass(root, element, "mw_t_sx")
-        ? "see"
-        : hasClass(root, element, "mw_t_sc")
-          ? "related"
-          : hasClass(root, element, "mw_t_dxt")
-            ? "compare"
-            : hasClass(root, element, "cxt")
-              ? "variant"
-              : undefined;
+      : hasClass(root, element, "mw_t_et_link")
+        ? "origin"
+        : hasClass(root, element, "mw_t_sx")
+          ? "see"
+          : hasClass(root, element, "mw_t_sc")
+            ? "related"
+            : hasClass(root, element, "mw_t_dxt")
+              ? "compare"
+              : hasClass(root, element, "cxt")
+                ? "variant"
+                : undefined;
     return renderResult(
       [
         container("span", child.nodes, {
@@ -657,6 +659,23 @@ const renderInlineNode = (
             relation === undefined
               ? unitData("cross-reference")
               : unitData("cross-reference", { relation }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (
+    hasClass(root, element, "text-lowercase") &&
+    root(element).prev().is("a") &&
+    /^\d[a-z]?(?:\(\d+\))?$/u.test(elementText(root, element))
+  ) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("superscript-reference", {
+            sourceUnit: "text-lowercase",
+          }),
         }),
       ],
       child.findings,

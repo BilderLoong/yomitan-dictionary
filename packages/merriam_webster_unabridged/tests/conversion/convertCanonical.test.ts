@@ -1207,3 +1207,42 @@ test("keeps v_phr off non-phrase entries with the same example shapes", () => {
   if (!result.ok) return;
   expect(result.value.rules).toBeNull();
 });
+
+test("tags etymology links as origin and text-lowercase spans as sense pointers", () => {
+  const result = convert(
+    "<mean>" +
+      header("who", "pronoun", "¦hü") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">' +
+            '<a href="bword://who" class="mw_t_et_link">who</a>' +
+            '<span class="text-lowercase">8</span>, ' +
+            '<a href="bword://who[1]" class="mw_t_sx"><sup>1</sup>who</a>' +
+            '<span class="text-lowercase">1a(1)</span>, ' +
+            '<a href="bword://depend" class="mw_t_sc">depend</a>' +
+            '<span class="text-lowercase">intransitive sense 1</span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "who",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(
+    unitsOf(result.value.content, "cross-reference").map(
+      (node: JsonObject): unknown => node.data?.relation,
+    ),
+  ).toEqual(["origin", "see", "related"]);
+  const pointers = unitsOf(
+    result.value.content,
+    "superscript-reference",
+  ).filter(
+    (node: JsonObject): unknown => node.data?.sourceUnit === "text-lowercase",
+  );
+  expect(pointers.map(textOf)).toEqual(["8", "1a(1)"]);
+});
