@@ -13,7 +13,7 @@ this order:
 
 The approved rules for turning source rows and definition-bearing structures
 into canonical and soft-link lexical entries are documented separately in
-[MWU Level 1 entry generation](../mwu-level-1-entry-generation.md).
+[MWU Level 1 entry generation](../../openspec/specs/mwu-level-1-entry-generation/spec.md).
 
 Detailed reports are intentionally kept outside this README:
 
@@ -228,7 +228,7 @@ Definition tags are Yomitan-rendered chips derived from `.fl` (`noun` → `n`,
 `transitive verb` → `v`, …) with Yomitan's default styling; the dictionary
 stylesheet does not restyle Yomitan's own UI. The full unit contract is
 documented in
-[MWU Level 1 entry generation](../mwu-level-1-entry-generation.md). Audio,
+[MWU Level 1 entry generation](../../openspec/specs/mwu-level-1-entry-generation/spec.md). Audio,
 full-database coverage, and richer media remain future work.
 
 ### Confirmed containers and structural rules

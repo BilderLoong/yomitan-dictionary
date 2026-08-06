@@ -1,11 +1,15 @@
 # MWU Level 1 Entry Generation
 
+> Archived 2026-08-06 — frozen, no longer maintained. The Level 1 generation
+> contract now lives in `openspec/specs/mwu-level-1-entry-generation/spec.md`
+> and the rendering contract in `openspec/specs/mwu-entry-conversion/spec.md`.
+
 Status: approved canonical-entry rule. Confirmed `soft-link-entry` creation
 rules are recorded at the end without making them canonical entries.
 
 This document defines how MWU SQLite rows and their HTML produce the two Level
 1 serialized entry shapes: canonical entries and `soft-link-entry` records. It complements the
-[MWU HTML survey](mwu-html-survey/README.md), which defines the six source
+[MWU HTML survey](../../docs/mwu-html-survey/README.md), which defines the six source
 levels and the information units that may belong to them.
 
 ## Scope

@@ -218,6 +218,43 @@ variant family SHALL NOT create soft-link entries.
   `variant spelling of`, whose target row joins the canonical dependencies,
   and which replaces any same-route `.va` link while merging its evidence
 
+### Requirement: Extract cxl-ref targets and rules conservatively
+
+For a cross-reference-only `<mean>`, the generator SHALL derive the soft-link
+target from the `.cxt` anchor's `bword://` href — stripping the scheme and any
+trailing `[homograph]` suffix — and SHALL NOT use the visible anchor text,
+which may carry a homograph prefix such as `1ibadite`. The `.cxn` reference
+qualifier SHALL remain relationship evidence, not part of the target spelling.
+The generator SHALL emit `cxl-ref-variant-reference-soft-link` rules only for
+`.cxl` relation text that case-insensitively matches `variant` or `spelling`;
+confirmed phrases include `variant spelling of`, `variant of`, `archaic
+variant of`, `obsolete variant of`, `dialectal variant of`, `Scottish variant
+of`, `chiefly Scottish variant of`, and `chiefly British spelling of`.
+Inflection references (`plural of`, `past tense of`, and similar),
+`taxonomic synonym of`, `synonym of`, and `and of` continuations SHALL remain
+reported findings without soft-link rules until their own rules are approved.
+The generator SHALL skip the link when the extracted target equals the lookup
+spelling or when no decoded source row exists for the target.
+
+#### Scenario: Target from the bword href, not visible text
+
+- **WHEN** a cross-reference-only `<mean>` shows visible `1ibadite` with a
+  `.cxt` href `bword://ibadite[1]`
+- **THEN** the target spelling is `ibadite` and the visible homograph prefix
+  does not enter the target
+
+#### Scenario: Non-variant reference phrases
+
+- **WHEN** the `.cxl` relation text reads `plural of`, `synonym of`,
+  `taxonomic synonym of`, or an `and of` continuation
+- **THEN** generation records a finding and emits no soft-link rule
+
+#### Scenario: Self and missing targets
+
+- **WHEN** the extracted target equals the lookup spelling, or no decoded
+  source row exists for the target
+- **THEN** generation skips the link and records the reason
+
 ### Requirement: Audit alternative-local metadata
 
 The generator SHALL retain each local alternative's qualifier and any local

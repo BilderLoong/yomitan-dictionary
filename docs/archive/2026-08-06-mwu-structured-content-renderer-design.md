@@ -1,5 +1,8 @@
 # MWU Structured-Content Renderer Design
 
+> Archived 2026-08-06 — implemented; the renderer contract now lives in
+> `openspec/specs/mwu-entry-conversion/spec.md`.
+
 **Date:** 2026-08-06
 
 **Status:** Approved for implementation under the user's overnight implementation request.
