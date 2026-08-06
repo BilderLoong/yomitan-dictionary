@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { parseCliArgs } from "./build/cli";
-import { runBuild } from "./build/runBuild";
-import { collectRequestedWords } from "./build/selection";
+import { parseCliArgs } from "./pipeline/cli";
+import { runBuild } from "./pipeline/runBuild";
+import { collectRequestedWords } from "./pipeline/selection";
 
 const usage =
   "Usage: bun run src/index.ts --words <word...> [--words-file <path>]";

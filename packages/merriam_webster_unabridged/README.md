@@ -70,12 +70,12 @@ and determinism tests are under `tests/`. The browser harness can import a
 production ZIP with:
 
 ```bash
-bun run tests/import_dict.ts \
+bun run tests/inspect_dict.ts \
   "build/Merriam Webster Unabridged.zip" \
   --query "what, take the word, in, o, il" \
   --close
 
-bun run tests/import_dict.ts \
+bun run tests/inspect_dict.ts \
   "build/Merriam Webster Unabridged.zip" \
   --query-file tests/testWords.txt \
   --close

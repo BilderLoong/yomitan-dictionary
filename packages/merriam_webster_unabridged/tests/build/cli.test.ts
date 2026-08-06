@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseCliArgs } from "../../src/build/cli";
+import { parseCliArgs } from "../../src/pipeline/cli";
 
 describe("parseCliArgs", () => {
   test("parses variadic words and a words file", () => {

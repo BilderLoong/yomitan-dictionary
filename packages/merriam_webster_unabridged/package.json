@@ -7,7 +7,7 @@
   "scripts": {
     "build:selected": "bun run src/index.ts",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
-    "test:dict": "bun run tests/import_dict.ts \"build/Merriam Webster Unabridged.zip\" --query-file tests/testWords.txt --close",
+    "inspect:dict": "bun run tests/inspect_dict.ts \"build/Merriam Webster Unabridged.zip\" --query-file tests/testWords.txt --close",
     "debug:unittest": "bun test --inspect-wait=/vscode",
     "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && biome format --write \"build/Merriam Webster Unabridged\" *.json"
   },

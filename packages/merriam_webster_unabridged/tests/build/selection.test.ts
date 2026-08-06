@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { collectRequestedWords } from "../../src/build/selection";
+import { collectRequestedWords } from "../../src/pipeline/selection";
 
 describe("collectRequestedWords", () => {
   test("combines flags and file lines with stable exact deduplication", () => {

@@ -1,5 +1,5 @@
 node_modules
 example_dictionaries
 .DS_Store
-packages/*/out/
-packages/*/build/.worktrees
+packages/*/build/
+.worktrees
