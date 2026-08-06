@@ -7,18 +7,38 @@ tags live in the tag bank.
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** resolved — 2026-08-07 on `worktree-1`; decision recorded in
+`docs/adr/0005-tag-generation-rules.md`, mechanics verified against the
+bundled Yomitan fixture source (v25.x), survey README updated.
 
-**Source:** TODO.md, "Tags".
-
-- [ ] Yomitan tag mechanics understood and documented (tag bank, how the
+- [x] Yomitan tag mechanics understood and documented (tag bank, how the
       term-bank tag field references it)
-- [ ] Boundary decided: which source labels become global tags vs stay local
+- [x] Boundary decided: which source labels become global tags vs stay local
       labels in structured content, consistent with CONTEXT.md's "Local
       label" definition
-- [ ] Tag-generation rules written and implemented, or explicitly deferred
+- [x] Tag-generation rules written and implemented, or explicitly deferred
       with the decision recorded
-- [ ] Hard-to-reverse choice recorded as an ADR
+- [x] Hard-to-reverse choice recorded as an ADR
+
+## Implementation notes (2026-08-07)
+
+- Mechanics verified from the bundled fixture
+  (`tests/fixture/yomitan-src`): tag bank entries are
+  `[name, category, sortOrder, notes, score]`; the term-bank fields are
+  definitionTags (space-separated string), rules (space-separated rule ids
+  — Yomitan derives inflection conditions from THIS field via
+  `getConditionFlagsFromPartsOfSpeech`), and termTags. English conditions:
+  `v`, `v_phr`, `n`, `np`, `ns`, `adj`, `adv`.
+- Boundary decided: definition tags = `.fl` POS whitelist
+  (`POS_TOKEN`/`POS_SPECIAL` in the renderer); term tags empty; no tag bank
+  emitted; all `.sl`/`.il`/`.vl`/`.sgram`/`.lb` labels stay inline
+  structured content; tag-bank promotion deferred until the label inventory
+  exists.
+- Implemented: `v_phr` in the rules field for `.drp` phrases with
+  interposed-object evidence (paired `.mw_t_wi` highlights), reported as an
+  `interposed-object-v-phr` conversion finding.
+- ADR: `docs/adr/0005-tag-generation-rules.md`.
+
 
 ## Reference sources
 

@@ -20,7 +20,7 @@ prerequisite for any parser mapping of these shapes.
       class
 - [x] Each shape classified as one of: semantic unit, transparent wrapper,
       intentionally ignored content, or atomic unrecognized fallback
-- [ ] Shared information-unit catalog updated before any parser behavior is
+- [x] Shared information-unit catalog updated before any parser behavior is
       implemented for a newly understood shape
 
 ## Findings (2026-08-07)

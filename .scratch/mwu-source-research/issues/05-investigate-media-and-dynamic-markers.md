@@ -16,7 +16,7 @@ source words, before any semantic parser mapping is added for them.
       classes
 - [x] Each shape classified as semantic unit, transparent wrapper,
       intentionally ignored content, or atomic unrecognized fallback
-- [ ] Classifications recorded in the living survey before parser mappings
+- [x] Classifications recorded in the living survey before parser mappings
       are added
 
 ## Findings (2026-08-07)
