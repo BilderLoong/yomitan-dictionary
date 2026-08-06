@@ -1,0 +1,5 @@
+[test]
+# The fixture directory holds dev-local generated content (the unpacked
+# Yomitan extension and the yomitan-src build cache, which contains the
+# upstream repo's own test suite). Never discover tests inside it.
+pathIgnorePatterns = ["tests/fixture/**"]
