@@ -230,7 +230,7 @@ supply examples, but it is not the acceptance oracle for this work.
 ## Archived evidence
 
 - [Shared information-unit catalog and survey method](../README.md)
-- [Level 1 entry generation rules](../../mwu-level-1-entry-generation.md)
+- [Level 1 entry generation rules](../../openspec/specs/mwu-level-1-entry-generation/spec.md)
 - [Design-fixture README](../../../packages/merriam_webster_unabridged/design-fixtures/README.md)
 - [Coverage audit](../../../packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md)
 - [Hand-authored term-bank fixture](../../../packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json)

@@ -1,5 +1,10 @@
 # MDX to Yomitan: Project Notes and Research Log
 
+> Archived 2026-08-06 — frozen research log, no longer maintained. Its
+> durable content now lives in `CONTEXT.md`, the openspec specs,
+> `docs/adr/`, the living survey at `../../docs/mwu-html-survey/README.md`,
+> and the ticket tracker at `.scratch/`.
+
 Last updated: 2026-08-06
 
 Status: research, design, and implementation log. This document records source
@@ -8,7 +13,7 @@ verified selected-word renderer slice. The source ownership/link contract is
 still specified separately in the archived OpenSpec change.
 
 The earlier reconnaissance work is archived as a status checkpoint in
-[`docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md`](docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md).
+[`docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md`](../../docs/mwu-html-survey/archived/2026-08-03-design-fixture-status.md).
 That archive records completed reconnaissance and verified fixture behavior.
 The 2026-08-06 worktree adds the first production semantic renderer described
 below; it does not claim complete uncommon-markup or media coverage.
@@ -65,19 +70,19 @@ Yomitan dictionary ZIP
 
 Relevant repository areas:
 
-- [`packages/merriam_webster_unabridged/src/source/sqlite.ts`](packages/merriam_webster_unabridged/src/source/sqlite.ts)
+- [`packages/merriam_webster_unabridged/src/source/sqlite.ts`](../../packages/merriam_webster_unabridged/src/source/sqlite.ts)
   contains the read-only SQLite source adapter.
-- [`packages/merriam_webster_unabridged/src/source/rows.ts`](packages/merriam_webster_unabridged/src/source/rows.ts)
+- [`packages/merriam_webster_unabridged/src/source/rows.ts`](../../packages/merriam_webster_unabridged/src/source/rows.ts)
   builds the lightweight decoded source-row index.
-- [`packages/merriam_webster_unabridged/src/index.ts`](packages/merriam_webster_unabridged/src/index.ts)
+- [`packages/merriam_webster_unabridged/src/index.ts`](../../packages/merriam_webster_unabridged/src/index.ts)
   is the selected-word production build entry point.
-- [`packages/merriam_webster_unabridged/assets/MWU.db`](packages/merriam_webster_unabridged/assets/MWU.db)
+- [`packages/merriam_webster_unabridged/assets/MWU.db`](../../packages/merriam_webster_unabridged/assets/MWU.db)
   is the read-only source database for reconnaissance.
 
 ### Structured-content design fixture
 
 The current design job uses
-[`packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json`](packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json)
+[`packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json`](../../packages/merriam_webster_unabridged/design-fixtures/what/term_bank_1.json)
 as a hand-authored provisional reference. It is a real-text semantic/Yomitan
 experiment for `what`, not a production data model, parser output, final
 visual contract, or acceptance snapshot.
@@ -105,7 +110,7 @@ ZIP to 136 term records.
 The expansion is intentionally a compact structural slice using real source
 text, not a claim that every definition in those large articles was copied.
 The source-to-JSON comparison and explicit omissions are recorded in
-[`packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md`](packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md).
+[`packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md`](../../packages/merriam_webster_unabridged/design-fixtures/coverage-audit.md).
 
 The latest design ZIP contains 136 records in total. A local Yomitan Chromium
 render audit covered all ten added source families plus `what`, `give up`,
@@ -165,7 +170,7 @@ understood.
 ### 2026-08-06 production renderer finding
 
 The new `structure-content` worktree replaces the old generic `div` flattening
-in [`renderStructuredContent.ts`](packages/merriam_webster_unabridged/src/conversion/renderStructuredContent.ts).
+in [`renderStructuredContent.ts`](../../packages/merriam_webster_unabridged/src/conversion/renderStructuredContent.ts).
 The converter now keeps source ownership in the selected `<mean>` and emits a
 single `mwu-entry` root with:
 
@@ -254,10 +259,10 @@ especially when the same class appears under different ancestors.
 
 The survey is a first-class document, separate from these durable project
 notes. It is maintained at
-[`docs/mwu-html-survey/README.md`](docs/mwu-html-survey/README.md). Individual
+[`docs/mwu-html-survey/README.md`](../../docs/mwu-html-survey/README.md). Individual
 word reports were merged into that README; historical snapshots are archived
 in `docs/mwu-html-survey/archived/`. The workflow is defined
-in [`docs/superpowers/plans/2026-08-01-mwu-html-reconnaissance.md`](docs/superpowers/plans/2026-08-01-mwu-html-reconnaissance.md).
+in [`docs/superpowers/plans/2026-08-01-mwu-html-reconnaissance.md`](../../docs/superpowers/plans/2026-08-01-mwu-html-reconnaissance.md).
 
 The living survey document is organized by information unit and binding level.
 It is not organized into the three tool-output sections. Each unit records its
@@ -323,9 +328,9 @@ in a rendered dictionary card.
 ## First reconnaissance: `what`
 
 The shared survey catalog is in
-[`docs/mwu-html-survey/README.md`](docs/mwu-html-survey/README.md). The
+[`docs/mwu-html-survey/README.md`](../../docs/mwu-html-survey/README.md). The
 detailed per-word evidence is archived in
-[`docs/mwu-html-survey/archived/what.md`](docs/mwu-html-survey/archived/what.md).
+[`docs/mwu-html-survey/archived/what.md`](../../docs/mwu-html-survey/archived/what.md).
 The exact lookup word was `what`; it matched one `word` row (`id = 464223`)
 and produced five `<mean>` blocks: pronoun, adverb, adjective, noun, and
 conjunction. The row also has 25 associated alternate rows.
@@ -357,9 +362,9 @@ recorded as survey coverage, not as a converter implementation result.
 ## Second reconnaissance: `turn`
 
 The shared survey catalog is in
-[`docs/mwu-html-survey/README.md`](docs/mwu-html-survey/README.md). The
+[`docs/mwu-html-survey/README.md`](../../docs/mwu-html-survey/README.md). The
 detailed per-word evidence is archived in
-[`docs/mwu-html-survey/archived/turn.md`](docs/mwu-html-survey/archived/turn.md).
+[`docs/mwu-html-survey/archived/turn.md`](../../docs/mwu-html-survey/archived/turn.md).
 The exact lookup word was `turn`; it matched one `word` row (`id = 450356`), contained
 three `<mean>` blocks, and had 36 associated alternate rows.
 
@@ -552,8 +557,8 @@ entry. We do not regroup either item merely for visual convenience.
 
 The detailed source reports are:
 
-- [take survey](docs/mwu-html-survey/archived/take.md)
-- [run survey](docs/mwu-html-survey/archived/run.md)
+- [take survey](../../docs/mwu-html-survey/archived/take.md)
+- [run survey](../../docs/mwu-html-survey/archived/run.md)
 
 ### Interposed-object evidence from a defined phrase
 
