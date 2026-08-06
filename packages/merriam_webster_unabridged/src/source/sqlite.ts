@@ -14,9 +14,11 @@ export const openSourceDatabase = (databasePath: string): Database =>
 export const listSourceRowSummaries = (
   database: Database,
 ): readonly SourceRowSummary[] =>
+  // Order by `w` so the planner scans the key-only index instead of the
+  // `word` table b-tree, whose pages interleave the multi-gigabyte `m` blobs.
   database
     .query<SourceRowSummary, []>(
-      "SELECT id, w AS encodedKey FROM word ORDER BY id",
+      "SELECT id, w AS encodedKey FROM word ORDER BY w",
     )
     .all();
 

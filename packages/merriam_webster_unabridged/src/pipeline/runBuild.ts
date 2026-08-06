@@ -48,6 +48,7 @@ export interface BuildRequest {
   readonly requestedWords: readonly string[];
   readonly databasePath: string;
   readonly buildPaths: BuildPaths;
+  readonly sourceIndex?: SourceIndex;
 }
 
 export type BuildAttempt =
@@ -565,7 +566,8 @@ const buildSelectedDictionary = async (
   request: BuildRequest,
   database: Database,
 ): Promise<BuildAttempt> => {
-  const index = buildSourceIndex(listSourceRowSummaries(database));
+  const index =
+    request.sourceIndex ?? buildSourceIndex(listSourceRowSummaries(database));
   const state = planSelectedRows(database, index, request);
   const canonicalEntryPlans = state.plannedRows.flatMap(
     ({ canonicalEntries }: PlannedRow): readonly CanonicalEntryPlan[] =>

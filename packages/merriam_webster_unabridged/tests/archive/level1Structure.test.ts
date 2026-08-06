@@ -5,10 +5,26 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 import { runBuild } from "../../src/pipeline/runBuild";
+import { buildSourceIndex, type SourceIndex } from "../../src/source/rows";
+import {
+  listSourceRowSummaries,
+  openSourceDatabase,
+} from "../../src/source/sqlite";
 
 const sourceDatabasePath = fileURLToPath(
   new URL("../../assets/MWU.db", import.meta.url),
 );
+
+// The source index is pure input data shared by every build in this file;
+// rebuilding it per test would repeat ~1.5s of decode/sort work.
+const sourceIndex: SourceIndex = (() => {
+  const database = openSourceDatabase(sourceDatabasePath);
+  try {
+    return buildSourceIndex(listSourceRowSummaries(database));
+  } finally {
+    database.close();
+  }
+})();
 
 const readProcessText = async (stream: unknown): Promise<string> => {
   if (!(stream instanceof ReadableStream)) {
@@ -82,6 +98,7 @@ describe("term-bank level 1 generation test", () => {
     const attempt = await runBuild({
       requestedWords: ["what"],
       databasePath: sourceDatabasePath,
+      sourceIndex,
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
@@ -143,6 +160,7 @@ describe("term-bank level 1 generation test", () => {
     const attempt = await runBuild({
       requestedWords: ["in"],
       databasePath: sourceDatabasePath,
+      sourceIndex,
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
@@ -216,6 +234,7 @@ describe("term-bank level 1 generation test", () => {
     const attempt = await runBuild({
       requestedWords: ["o"],
       databasePath: sourceDatabasePath,
+      sourceIndex,
       buildPaths: {
         outputDirectory,
         reportPath: join(outputDirectory, "build-report.json"),
