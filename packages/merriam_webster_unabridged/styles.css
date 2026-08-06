@@ -2,33 +2,102 @@
    Yomitan scopes this file automatically to [data-dictionary="Merriam Webster Unabridged"]. */
 
 /* Header */
-[data-sc-content="homograph-number"] { vertical-align: super; font-size: 0.75em; }
-[data-sc-content="headword-display"] { font-style: italic; margin-left: 0.5em; }
-[data-sc-content="entry-qualifier"] { font-style: italic; margin-right: 0.35em; }
-[data-sc-content="pronunciation"] { font-style: italic; margin-left: 0.5em; }
-[data-sc-content="inflection-group"] { margin-left: 0.5em; }
-[data-sc-content="inflection-label"] { font-style: italic; }
-[data-sc-content="form-pronunciation"] { font-style: italic; margin-left: 0.35em; }
-[data-sc-content="alternate-form"] { font-style: italic; }
-[data-sc-content="variant-qualifier"] { font-style: italic; }
+[data-sc-content="homograph-number"] {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+[data-sc-content="headword-display"] {
+  font-style: italic;
+  margin-left: 0.5em;
+}
+[data-sc-content="entry-qualifier"] {
+  font-style: italic;
+  margin-right: 0.35em;
+}
+[data-sc-content="pronunciation"] {
+  font-style: italic;
+  margin-left: 0.5em;
+}
+[data-sc-content="inflection-group"] {
+  margin-left: 0.5em;
+}
+[data-sc-content="inflection-label"] {
+  font-style: italic;
+}
+[data-sc-content="form-pronunciation"] {
+  font-style: italic;
+  margin-left: 0.35em;
+}
+[data-sc-content="alternate-form"] {
+  font-style: italic;
+}
+[data-sc-content="variant-qualifier"] {
+  font-style: italic;
+}
 
 /* Definition body */
-span[data-sc-content="verb-subtype"] { font-weight: bold; }
-ol[data-sc-content="mwu-level"] { list-style-type: decimal; }
-ol[data-sc-content="mwu-level"][data-sc-level="4"] { list-style-type: lower-alpha; }
-[data-sc-content="usage-note"] { font-style: italic; margin-left: 1em; }
-[data-sc-content="example-sentence"] { margin-left: 1em; }
-[data-sc-content="example-source"] { font-style: italic; font-size: 0.9em; margin-left: 1em; }
-[data-sc-content="example-source-inline"] { font-style: italic; }
-[data-sc-content="target-highlight"] { background-color: orange; font-weight: bold; }
-[data-sc-content="cross-reference"] { text-decoration-line: underline; }
-[data-sc-content="superscript-reference"] { vertical-align: super; font-size: 0.75em; }
-[data-sc-content="emphasis"] { font-style: italic; }
-[data-sc-content="strong"] { font-weight: bold; }
-[data-sc-content="tag"] { font-style: italic; margin-right: 0.35em; }
-[data-sc-content="grammar-label"] { font-style: italic; }
+span[data-sc-content="verb-subtype"] {
+  font-weight: bold;
+}
+ol[data-sc-content="mwu-level"] {
+  list-style-type: decimal;
+}
+ol[data-sc-content="mwu-level"][data-sc-level="4"] {
+  list-style-type: lower-alpha;
+}
+[data-sc-content="usage-note"] {
+  font-style: italic;
+  margin-left: 1em;
+}
+[data-sc-content="example-sentence"] {
+  margin-left: 1em;
+}
+[data-sc-content="example-source"] {
+  font-style: italic;
+  font-size: 0.9em;
+  margin-left: 1em;
+}
+[data-sc-content="example-source-inline"] {
+  font-style: italic;
+}
+[data-sc-content="target-highlight"] {
+  background-color: orange;
+  font-weight: bold;
+}
+[data-sc-content="cross-reference"] {
+  text-decoration-line: underline;
+  color: #1122cc;
+  font-size: 0.95em;
+}
+[data-sc-content="superscript-reference"] {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+[data-sc-content="emphasis"] {
+  font-style: italic;
+  color: #d04449;
+}
+[data-sc-content="strong"] {
+  font-weight: bold;
+}
+[data-sc-content="tag"] {
+  font-style: italic;
+  color: #c53cc0;
+  margin-right: 0.35em;
+}
+[data-sc-content="grammar-label"] {
+  font-style: italic;
+}
 
 /* Sections */
-[data-sc-content="origin-text"] { font-style: italic; margin-left: 0.5em; }
-details[data-sc-content="related-item"] > summary { font-weight: bold; }
-details[data-sc-content="phrase"] > summary span { font-style: italic; font-weight: bold; }
+[data-sc-content="origin-text"] {
+  font-style: italic;
+  margin-left: 0.5em;
+}
+details[data-sc-content="related-item"] > summary {
+  font-weight: bold;
+}
+details[data-sc-content="phrase"] > summary span {
+  font-style: italic;
+  font-weight: bold;
+}

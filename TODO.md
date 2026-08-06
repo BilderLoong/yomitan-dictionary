@@ -69,3 +69,5 @@ they are not source-research tasks.
 Is there any programmatic way to determine there no information loss?
 
 ## Is there any way to test the finally render result?
+E2E
+

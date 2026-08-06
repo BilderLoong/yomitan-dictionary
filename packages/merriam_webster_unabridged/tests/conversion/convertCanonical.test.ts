@@ -527,6 +527,13 @@ test("preserves punctuation and annotation in multi-part pronunciations", () => 
   expect(textOf(pronunciations[0])).toBe(
     "/(ˈ)in/, /ən/; usually ᵊn after t, /d/",
   );
+  expect(
+    unitsOf(result.value.content, "pronunciation-reading").map(textOf),
+  ).toEqual(["/(ˈ)in/", "/ən/", "/d/"]);
+  const notes = unitsOf(result.value.content, "pronunciation-note");
+  expect(notes).toHaveLength(1);
+  expect(textOf(notes[0])).toContain("usually ᵊn after t");
+  expect(textOf(notes[0])).not.toContain("/usually");
 });
 
 test("marks run-in variants as alternate forms", () => {
@@ -734,4 +741,228 @@ test("sets the tag title from the label text", () => {
   const tags = unitsOf(result.value.content, "tag");
   expect(tags).toHaveLength(1);
   expect(tags[0]?.title).toBe("chiefly dialectal");
+});
+
+test("renders an undefined run-on under its parent without making a record", () => {
+  const result = convert(
+    "<mean>" +
+      header("in", "preposition", "¦in") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense('<span class="num">1</span>', '<span class="dt ">inside</span>'),
+      ) +
+      "</div></div></div>" +
+      '<div class="dro"><div class="uro">' +
+      '<span class="ure">in–ness</span>' +
+      '<span class="first-slash">\\</span>' +
+      '<span class="prt-a"><span class="mw">ˈin-nəs</span></span>' +
+      '<span class="last-slash">\\</span>' +
+      '<span class="fl">noun, </span>' +
+      '<span class="il">plural</span><span class="ix">-es</span>' +
+      "</div></div></mean>",
+    "in",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const runOns = unitsOf(result.value.content, "undefined-run-on");
+  expect(runOns).toHaveLength(1);
+  expect(textOf(runOns[0])).toContain("in–ness");
+  expect(textOf(runOns[0])).toContain("/ˈin-nəs/");
+  expect(textOf(runOns[0])).toContain("noun");
+  expect(textOf(runOns[0])).toContain("plural");
+  expect(textOf(runOns[0])).toContain("-es");
+  expect(unitsOf(runOns[0], "run-on-form")).toHaveLength(1);
+  expect(unitsOf(runOns[0], "form-pronunciation")).toHaveLength(1);
+  expect(unitsOf(runOns[0], "part-of-speech")).toHaveLength(1);
+  expect(unitsOf(runOns[0], "inflection-label")).toHaveLength(1);
+  expect(unitsOf(runOns[0], "inflection-marker")).toHaveLength(1);
+  expect(result.value.findings).toEqual([]);
+});
+
+test("keeps sense-local forms and labels in one owned definition flow", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "noun", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="if">turns</span><span class="spl"> plural</span>' +
+            '<span class="dt "><strong class="mw_t_bc">: </strong>' +
+            '<a href="bword://menses" class="mw_t_sx">menses</a></span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const definition = unitsOf(result.value.content, "definition").find(
+    (node: JsonObject): boolean => textOf(node).includes("menses"),
+  );
+  expect(definition).toBeDefined();
+  if (definition === undefined) return;
+  expect(textOf(definition).replace(/\s+/gu, " ").trim()).toBe(
+    "turns plural: menses",
+  );
+  expect(unitsOf(definition, "tag").map(textOf)).toEqual([" plural"]);
+  expect(unitsOf(definition, "cross-reference").map(textOf)).toEqual([
+    "menses",
+  ]);
+});
+
+test("keeps local labels semantic and preserves source block boundaries", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<div class="sls"><span class="sl">slang</span></div>' +
+            '<span class="dt "><span class="sl">archaic</span> ' +
+            '<span class="lb">of a blade</span>: definition</span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "what",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const tags = unitsOf(result.value.content, "tag");
+  expect(tags.map(textOf)).toEqual(["slang", "archaic", "of a blade"]);
+  expect(
+    tags.map((node: JsonObject): unknown => node.data?.sourceUnit),
+  ).toEqual(["sense-label", "sense-label", "definition-label"]);
+  const boundaries = unitsOf(result.value.content, "source-block-boundary");
+  expect(boundaries).toHaveLength(1);
+  expect(textOf(boundaries[0])).toBe("slang");
+});
+
+test("marks an entry-level sls label before the sense block as a tag", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "conjunction", "¦(h)wət") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      '<div class="sls"><span class="sl">substandard</span></div>' +
+      sb(
+        '<div class="sense no-subnum"><span class="dt ">used after ' +
+          '<em class="mw_t_it">than</em> as a function word</span></div>',
+        "no-sn",
+      ) +
+      "</div></div></div></mean>",
+    "what",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const tags = unitsOf(result.value.content, "tag");
+  expect(tags.map(textOf)).toEqual(["substandard"]);
+  expect(tags[0]?.title).toBe("substandard");
+  expect(tags[0]?.data).toMatchObject({
+    category: "usage",
+    sourceUnit: "sense-label",
+    level: "5",
+  });
+  expect(textOf(result.value.content)).toContain("used after");
+});
+
+test("renders usage discussion references as non-interactive source pointers", () => {
+  const result = convert(
+    "<mean>" +
+      header("bring", "verb", "¦briŋ") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">definition' +
+            '<span class="urefs"><span class="ur"> See Usage Discussion at ' +
+            '<a href="gdlookup://bring" class="mw_t_sc">bring</a></span></span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "bring",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const references = unitsOf(
+    result.value.content,
+    "usage-discussion-reference",
+  );
+  expect(references).toHaveLength(1);
+  expect(textOf(references[0])).toBe(" See Usage Discussion at bring");
+  expect(unitsOf(references[0], "cross-reference")).toHaveLength(0);
+  expect(JSON.stringify(references[0])).not.toContain("gdlookup://");
+});
+
+test("structures a synonym discussion into term entries and local examples", () => {
+  const result = convert(
+    "<mean>" +
+      header("take", "verb", "¦tāk") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(sense('<span class="num">1</span>', '<span class="dt ">get</span>')) +
+      "</div></div></div>" +
+      '<div class="section related-to" data-id="related-to">' +
+      '<h2 class="toggle"><span class="text">Synonym Discussion</span></h2>' +
+      '<div class="section-content"><div class="syn synonym-discussion"><p class="syn">' +
+      "<strong>Synonym Discussion</strong>" +
+      '<a href="bword://seize" class="mw_t_sc">seize</a>, ' +
+      '<a href="bword://grasp" class="mw_t_sc">grasp</a>, ' +
+      '<a href="bword://clutch" class="mw_t_sc">clutch</a>, ' +
+      '<a href="bword://snatch" class="mw_t_sc">snatch</a>, and ' +
+      '<a href="bword://grab" class="mw_t_sc">grab</a>: ' +
+      '<a href="bword://take" class="mw_t_sc">take</a> is a general term. ' +
+      '<span class="ex-sent t no-aq sents-inline">&lt;<span class="mw_t_wi">take</span> the book&gt;</span>' +
+      '<a href="bword://seize" class="mw_t_sc">seize</a> suggests sudden taking. ' +
+      '<span class="ex-sent t no-aq sents-inline">&lt;they <span class="mw_t_wi">seized</span> it&gt;</span>' +
+      '<span class="ex-sent t no-aq sents-inline">&lt;the second <span class="mw_t_wi">seize</span> example&gt;</span>' +
+      '<a href="bword://grasp" class="mw_t_sc">grasp</a> implies firm taking. ' +
+      '<a href="bword://clutch" class="mw_t_sc">clutch</a> suggests firmness. ' +
+      '<a href="bword://snatch" class="mw_t_sc">snatch</a> stresses suddenness. ' +
+      '<a href="bword://grab" class="mw_t_sc">grab</a> suggests rough force. ' +
+      '</p><p class="see-in-addition"><strong>synonyms</strong> see in addition ' +
+      '<a href="bword://attract" class="sa-link sc">attract</a>, ' +
+      '<a href="bword://receive" class="sa-link sc">receive</a></p></div></div></div></mean>',
+    "take",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const related = unitsOf(result.value.content, "related-item");
+  expect(related).toHaveLength(1);
+  expect(related[0]?.open).toBe(false);
+  expect(unitsOf(related[0], "synonym-discussion")).toHaveLength(1);
+  expect(unitsOf(related[0], "synonym-term-group")).toHaveLength(1);
+  expect(textOf(unitsOf(related[0], "synonym-term-group")[0])).toContain(
+    "seize, grasp, clutch, snatch, and grab",
+  );
+  expect(unitsOf(related[0], "synonym-introduction")).toHaveLength(1);
+  expect(textOf(unitsOf(related[0], "synonym-introduction")[0])).toContain(
+    "take is a general term",
+  );
+  expect(unitsOf(related[0], "synonym-entry")).toHaveLength(5);
+  expect(unitsOf(related[0], "synonym-entry").map(textOf)).toEqual([
+    expect.stringContaining("seize suggests sudden taking"),
+    expect.stringContaining("grasp implies firm taking"),
+    expect.stringContaining("clutch suggests firmness"),
+    expect.stringContaining("snatch stresses suddenness"),
+    expect.stringContaining("grab suggests rough force"),
+  ]);
+  expect(unitsOf(related[0], "synonym-term")).toHaveLength(10);
+  expect(unitsOf(related[0], "see-in-addition")).toHaveLength(1);
+  expect(unitsOf(related[0], "target-highlight").length).toBeGreaterThan(0);
+  expect(unitsOf(related[0], "extra-examples")).toHaveLength(1);
+  expect(unitsOf(related[0], "synonym-entry")[0]?.tag).toBe("div");
+  expect(result.value.findings).toEqual([]);
 });

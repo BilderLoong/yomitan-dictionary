@@ -54,6 +54,7 @@ interface DataOptions {
 interface InlineOptions {
   readonly stripLeadingArrow?: boolean;
   readonly skipClasses?: readonly string[];
+  readonly plainLinks?: boolean;
 }
 
 const knownTags = [
@@ -516,6 +517,9 @@ const renderInlineNode = (
       child.findings,
     );
   }
+  if (hasClass(root, element, "urefs") || hasClass(root, element, "ur")) {
+    return renderUsageDiscussionReference(root, element, path, plan);
+  }
   if (hasClass(root, element, "mw_t_wi")) {
     const child = renderInlineChildren(root, element, path, plan, options);
     return renderResult(
@@ -557,6 +561,52 @@ const renderInlineNode = (
       child.findings,
     );
   }
+  if (hasClass(root, element, "lb")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("tag", {
+            category: "definition",
+            sourceUnit: "definition-label",
+            level: 5,
+          }),
+          title: elementText(root, element),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "spl")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("tag", {
+            category: "grammar",
+            sourceUnit: "grammar-label",
+            level: 5,
+          }),
+          title: elementText(root, element),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "sls")) {
+    const child = renderInlineChildren(root, element, path, plan, options);
+    return renderResult(
+      [
+        container("div", child.nodes, {
+          data: unitData("source-block-boundary", {
+            level: 5,
+            sourceUnit: "sls",
+          }),
+        }),
+      ],
+      child.findings,
+    );
+  }
   if (hasClass(root, element, "sgram")) {
     const child = renderInlineChildren(root, element, path, plan, options);
     return renderResult(
@@ -584,6 +634,9 @@ const renderInlineNode = (
   }
   if (element.tagName === "a") {
     const child = renderInlineChildren(root, element, path, plan, options);
+    if (options.plainLinks === true) {
+      return child;
+    }
     const relation = hasClass(root, element, "mw_t_mat")
       ? "origin"
       : hasClass(root, element, "mw_t_sx")
@@ -652,6 +705,81 @@ const renderInlineChildren = (
           }),
       ),
   );
+
+const renderUsageDiscussionReference = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const target = hasClass(root, element, "ur")
+    ? element
+    : root(element).find(".ur").first().get(0);
+  if (target === undefined) return emptyResult();
+  const content = renderInlineChildren(root, target, path, plan, {
+    plainLinks: true,
+  });
+  return renderResult(
+    [
+      container(element.tagName === "span" ? "span" : "div", content.nodes, {
+        data: unitData("usage-discussion-reference", {
+          level: 6,
+          relation: "usage-discussion",
+          sourceUnit: "ur",
+        }),
+      }),
+    ],
+    content.findings,
+  );
+};
+
+const renderFormPronunciation = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+  level = 1,
+): RenderResult => {
+  const content = combineResults(
+    root(element)
+      .contents()
+      .toArray()
+      .map(
+        (node: AnyNode, index: number): RenderResult => {
+          if (node.type === "text") return renderTextNode(node, false);
+          if (node.type !== "tag") return emptyResult();
+          if (
+            hasClass(root, node, "first-slash") ||
+            hasClass(root, node, "last-slash")
+          ) {
+            return emptyResult();
+          }
+          if (hasClass(root, node, "mw")) {
+            const reading = formatFormPronunciation(elementText(root, node));
+            return reading.length === 0
+              ? emptyResult()
+              : renderResult([
+                  container("span", reading, {
+                    data: unitData("pronunciation-reading", {
+                      level,
+                      sourceUnit: "mw",
+                    }),
+                  }),
+                ]);
+          }
+          return renderInlineNode(root, node, [...path, index], plan);
+        },
+      ),
+  );
+  return renderResult(
+    [
+      container("span", content.nodes, {
+        data: unitData("form-pronunciation", { level }),
+      }),
+    ],
+    content.findings,
+  );
+};
 
 const renderAttribution = (
   root: cheerio.CheerioAPI,
@@ -839,10 +967,13 @@ const renderDefinitionFlow = (
   path: readonly number[],
   plan: CanonicalEntryPlan,
   level = 5,
+  leadingNodes: readonly AnyNode[] = [],
 ): RenderResult => {
-  const results = root(element)
-    .contents()
-    .toArray()
+  const sourceNodes = [
+    ...leadingNodes,
+    ...root(element).contents().toArray(),
+  ];
+  const results = sourceNodes
     .map((child: AnyNode, index: number): RenderResult => {
       if (child.type === "tag" && hasClass(root, child, "ex-sent-group")) {
         return renderExampleGroup(root, child, [...path, index], plan);
@@ -872,16 +1003,39 @@ const renderSense = (
   path: readonly number[],
   plan: CanonicalEntryPlan,
 ): RenderResult => {
-  const results = root(element)
+  const children = root(element)
     .contents()
     .toArray()
     .filter(
       (child: AnyNode): boolean =>
         child.type !== "tag" || !hasClass(root, child, "sn"),
-    )
+    );
+  const definitionIndex = children.findIndex(
+    (child: AnyNode): boolean =>
+      child.type === "tag" && hasClass(root, child, "dt"),
+  );
+  const leadingFormNodes =
+    definitionIndex < 0
+      ? []
+      : children
+          .slice(0, definitionIndex)
+          .filter(
+            (child: AnyNode): boolean =>
+              child.type === "tag" &&
+              hasAnyClass(root, child, ["if", "spl"]),
+          );
+  const results = children
+    .filter((child: AnyNode): boolean => !leadingFormNodes.includes(child))
     .map((child: AnyNode, index: number): RenderResult => {
       if (child.type === "tag" && hasClass(root, child, "dt")) {
-        return renderDefinitionFlow(root, child, [...path, index], plan);
+        return renderDefinitionFlow(
+          root,
+          child,
+          [...path, index],
+          plan,
+          5,
+          leadingFormNodes,
+        );
       }
       if (child.type === "tag" && hasClass(root, child, "uns")) {
         return renderUsageNotes(root, child, [...path, index], plan);
@@ -1321,6 +1475,129 @@ const renderRelated = (
   );
 };
 
+const renderUndefinedRunOnNode = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  if (node.type === "text") return renderTextNode(node, false);
+  if (node.type !== "tag") return emptyResult();
+  const element = node;
+  if (hasAnyClass(root, element, ["first-slash", "last-slash"])) {
+    return emptyResult();
+  }
+  if (hasClass(root, element, "ure")) {
+    const content = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", content.nodes, {
+          data: unitData("run-on-form", {
+            level: 1,
+            sourceUnit: "ure",
+          }),
+        }),
+      ],
+      content.findings,
+    );
+  }
+  if (hasClass(root, element, "prt-a")) {
+    return renderFormPronunciation(root, element, path, plan, 1);
+  }
+  if (hasClass(root, element, "fl")) {
+    const content = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", content.nodes, {
+          data: unitData("part-of-speech", {
+            level: 1,
+            sourceUnit: "fl",
+          }),
+        }),
+      ],
+      content.findings,
+    );
+  }
+  if (hasClass(root, element, "il")) {
+    const content = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", content.nodes, {
+          data: unitData("inflection-label", {
+            level: 1,
+            sourceUnit: "il",
+          }),
+        }),
+      ],
+      content.findings,
+    );
+  }
+  if (hasClass(root, element, "ix")) {
+    const content = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", content.nodes, {
+          data: unitData("inflection-marker", {
+            level: 1,
+            sourceUnit: "ix",
+          }),
+        }),
+      ],
+      content.findings,
+    );
+  }
+  return renderInlineNode(root, element, path, plan);
+};
+
+const renderUndefinedRunOn = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const content = combineResults(
+    root(element)
+      .contents()
+      .toArray()
+      .map(
+        (node: AnyNode, index: number): RenderResult =>
+          renderUndefinedRunOnNode(root, node, [...path, index], plan),
+      ),
+  );
+  return renderResult(
+    [
+      container("div", content.nodes, {
+        data: unitData("undefined-run-on", {
+          level: 1,
+          relation: "parent-only",
+          sourceUnit: "uro",
+        }),
+      }),
+    ],
+    content.findings,
+  );
+};
+
+const renderUndefinedRunOns = (
+  root: cheerio.CheerioAPI,
+  owner: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  combineResults(
+    root(owner)
+      .find(".uro")
+      .toArray()
+      .filter(
+        (runOn: Element): boolean =>
+          root(runOn).parents(".drp").length === 0,
+      )
+      .map(
+        (runOn: Element, index: number): RenderResult =>
+          renderUndefinedRunOn(root, runOn, [...path, index], plan),
+      ),
+  );
+
 const renderPhraseSection = (
   root: cheerio.CheerioAPI,
   title: Element,
@@ -1490,18 +1767,7 @@ const renderInflectionNode = (
     );
   }
   if (hasClass(root, element, "prt-a")) {
-    const readings = root(element)
-      .find(".mw")
-      .toArray()
-      .map((reading: Element): string =>
-        formatFormPronunciation(elementText(root, reading)),
-      )
-      .filter((reading: string): boolean => reading.length > 0);
-    return renderResult([
-      container("span", readings.join(", "), {
-        data: unitData("form-pronunciation", { level: 1 }),
-      }),
-    ]);
+    return renderFormPronunciation(root, element, path, plan, 1);
   }
   return renderInlineNode(root, element, path, plan);
 };
@@ -1576,6 +1842,108 @@ const renderAlternateForm = (
       ]);
 };
 
+const renderPronunciationChildren = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  combineResults(
+    root(element)
+      .contents()
+      .toArray()
+      .map(
+        (child: AnyNode, index: number): RenderResult =>
+          renderPronunciationNode(root, child, [...path, index], plan),
+      ),
+  );
+
+const renderPronunciationNode = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  if (node.type === "text") return renderTextNode(node, false);
+  if (node.type !== "tag") return emptyResult();
+
+  const element = node;
+  if (
+    hasClass(root, element, "first-slash") ||
+    hasClass(root, element, "last-slash")
+  ) {
+    return emptyResult();
+  }
+  if (
+    hasAnyClass(root, element, ignoredClasses) &&
+    !hasClass(root, element, "addPunct") &&
+    !hasClass(root, element, "pun")
+  ) {
+    return emptyResult();
+  }
+  if (hasClass(root, element, "addPunct") || hasClass(root, element, "pun")) {
+    return renderInlineChildren(root, element, path, plan);
+  }
+  if (hasClass(root, element, "prs")) {
+    return renderPronunciationChildren(root, element, path, plan);
+  }
+  if (hasClass(root, element, "pr")) {
+    const isNote =
+      root(element).find(".mw_t_it").length > 0 ||
+      root(element).parents(".mw_t_it").length > 0;
+    if (isNote) {
+      const note = renderPronunciationChildren(root, element, path, plan);
+      return renderResult(
+        [
+          container("span", note.nodes, {
+            data: unitData("pronunciation-note", { level: 1 }),
+          }),
+        ],
+        note.findings,
+      );
+    }
+    const reading = formatPronunciation(elementText(root, element));
+    return reading.length === 0
+      ? emptyResult()
+      : renderResult([
+          container("span", reading, {
+            data: unitData("pronunciation-reading", { level: 1 }),
+          }),
+        ]);
+  }
+  return renderInlineNode(root, element, path, plan);
+};
+
+const renderPronunciation = (
+  root: cheerio.CheerioAPI,
+  prs: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const contents = root(prs).contents().toArray();
+  const scope =
+    root(prs).find(".last-slash").length > 0
+      ? contents
+      : (() => {
+          const parent = root(prs).parent().get(0);
+          if (parent === undefined) return contents;
+          const siblings = root(parent).contents().toArray();
+          const start = siblings.indexOf(prs);
+          return start < 0 ? contents : siblings.slice(start);
+        })();
+  const end = scope.findIndex(
+    (node: AnyNode): boolean =>
+      node.type === "tag" && hasClass(root, node, "last-slash"),
+  );
+  const boundedScope = end < 0 ? scope : scope.slice(0, end + 1);
+  return combineResults(
+    boundedScope.map(
+      (node: AnyNode, index: number): RenderResult =>
+        renderPronunciationNode(root, node, [...path, index], plan),
+    ),
+  );
+};
+
 const renderHeader = (
   root: cheerio.CheerioAPI,
   owner: Element,
@@ -1613,63 +1981,10 @@ const renderHeader = (
     .find(".prs")
     .first()
     .get(0);
-  const pronunciationText =
+  const pronunciation =
     prs === undefined
-      ? ""
-      : (() => {
-          const pronunciationScope = (): readonly AnyNode[] => {
-            const contents = root(prs).contents().toArray();
-            if (root(prs).find(".last-slash").length > 0) return contents;
-            // MWU sometimes leaves the header prs unterminated (no last
-            // slash) and continues the pronunciation as loose siblings of
-            // the prs in the same container, ending with the last slash.
-            const parent = root(prs).parent().get(0);
-            if (parent === undefined) return contents;
-            const siblings = root(parent).contents().toArray();
-            return siblings.slice(siblings.indexOf(prs));
-          };
-          let closed = false;
-          const pronunciationPart = (child: AnyNode): string => {
-            if (closed) return "";
-            if (child.type === "text") {
-              return child.data.trim().length === 0 ? "" : child.data;
-            }
-            if (child.type !== "tag") return "";
-            if (hasClass(root, child, "first-slash")) return "";
-            if (hasClass(root, child, "last-slash")) {
-              closed = true;
-              return "";
-            }
-            if (
-              child.type === "tag" &&
-              hasAnyClass(root, child, ignoredClasses) &&
-              !hasClass(root, child, "addPunct")
-            ) {
-              return "";
-            }
-            if (hasClass(root, child, "prs")) {
-              return root(child)
-                .contents()
-                .toArray()
-                .map(pronunciationPart)
-                .join("");
-            }
-            if (hasClass(root, child, "pr")) {
-              const text = root(child).text();
-              const annotated =
-                root(child).find(".mw_t_it").length > 0 ||
-                root(child).parents(".mw_t_it").length > 0;
-              return annotated ? text : formatPronunciation(text);
-            }
-            return root(child).text();
-          };
-          return normalizeWhitespace(
-            pronunciationScope()
-              .map(pronunciationPart)
-              .join("")
-              .replace(/\/(?=\/)/gu, "/ "),
-          ).trim();
-        })();
+      ? emptyResult()
+      : renderPronunciation(root, prs, [0], plan);
   const inflection =
     root(owner).find(".headword-row .vg-ins").first().get(0) ??
     root(owner).find(".vg-ins").first().get(0);
@@ -1712,10 +2027,10 @@ const renderHeader = (
             },
           ),
         ]),
-    ...(pronunciationText.length === 0
+    ...(pronunciation.nodes.length === 0
       ? []
       : [
-          container("span", pronunciationText, {
+          container("span", pronunciation.nodes, {
             data: unitData("pronunciation", { level: 1 }),
           }),
         ]),
@@ -1728,11 +2043,14 @@ const renderHeader = (
     result:
       headerNodes.length === 0
         ? emptyResult()
-        : renderResult([
-            container("div", headerNodes, {
-              data: unitData("mwu-header", { level: 1 }),
-            }),
-          ]),
+        : renderResult(
+            [
+              container("div", headerNodes, {
+                data: unitData("mwu-header", { level: 1 }),
+              }),
+            ],
+            pronunciation.findings,
+          ),
     definitionTags,
   };
 };
@@ -1814,6 +2132,42 @@ const renderLooseNode = (
       child.findings,
     );
   }
+  if (hasClass(root, element, "urefs") || hasClass(root, element, "ur")) {
+    return renderUsageDiscussionReference(root, element, path, plan);
+  }
+  if (hasClass(root, element, "sls")) {
+    const child = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("div", child.nodes, {
+          data: unitData("source-block-boundary", {
+            level: 5,
+            sourceUnit: "sls",
+          }),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "sl")) {
+    const child = renderInlineChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", child.nodes, {
+          data: unitData("tag", {
+            category: "usage",
+            sourceUnit: "sense-label",
+            level: 5,
+          }),
+          title: elementText(root, element),
+        }),
+      ],
+      child.findings,
+    );
+  }
+  if (hasClass(root, element, "lb") || hasClass(root, element, "spl")) {
+    return renderInlineNode(root, element, path, plan);
+  }
   if (hasClass(root, element, "vg-ins")) {
     return renderInflectionGroup(root, element, path, plan);
   }
@@ -1889,12 +2243,14 @@ export const renderCanonicalContent = (
   const origin = renderOrigin(root, owner, [2], plan);
   const related = renderRelated(root, owner, [3], plan);
   const phrases = renderPhrases(root, owner, [4], plan);
+  const runOns = renderUndefinedRunOns(root, owner, [5], plan);
   const semanticNodes = [
     ...header.result.nodes,
     ...definition.nodes,
     ...origin.nodes,
     ...related.nodes,
     ...phrases.nodes,
+    ...runOns.nodes,
   ];
   const handledSections = (element: Element): boolean =>
     root(element).is(
@@ -1923,6 +2279,7 @@ export const renderCanonicalContent = (
     ...origin.findings,
     ...related.findings,
     ...phrases.findings,
+    ...runOns.findings,
     ...loose.findings,
   ];
   const content = container("div", allNodes, {
