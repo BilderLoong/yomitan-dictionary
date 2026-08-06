@@ -2,15 +2,22 @@ import type { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan
 
 import type { CanonicalEntryPlan } from "../level1/types";
 
-export interface ConversionFinding {
-  readonly kind: "unsupported-visible-subtree";
-  readonly rowId: number;
-  readonly term: string;
-  readonly tagName: string;
-  readonly classes: readonly string[];
-  readonly sourcePosition: number;
-  readonly preview: string;
-}
+export type ConversionFinding =
+  | {
+      readonly kind: "unsupported-visible-subtree";
+      readonly rowId: number;
+      readonly term: string;
+      readonly tagName: string;
+      readonly classes: readonly string[];
+      readonly sourcePosition: number;
+      readonly preview: string;
+    }
+  | {
+      readonly kind: "interposed-object-v-phr";
+      readonly rowId: number;
+      readonly term: string;
+      readonly exampleCount: number;
+    };
 
 export interface RenderedCanonicalContent {
   readonly content: StructuredContent;
@@ -23,6 +30,7 @@ export interface ConvertedCanonical {
   readonly plan: CanonicalEntryPlan;
   readonly content: StructuredContent;
   readonly definitionTags: string | null;
+  readonly rules: string | null;
   readonly findings: readonly ConversionFinding[];
 }
 

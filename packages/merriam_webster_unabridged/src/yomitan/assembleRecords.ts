@@ -11,7 +11,7 @@ export const assembleCanonicalRecord = (
   converted.plan.term,
   "",
   converted.definitionTags,
-  "",
+  converted.rules ?? "",
   popularity,
   [
     {
