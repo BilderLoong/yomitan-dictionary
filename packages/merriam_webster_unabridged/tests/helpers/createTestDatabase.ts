@@ -56,5 +56,9 @@ export const representativeRows: readonly TestDatabaseRow[] = [
       mean("O", cxlRef("variant spelling of", "oh")),
   },
   { id: 2, encodedKey: "o%27", html: mean("o'", definition("apostrophe")) },
-  { id: 3, encodedKey: "oh", html: mean("oh", definition("exclamation") + alternate("O", "or", "")) },
+  {
+    id: 3,
+    encodedKey: "oh",
+    html: mean("oh", definition("exclamation") + alternate("O", "or", "")),
+  },
 ];

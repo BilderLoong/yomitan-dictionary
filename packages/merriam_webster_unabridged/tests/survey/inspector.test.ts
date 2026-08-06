@@ -30,10 +30,7 @@ test("classifies known units, presentation wrappers, and unknown classes", () =>
   const unknown = inspectWordHtml(
     "what",
     1,
-    FIXTURE_HTML.replace(
-      "</div></div></div></div></mean>",
-      "<puzzle-tag/>",
-    ),
+    FIXTURE_HTML.replace("</div></div></div></div></mean>", "<puzzle-tag/>"),
   );
   const unrecognized = unknown.findings.find(
     ({ sourceSelectorOrTag }) => sourceSelectorOrTag === "puzzle-tag",
@@ -64,7 +61,7 @@ test("builds an inventory with example words and unknown selectors", () => {
     inspectWordHtml(
       "who",
       2,
-      FIXTURE_HTML.replace("what", "who") + "<puzzle-tag/>",
+      `${FIXTURE_HTML.replace("what", "who")}<puzzle-tag/>`,
     ),
   ];
   const inventory = buildInventory(surveys);

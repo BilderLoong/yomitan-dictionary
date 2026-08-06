@@ -24,14 +24,13 @@ const outputDirectory = fileURLToPath(new URL("../build", import.meta.url));
 
 const findingSectionCounts = (
   findings: readonly SurveyFinding[],
-): Record<string, number> =>
-  findings.reduce(
-    (counts: Record<string, number>, finding: SurveyFinding) => ({
-      ...counts,
-      [finding.findingSection]: (counts[finding.findingSection] ?? 0) + 1,
-    }),
-    {},
-  );
+): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  for (const finding of findings) {
+    counts[finding.findingSection] = (counts[finding.findingSection] ?? 0) + 1;
+  }
+  return counts;
+};
 
 const printSurvey = (survey: WordSurvey): void => {
   console.log(`\n=== ${survey.word} (row ${survey.rowId ?? "missing"}) ===`);

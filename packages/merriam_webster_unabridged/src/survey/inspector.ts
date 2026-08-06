@@ -60,7 +60,7 @@ const elementSelector = (element: Element): string => {
     : `${element.tagName}.${classes}`;
 };
 
-const ownerPathOf = (root: cheerio.CheerioAPI, element: Element): string => {
+const ownerPathOf = (_root: cheerio.CheerioAPI, element: Element): string => {
   const segments: string[] = [];
   let current: AnyNode | null = element;
   while (current !== null && current.type === "tag" && segments.length < 12) {

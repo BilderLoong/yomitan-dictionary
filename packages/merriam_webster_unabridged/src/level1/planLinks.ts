@@ -19,7 +19,6 @@ import type {
   MainCanonicalEntryPlan,
   OwnershipDecision,
   SoftLinkEntryPlan,
-  SoftLinkEntryRelationship,
 } from "./types";
 
 type MeanCanonicalEntryPlan =

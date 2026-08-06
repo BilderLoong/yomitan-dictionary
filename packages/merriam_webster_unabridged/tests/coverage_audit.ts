@@ -59,7 +59,7 @@ interface BuildReportLike {
     readonly content: StructuredContent;
     readonly findings: readonly { readonly kind: string }[];
   }[];
-  readonly planningFindings: readonly { readonly kind: string }[];
+  readonly planningFindings?: readonly { readonly kind: string }[];
   readonly errors: readonly {
     readonly kind: string;
     readonly message?: string;
@@ -94,14 +94,13 @@ const flaggedRecords = (
 
 const countFindings = (
   findings: readonly { readonly kind: string }[],
-): Record<string, number> =>
-  findings.reduce(
-    (counts: Record<string, number>, finding: { readonly kind: string }) => ({
-      ...counts,
-      [finding.kind]: (counts[finding.kind] ?? 0) + 1,
-    }),
-    {},
-  );
+): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  for (const finding of findings) {
+    counts[finding.kind] = (counts[finding.kind] ?? 0) + 1;
+  }
+  return counts;
+};
 
 const runCoverageAudit = async (argv: readonly string[]): Promise<number> => {
   const parsed = parseCliArgs(argv);
