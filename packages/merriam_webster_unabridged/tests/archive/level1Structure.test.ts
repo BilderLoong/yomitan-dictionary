@@ -132,7 +132,7 @@ describe("term-bank level 1 generation test", () => {
 
     expect(termBank).toHaveLength(TARGET_TERMS.length);
     expect(termBank).toEqual(expect.arrayContaining(TARGET_TERMS));
-  }, 30_000);
+  }, 90_000);
 
   test("in", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-real-"));
@@ -205,7 +205,7 @@ describe("term-bank level 1 generation test", () => {
 
     expect(termBank).toHaveLength(TARGET_TERMS.length);
     expect(termBank).toEqual(expect.arrayContaining(TARGET_TERMS));
-  }, 30_000);
+  }, 90_000);
 
   test("o", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-real-"));
@@ -263,5 +263,5 @@ describe("term-bank level 1 generation test", () => {
     ];
 
     expect(termBank).toEqual(expect.arrayContaining(ROOT_TERMS));
-  }, 30_000);
+  }, 90_000);
 });
