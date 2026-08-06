@@ -242,6 +242,71 @@ test("shows one example and collapses the rest", () => {
   expect(highlights).toHaveLength(3);
 });
 
+test("keeps nested example groups and their target highlights", () => {
+  const result = convert(
+    "<mean>" +
+      header("what", "pronoun", "¦(h)wät") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">sense text' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent first-child t has-aq sents">→ ' +
+            '<span class="mw_t_wi">what</span> is one</span>' +
+            '<span class="ex-sent aq has-aq sents"><span class="aq">' +
+            '<span class="auth"> — source</span></span></span>' +
+            '<span class="ex-sent-group"><span class="ex-sent t no-aq sents">' +
+            '→ <span class="mw_t_wi">what</span> is two</span></span>' +
+            "</span></span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "example-sentence")).toHaveLength(2);
+  expect(unitsOf(result.value.content, "target-highlight")).toHaveLength(2);
+  expect(unitsOf(result.value.content, "example-source").map(textOf)).toEqual([
+    "— source",
+  ]);
+  expect(unitsOf(result.value.content, "extra-examples")).toHaveLength(1);
+  expect(textOf(result.value.content)).toContain("what is two");
+});
+
+test("preserves examples directly under a usage wrapper", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "verb", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">definition' +
+            '<span class="uns"><span class="un"><span class="mdash">—</span>' +
+            "usually used with away</span>" +
+            '<span class="vi"><span class="ex-sent-group"><span class="ex-sent t no-aq sents">' +
+            '→ no deserving person is ever <span class="mw_t_wi">turned</span> away</span></span></span>' +
+            "</span></span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "usage-note")).toHaveLength(2);
+  expect(unitsOf(result.value.content, "example-sentence")).toHaveLength(1);
+  expect(unitsOf(result.value.content, "target-highlight")).toHaveLength(1);
+  expect(textOf(result.value.content)).toContain(
+    "no deserving person is ever turned away",
+  );
+});
+
 test("keeps visible link text but drops GoldenDict targets", () => {
   const result = convert(
     "<mean>" +
@@ -755,7 +820,7 @@ test("renders an undefined run-on under its parent without making a record", () 
       '<div class="dro"><div class="uro">' +
       '<span class="ure">in–ness</span>' +
       '<span class="first-slash">\\</span>' +
-      '<span class="prt-a"><span class="mw">ˈin-nəs</span></span>' +
+      '<span class="prt-a"><span class="mw">ˈin-\u200bnəs</span></span>' +
       '<span class="last-slash">\\</span>' +
       '<span class="fl">noun, </span>' +
       '<span class="il">plural</span><span class="ix">-es</span>' +
@@ -923,6 +988,8 @@ test("structures a synonym discussion into term entries and local examples", () 
       '<a href="bword://grab" class="mw_t_sc">grab</a>: ' +
       '<a href="bword://take" class="mw_t_sc">take</a> is a general term. ' +
       '<span class="ex-sent t no-aq sents-inline">&lt;<span class="mw_t_wi">take</span> the book&gt;</span>' +
+      '<span class="ex-sent aq has-aq sents-inline">' +
+      '<span class="aq"><span class="auth"> — source</span></span></span>' +
       '<a href="bword://seize" class="mw_t_sc">seize</a> suggests sudden taking. ' +
       '<span class="ex-sent t no-aq sents-inline">&lt;they <span class="mw_t_wi">seized</span> it&gt;</span>' +
       '<span class="ex-sent t no-aq sents-inline">&lt;the second <span class="mw_t_wi">seize</span> example&gt;</span>' +
@@ -963,6 +1030,60 @@ test("structures a synonym discussion into term entries and local examples", () 
   expect(unitsOf(related[0], "see-in-addition")).toHaveLength(1);
   expect(unitsOf(related[0], "target-highlight").length).toBeGreaterThan(0);
   expect(unitsOf(related[0], "extra-examples")).toHaveLength(1);
-  expect(unitsOf(related[0], "synonym-entry")[0]?.tag).toBe("div");
+  const introduction = unitsOf(related[0], "synonym-introduction")[0];
+  expect(unitsOf(introduction, "example-source").map(textOf)).toEqual([
+    "— source",
+  ]);
+  const firstEntry = unitsOf(related[0], "synonym-entry")[0];
+  expect(firstEntry?.tag).toBe("div");
+  expect(unitsOf(firstEntry, "synonym-explanation")).toHaveLength(1);
+  expect(unitsOf(firstEntry, "synonym-explanation")[0]?.tag).toBe("span");
+  expect(unitsOf(firstEntry, "example-source-inline")).toHaveLength(0);
+  expect(result.value.findings).toEqual([]);
+});
+
+test("keeps multiple synonym references inside one inline entry", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "verb", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(sense('<span class="num">1</span>', '<span class="dt ">turn</span>')) +
+      "</div></div></div>" +
+      '<div class="section related-to" data-id="related-to">' +
+      '<h2 class="toggle"><span class="text">Synonym Discussion</span></h2>' +
+      '<div class="section-content"><div class="syn synonym-discussion"><p class="syn">' +
+      "<strong>Synonym Discussion</strong>" +
+      '<a href="bword://spin" class="mw_t_sc">spin</a>, ' +
+      '<a href="bword://twirl" class="mw_t_sc">twirl</a>, ' +
+      '<a href="bword://whirl" class="mw_t_sc">whirl</a>: ' +
+      '<a href="bword://spin" class="mw_t_sc">spin</a> is a general term. ' +
+      '<a href="bword://twirl" class="mw_t_sc">twirl</a> adds to the ideas of ' +
+      '<a href="bword://spin" class="mw_t_sc">spin</a> and ' +
+      '<a href="bword://whirl" class="mw_t_sc">whirl</a> those of dexterity. ' +
+      '<a href="bword://whirl" class="mw_t_sc">whirl</a> stresses force and speed. ' +
+      "</p></div></div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const related = unitsOf(result.value.content, "related-item")[0];
+  const entries = unitsOf(related, "synonym-entry");
+  expect(entries).toHaveLength(3);
+  expect(entries.map(textOf)).toEqual([
+    expect.stringContaining("spin is a general term"),
+    expect.stringContaining("twirl adds to the ideas of spin and whirl"),
+    expect.stringContaining("whirl stresses force and speed"),
+  ]);
+
+  const twirlEntry = entries[1];
+  expect(unitsOf(twirlEntry, "synonym-term").map(textOf)).toEqual(["twirl"]);
+  expect(unitsOf(twirlEntry, "cross-reference").map(textOf)).toEqual([
+    "spin",
+    "whirl",
+  ]);
+  expect(unitsOf(twirlEntry, "synonym-explanation")).toHaveLength(1);
+  expect(unitsOf(twirlEntry, "synonym-explanation")[0]?.tag).toBe("span");
   expect(result.value.findings).toEqual([]);
 });

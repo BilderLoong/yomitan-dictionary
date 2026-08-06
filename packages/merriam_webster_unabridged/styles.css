@@ -18,6 +18,14 @@
   font-style: italic;
   margin-left: 0.5em;
 }
+[data-sc-content="pronunciation-reading"] {
+  white-space: nowrap;
+}
+[data-sc-content="pronunciation-note"] {
+  font-style: normal;
+  color: #5f6368;
+  margin-left: 0.25em;
+}
 [data-sc-content="inflection-group"] {
   margin-left: 0.5em;
 }
@@ -64,10 +72,11 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   background-color: orange;
   font-weight: bold;
 }
-[data-sc-content="cross-reference"] {
+[data-sc-content="cross-reference"],
+[data-sc-content="synonym-term"] {
   text-decoration-line: underline;
-  color: #1122cc;
-  font-size: 0.95em;
+  color: #0066cc;
+  font-weight: bold;
 }
 [data-sc-content="superscript-reference"] {
   vertical-align: super;
@@ -88,6 +97,24 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
 [data-sc-content="grammar-label"] {
   font-style: italic;
 }
+[data-sc-content="undefined-run-on"] {
+  display: block;
+  margin: 0.55em 0 0.2em 1em;
+  padding-left: 0.7em;
+  border-left: 2px solid rgba(95, 99, 104, 0.28);
+  line-height: 1.45;
+}
+[data-sc-content="run-on-form"] {
+  font-style: italic;
+  font-weight: 600;
+}
+[data-sc-content="part-of-speech"] {
+  margin-left: 0.35em;
+}
+[data-sc-content="source-block-boundary"] {
+  display: block;
+  margin: 0.25em 0 0.1em;
+}
 
 /* Sections */
 [data-sc-content="origin-text"] {
@@ -96,6 +123,48 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
 }
 details[data-sc-content="related-item"] > summary {
   font-weight: bold;
+}
+[data-sc-content="synonym-discussion"] {
+  line-height: 1.45;
+}
+[data-sc-content="synonym-term-group"] {
+  margin: 0.35em 0 0.55em;
+  font-weight: 600;
+}
+[data-sc-content="synonym-term"] {
+  font-weight: 700;
+  white-space: nowrap;
+}
+[data-sc-content="synonym-introduction"] {
+  margin-bottom: 0.35em;
+}
+[data-sc-content="synonym-entry"] {
+  margin-top: 0.65em;
+  padding-top: 0.55em;
+  border-top: 1px solid rgba(95, 99, 104, 0.2);
+}
+[data-sc-content="synonym-explanation"] {
+  display: inline;
+}
+[data-sc-content="synonym-discussion"] [data-sc-content="cross-reference"],
+[data-sc-content="synonym-discussion"] [data-sc-content="synonym-term"] {
+  text-decoration: none;
+  color: #0066cc;
+  font-weight: 700;
+}
+[data-sc-content="synonym-entry"] [data-sc-content="example-sentence"],
+[data-sc-content="synonym-entry"] [data-sc-content="extra-examples"] {
+  margin-left: 1.25em;
+}
+[data-sc-content="see-in-addition"] {
+  margin-top: 0.7em;
+  padding-top: 0.45em;
+  border-top: 1px solid rgba(95, 99, 104, 0.2);
+  font-size: 0.95em;
+}
+[data-sc-content="usage-discussion-reference"] {
+  color: #5f6368;
+  font-style: italic;
 }
 details[data-sc-content="phrase"] > summary span {
   font-style: italic;

@@ -34,6 +34,15 @@ const allObjects = (value: unknown): readonly JsonObject[] => {
   return [value, ...allObjects(value.content)];
 };
 
+const textOf = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : Array.isArray(value)
+      ? value.map(textOf).join("")
+      : isObject(value)
+        ? textOf(value.content)
+        : "";
+
 const unitsOf = (value: unknown, unit: string): readonly JsonObject[] =>
   allObjects(value).filter(
     (node: JsonObject): boolean =>
@@ -112,5 +121,68 @@ test("renders real MWU what records as structured content", async () => {
       (node: JsonObject): boolean =>
         typeof node.tag !== "string" || allowedTags.has(node.tag),
     ),
+  ).toBe(true);
+}, 30_000);
+
+test("keeps real MWU synonym references inside their source entries", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-synonym-"));
+  const attempt = await runBuild({
+    requestedWords: ["turn"],
+    databasePath: sourceDatabasePath,
+    buildPaths: {
+      outputDirectory,
+      reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
+    },
+  });
+
+  expect(
+    attempt.ok,
+    attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+  ).toBe(true);
+  if (!attempt.ok) return;
+
+  const discussionRecords = attempt.records.filter(
+    (record: TermInformation): boolean => {
+      const content = structuredContent(record);
+      return (
+        record[0] === "turn" &&
+        unitsOf(content, "synonym-discussion").length === 1
+      );
+    },
+  );
+  expect(discussionRecords).toHaveLength(1);
+
+  const discussion = structuredContent(discussionRecords[0]);
+  const entries = unitsOf(discussion, "synonym-entry");
+  expect(entries).toHaveLength(11);
+  expect(
+    entries.map((entry: JsonObject): string =>
+      unitsOf(entry, "synonym-term").map(textOf).join(""),
+    ),
+  ).toEqual([
+    "revolve",
+    "rotate",
+    "gyrate",
+    "circle",
+    "spin",
+    "twirl",
+    "whirl",
+    "wheel",
+    "eddy",
+    "swirl",
+    "pirouette",
+  ]);
+  expect(unitsOf(entries[5], "cross-reference").map(textOf)).toEqual(["spin"]);
+  expect(unitsOf(entries[9], "cross-reference").map(textOf)).toEqual(["eddy"]);
+  expect(
+    entries.every(
+      (entry: JsonObject): boolean =>
+        unitsOf(entry, "synonym-explanation")[0]?.tag === "span",
+    ),
+  ).toBe(true);
+  expect(attempt.report.errors).toEqual([]);
+  expect(
+    attempt.report.conversions.every(({ findings }) => findings.length === 0),
   ).toBe(true);
 }, 30_000);

@@ -85,6 +85,8 @@ inferred from an ancestor, or still needs a more targeted survey.
 | verb-subtype | A verb subgroup such as transitive or intransitive. | transitive verb; intransitive verb | .vg; .vd | Level 2 when .vd is inside a verb group. A separate intransitive-verb mean is another source shape. | false |
 | grammar-label | A local grammar restriction attached to one sense or sense group, distinct from the entry-wide POS tag and from a `.vd` verb group. | transitive; transitive + intransitive | .sgram; sometimes a linked `bword:///dictionary/...` label | Usually Level 3–5, bound to the nearest local sense/group. Keep it as scoped inline text first; do not promote it to the tag bank until its scope is stable across the dictionary. | false |
 | pronunciation | Visible pronunciation reading for an entry or other pronunciation-bearing owner. | /ˈtərn/; /ˈtu̇rn/ | .prs; .pr | Level 1 for the entry header; use the nearest semantic owner when pronunciation belongs to a phrase or sense. All readings go into structured content; the Yomitan reading field remains empty. | false |
+| pronunciation-reading | One source-supported pronunciation reading, delimited for display as IPA-like text. | `/ˈin/`; `/ən/`; `/d/` | `.mw` inside `.pr` or `.prt-a` | Child of the nearest `pronunciation` or `form-pronunciation` unit. Only reading fragments receive delimiters; the renderer does not infer delimiters for ambiguous prose. | false |
+| pronunciation-note | Explanatory pronunciation prose that qualifies a nearby reading or pronunciation group. | usually ᵊn after t | Plain text or `.mw_t_it` inside `.pr`/`.prt-a` | Stays outside reading delimiters and remains local pronunciation content. Preserve raw text when the source does not prove a reading boundary. | false |
 | pronunciation-audio | Playable audio metadata associated with one pronunciation. | sound://word/0001.mp3 | .play-pron; .hw-play-pron; .audio-icon | Level 1 source evidence only. Audio files are deferred and are not included in the current Yomitan dictionary. | true |
 | form-pronunciation | Pronunciation alternatives attached to an inflected or alternate form rather than the main entry header. | `process` plural: `ˈprä-...`; `put`: `ˈpu̇t chiefly dialectal ˈpət` | .prt-a; .mw | Bound to the owning form or variant at its nearest level. Preserve every reading and its local qualifier in structured content; leave the Yomitan reading field empty. | false |
 | headword-display | The visible rich headword form, including homograph numbers and printed syllable dots. | happiness shown as hap·pi·ness; 1 process | .hword; .breakpoints; .breakpoint; sup | Level 1. Preserve visible source text and inline styling. `.breakpoint` spans may only be responsive line-break chunks, so their boundaries are not interpreted as linguistic syllables. | false |
@@ -115,13 +117,17 @@ inferred from an ancestor, or still needs a more targeted survey.
 | alternate-form | A spelling or phrase variant related to a canonical expression. | take stage → take the stage; take the word → take up the word | .vr; .va; alt table row | Level 1 relationship. A recognized local `.va` becomes a `soft-link-entry`; a raw alt-table row alone is not extracted as a dictionary entry. | false |
 | variant-qualifier | Text describing how an alternate expression relates to its canonical form. | or less commonly; or | .vl; .vr | Bound to the alternate-form relation, usually at Level 1 for a phrase or variant, or at the nearest sense owner when `.vr` occurs inside a sense. Preserve it inline next to the alternate. | false |
 | undefined-run-on | A derivative displayed under a parent entry without its own definition tree. It may carry pronunciation, POS, variants, inflections, labels, and examples. | `abandon` → `abandoner`, noun, plural `abandoners` | .dro; .uro; .ure; optional .prt-a, .mw, .fl, .vr, .va, .il, .if, .ix, .sl, .utxt | Level 1 relation. Preserve the complete run-on under its parent. Do not create an independent searchable record or soft link because it has no definition. | false |
+| run-on-form | The visible form spelling owned by an undefined run-on. | `in–ness` | `.uro .ure` | Child of `undefined-run-on`; keep it in source order with its local pronunciation, POS, labels, and inflection markers. | false |
 | defined-derivative | A derivative with its own source-owned definition tree. | a derived word that MWU defines separately | Definition-bearing derivative structure; exact selector remains to be confirmed when encountered | Bound to its nearest source owner. It becomes independently searchable only when MWU provides its own definition. | false |
 | related-item | A related word or entry reference outside the main definition. | a word in a see-also section | .related-to; .mw_t_sc | Usually Level 1 in related-to content, but local related references may be Level 6. | false |
 | see-in-addition | A compact pointer line that lists additional entries for synonym or usage information. It is the same information unit in both locations; only its nearest semantic owner changes. | `synonyms see in addition depend`; `usages see in addition -ize` | .see-in-addition; .sa-link; .sc; `#usage-notes`; `.usage` | Level 1 inside a synonym discussion; Level 6 when inside `#usage-notes` or a definition-local `.usage` block. Bind it to the nearest owner and discard only the navigation target. | false |
 | called-also | A named alternative for the thing described by a definition. | called also another term | .ca; .cat; .ucat | Level 6 when it occurs inside .dt. | false |
 | synonym-discussion | Explanatory comparison of synonyms and their usage differences. It contains an introductory term group, one term-specific synonym entry per compared term, and separate examples, sources, and see-in-addition content. | Synonym Discussion: seize, grasp, clutch, snatch, grab | .related-to; .syn; .synonym-discussion; .mw_t_sc | Level 1 related information attached to the lexical entry; collapsed as one related-item disclosure by default. | false |
 | synonym-term-group | The introductory list of terms compared by a synonym discussion. | seize, grasp, clutch, snatch, grab | `.mw_t_sc` siblings before the introductory explanation | Level 1 child of synonym-discussion. Keep each term distinct and preserve its source order. | false |
+| synonym-term | One named term in the introductory group or one term-specific entry heading. | `seize` | `.mw_t_sc` | Level 1 child of `synonym-term-group` or `synonym-entry`. It is semantic local content, not a clickable Yomitan link. | false |
+| synonym-introduction | The prose and examples explaining the comparison before the first term-specific entry. | `take is a general term ...` | `.syn` nodes after the introductory `.mw_t_sc` group | Level 1 child of synonym-discussion. `take` remains a normal cross-reference inside this unit and does not become a synonym entry. | false |
 | synonym-entry | One term-specific explanation inside a synonym discussion. | seize suggests sudden and forcible taking | `.mw_t_sc` term boundary and following prose/examples | Level 1 child of synonym-discussion. Owns its explanation, examples, attributions, cross-references, and target highlights. | false |
+| synonym-explanation | The prose portion owned by one synonym-entry, separate from its heading and examples. | `suggests sudden and forcible taking` | Nodes between successive `.mw_t_sc` term boundaries | Level 1 child of synonym-entry. Keep ordinary cross-references and target highlights nested under the explanation. | false |
 | synonym-discussion-reference | A pointer from an entry to a named synonym discussion. | See Synonym Discussion at fun, play:2, room | .srefs.synonym-discussion; .sr | Level 1 related information. Keep the pointer separate from the actual synonym discussion and discard internal link targets. | false |
 | usage-discussion-reference | A visible, non-interactive pointer from a local definition to a separate usage discussion. | `See Usage Discussion at bring` | .urefs; .ur | Bound to the nearest definition that contains it. Preserve the line and visible target text; discard navigation targets, create no clickable affordance, and do not copy the target discussion. | false |
 | unclassified-visible-content | Visible source content whose semantic class is not yet recognized. | an unfamiliar related-section child | Any unsupported visible source subtree | Bind to the nearest known owner, preserve its text, and report a finding rather than silently dropping or flattening it. | false |
@@ -164,7 +170,8 @@ These units have evidence for their meaning and nearest-level ownership:
 
 - lexical-entry;
 - part-of-speech, entry-qualifier, and verb-subtype;
-- pronunciation and form-pronunciation;
+- pronunciation, pronunciation-reading, pronunciation-note, and
+  form-pronunciation;
 - inflection, inflection-group, inflection-label, and inflection-marker;
 - origin and origin-section-title;
 - sense-number, subsense-letter, and definition-number;
@@ -173,8 +180,10 @@ These units have evidence for their meaning and nearest-level ownership:
   example-date;
 - comparison-reference, cross-reference, and variant-reference;
 - phrase, `drp-phrase-canonical-entry`, and `phrase-alternate-soft-link`;
+- undefined-run-on and run-on-form;
 - variant-qualifier, grammar-label, related-item, see-in-addition,
-  called-also, synonym-discussion, synonym-term-group, synonym-entry,
+  called-also, synonym-discussion, synonym-term-group, synonym-term,
+  synonym-introduction, synonym-entry, synonym-explanation,
   synonym-discussion-reference, and usage-discussion-reference;
 - target-highlight and superscript-reference.
 
@@ -520,6 +529,12 @@ refine, or contradict them.
   has an introductory synonym-term-group, one synonym-entry per compared
   term, and a separate `.see-in-addition` line. The introductory `take`
   reference belongs to its explanation, not to the term group.
+- In the synonym body, `.mw_t_sc` is role-sensitive: a source-boundary-confirmed
+  comparison term becomes a local synonym-term entry head, while a term inside
+  that entry's prose remains an inline cross-reference. Do not split an entry
+  merely because another `.mw_t_sc` appears in its description. The head and
+  prose stay in one inline display flow, with examples and attributions owned
+  by that entry.
 - An image under `.entry-status` is presentation/status artwork and is
   cataloged with `Ignore=true`; this does not decide how definition images
   will be handled if later reconnaissance finds them.

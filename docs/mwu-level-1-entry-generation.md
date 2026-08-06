@@ -625,6 +625,8 @@ delivered by the dictionary stylesheet `styles.css` (selectors on
 | `.hword` when display differs from the searchable term | `headword-display` > `syllabification-marker` | `div`/`span`, italic |
 | `.lbs` / `.lb` | `entry-qualifier` | `span` |
 | `.prs` / `.pr` | `pronunciation` | `span`, italic, margin-left; source-supported readings are wrapped in `/…/`; `¦` normalized to `ˈ`, zero-width spaces removed; annotation prose (segments with `.mw_t_it` markup, whether containing or contained by a `.pr`) and inter-element punctuation (`.addPunct`, `.pun`) are preserved outside reading delimiters; ambiguous text receives no invented IPA delimiters |
+| `.mw` inside `.pr` / `.prt-a` | `pronunciation-reading` | `span`, nowrap; each source-supported reading fragment gets its own `/…/` boundary and remains nested under the owning pronunciation unit |
+| explanatory text inside `.pr` / `.prt-a` | `pronunciation-note` | `span`, normal muted text outside IPA delimiters; preserve ambiguous source text rather than inventing reading markup |
 | `.vg-ins`, `.il`, `.if`, `.ix` | `inflection-group`, `inflection-label`, `inflection-marker` | `div`/`span`, italic labels; header forms retain their ordered group, while sense-local form text stays in one source-order flow |
 | `.prt-a`, `.mw` | `form-pronunciation` | `span`, italic; preserve every alternate-form reading and its local qualifier in source order |
 | `.vr` (header, phrase, and run-in inside sense bodies), `.vl`, `.va` | `alternate-form`, `variant-qualifier` | block `div` in header/phrase contexts, inline `span` for run-in variants inside senses; italic |
@@ -640,13 +642,18 @@ delivered by the dictionary stylesheet `styles.css` (selectors on
 | `.source` / `.auth` not under `.aq` | `example-source-inline` | `span`, italic; an attribution or citation kept inline within its sentence at normal size |
 | `.dx-jump` / `.mw_t_dxt` | `comparison-reference` + `cross-reference` (relation `compare`) | `div` / `span`, underline |
 | `.cxl-ref` / `.cxl` / `.cxt` | `variant-reference` + `cross-reference` (relation `variant`) | `span` |
-| `.mw_t_mat`, `.mw_t_sx`, `.mw_t_sc` | `cross-reference` (relations `origin`, `see`, `related`) | `span`, underline |
+| `.mw_t_mat`, `.mw_t_sx`, `.mw_t_sc` outside synonym entry heads | `cross-reference` (relations `origin`, `see`, `related`) | `span`, underline |
 | `.ca`, `.intro`, `.cat`, `.ucat` | `called-also` | `span` |
 | `.sdsense`, `.sd` | definition continuation (no separate unit) | inline |
 | `.see-in-addition` | `see-in-addition` | `div` |
 | `.urefs .ur` | `usage-discussion-reference` | `span`/`div`, source-order text; preserve the visible target but emit no interactive link and do not copy the target discussion |
 | `.section[data-id=origin]` | `origin` details + `origin-section-title` + `origin-text` | `details` (collapsed) / `summary` / `div` |
 | `.section[data-id=related-to]` | `related-item` details + `synonym-discussion` | `details` (collapsed) / `div`; the body keeps an introductory synonym-term-group, term-specific synonym-entry units, examples, sources, and a separate see-in-addition line |
+| `.syn` introductory `.mw_t_sc` run | `synonym-term-group` + `synonym-term` | `div` / `span`; preserve each compared term and its source punctuation as one local group, without making the term clickable |
+| `.syn` prose before the first repeated term | `synonym-introduction` | `div`; owns the comparison introduction and its local examples; a named pointer such as `take` remains an ordinary related cross-reference inside it |
+| `.syn` source-boundary-confirmed `.mw_t_sc` terms | `synonym-entry` + `synonym-explanation` + `synonym-term` | `div` / inline `span`; each term owns its explanation, target highlights, attributions, and one-visible-plus-collapsed-extra example flow |
+| `.syn` embedded `.mw_t_sc` terms inside an entry explanation | `cross-reference` | `span`; preserve the term in the same prose flow and do not create a second entry |
+| `.uro` / `.ure` | `undefined-run-on` + `run-on-form` | `div` parent-only relation with inline form, pronunciation, POS, labels, and inflection markers; no independent record or soft link |
 | `.dro` / `.drp` | `phrase` details + `definition-flow` | `details` (collapsed) / `div` |
 
 Internal navigation targets are discarded (`bword://`, `gdlookup://`, and
@@ -740,6 +747,14 @@ examples behind the normal extra-example disclosure. The presentation is
 text-led and dictionary-like: linked term headings, readable prose, indented
 examples, subtle separators, and responsive wrapping rather than generic
 nested containers or a card grid.
+
+The source markup is not itself a reliable entry boundary: MWU can place
+multiple `.mw_t_sc` anchors in one description. For example, the displayed
+`twirl adds to the ideas of spin and whirl those of dexterity ...` is one
+`synonym-entry`; `twirl` is its local head and `spin`/`whirl` are inline
+`cross-reference` units. Entry boundaries are inferred from the surrounding
+source sentence/example structure, not from the presence of a matching anchor
+alone.
 
 ### Part-of-speech tags
 

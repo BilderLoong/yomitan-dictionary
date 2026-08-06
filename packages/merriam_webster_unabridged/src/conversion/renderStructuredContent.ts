@@ -255,6 +255,7 @@ const isBlockTag = (tagName: string): boolean =>
 const formatPronunciation = (raw: string): string => {
   const cleaned = normalizeBlockText(raw)
     .replace(/^[\\/]+|[\\/]+$/gu, "")
+    .replaceAll("\u200b", "")
     .replaceAll("¦", "ˈ");
   return cleaned.length === 0 ? "" : `/${cleaned}/`;
 };
@@ -262,6 +263,7 @@ const formatPronunciation = (raw: string): string => {
 const formatFormPronunciation = (raw: string): string => {
   const cleaned = normalizeBlockText(raw)
     .replace(/^[\\/]+|[\\/]+$/gu, "")
+    .replaceAll("\u200b", "")
     .replaceAll("¦", "ˈ");
   return cleaned.length === 0 ? "" : `/${cleaned}/`;
 };
@@ -744,32 +746,30 @@ const renderFormPronunciation = (
     root(element)
       .contents()
       .toArray()
-      .map(
-        (node: AnyNode, index: number): RenderResult => {
-          if (node.type === "text") return renderTextNode(node, false);
-          if (node.type !== "tag") return emptyResult();
-          if (
-            hasClass(root, node, "first-slash") ||
-            hasClass(root, node, "last-slash")
-          ) {
-            return emptyResult();
-          }
-          if (hasClass(root, node, "mw")) {
-            const reading = formatFormPronunciation(elementText(root, node));
-            return reading.length === 0
-              ? emptyResult()
-              : renderResult([
-                  container("span", reading, {
-                    data: unitData("pronunciation-reading", {
-                      level,
-                      sourceUnit: "mw",
-                    }),
+      .map((node: AnyNode, index: number): RenderResult => {
+        if (node.type === "text") return renderTextNode(node, false);
+        if (node.type !== "tag") return emptyResult();
+        if (
+          hasClass(root, node, "first-slash") ||
+          hasClass(root, node, "last-slash")
+        ) {
+          return emptyResult();
+        }
+        if (hasClass(root, node, "mw")) {
+          const reading = formatFormPronunciation(elementText(root, node));
+          return reading.length === 0
+            ? emptyResult()
+            : renderResult([
+                container("span", reading, {
+                  data: unitData("pronunciation-reading", {
+                    level,
+                    sourceUnit: "mw",
                   }),
-                ]);
-          }
-          return renderInlineNode(root, node, [...path, index], plan);
-        },
-      ),
+                }),
+              ]);
+        }
+        return renderInlineNode(root, node, [...path, index], plan);
+      }),
   );
   return renderResult(
     [
@@ -793,66 +793,56 @@ const renderAttribution = (
     : null;
 };
 
-const renderExampleGroups = (
+const nextExampleAttribution = (
   root: cheerio.CheerioAPI,
-  groups: readonly Element[],
+  sentence: Element,
+): StructuredContent | null => {
+  const parent = root(sentence).parent().get(0);
+  if (parent === undefined) return null;
+  const siblings = root(parent).contents().toArray();
+  const sentenceIndex = siblings.indexOf(sentence);
+  if (sentenceIndex < 0) return null;
+  const nextMeaningful = siblings
+    .slice(sentenceIndex + 1)
+    .find(
+      (node: AnyNode): boolean =>
+        node.type !== "text" || node.data.trim().length > 0,
+    );
+  return nextMeaningful?.type === "tag" &&
+    hasClass(root, nextMeaningful, "ex-sent") &&
+    hasClass(root, nextMeaningful, "aq")
+    ? renderAttribution(root, nextMeaningful)
+    : null;
+};
+
+const renderExampleSentence = (
+  root: cheerio.CheerioAPI,
+  sentence: Element,
   path: readonly number[],
   plan: CanonicalEntryPlan,
+  source: StructuredContent | null,
 ): RenderResult => {
-  const sentences = groups.flatMap((group: Element): Element[] =>
-    root(group)
-      .find(".ex-sent")
-      .toArray()
-      .filter(
-        (sentence: Element): boolean =>
-          !hasClass(root, sentence, "aq") &&
-          root(sentence).closest(".ex-sent-group").get(0) === group,
-      ),
-  );
-  const attributions = groups.map(
-    (group: Element): StructuredContent | null => {
-      const aq = root(group)
-        .find(".aq")
-        .toArray()
-        .find(
-          (candidate: Element): boolean =>
-            root(candidate).parents(".aq").length === 0,
-        );
-      return aq === undefined ? null : renderAttribution(root, aq);
-    },
-  );
-
-  const examples = sentences.map(
-    (sentence: Element, index: number): RenderResult => {
-      const content = renderInlineChildren(
-        root,
-        sentence,
-        [...path, index],
-        plan,
+  const content = renderInlineChildren(root, sentence, path, plan, {
+    skipClasses: ["ex-sent"],
+    stripLeadingArrow: true,
+  });
+  return renderResult(
+    [
+      container(
+        "div",
+        source === null ? content.nodes : [...content.nodes, source],
         {
-          stripLeadingArrow: true,
+          data: unitData("example-sentence", { level: 6 }),
         },
-      );
-      const group = root(sentence).closest(".ex-sent-group").get(0);
-      const source =
-        group === undefined
-          ? undefined
-          : (attributions[groups.indexOf(group)] ?? undefined);
-      return renderResult(
-        [
-          container(
-            "div",
-            source === undefined ? content.nodes : [...content.nodes, source],
-            {
-              data: unitData("example-sentence", { level: 6 }),
-            },
-          ),
-        ],
-        content.findings,
-      );
-    },
+      ),
+    ],
+    content.findings,
   );
+};
 
+const collapseExampleResults = (
+  examples: readonly RenderResult[],
+): RenderResult => {
   const first = examples[0];
   if (first === undefined) return emptyResult();
   const remaining = examples.slice(1);
@@ -886,6 +876,33 @@ const renderExampleGroups = (
   );
 };
 
+const renderExampleGroups = (
+  root: cheerio.CheerioAPI,
+  groups: readonly Element[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const sentences = groups.flatMap((group: Element): Element[] =>
+    root(group)
+      .find(".ex-sent")
+      .toArray()
+      .filter((sentence: Element): boolean => !hasClass(root, sentence, "aq")),
+  );
+
+  const examples = sentences.map(
+    (sentence: Element, index: number): RenderResult => {
+      return renderExampleSentence(
+        root,
+        sentence,
+        [...path, index],
+        plan,
+        nextExampleAttribution(root, sentence),
+      );
+    },
+  );
+  return collapseExampleResults(examples);
+};
+
 const renderExampleGroup = (
   root: cheerio.CheerioAPI,
   element: Element,
@@ -897,6 +914,19 @@ const collectUsageNotes = (
   root: cheerio.CheerioAPI,
   element: Element,
 ): Element[] => root(element).find(".un").toArray();
+
+const collectStandaloneUsageExamples = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): Element[] =>
+  root(element)
+    .children()
+    .toArray()
+    .filter(
+      (child: AnyNode): child is Element =>
+        child.type === "tag" &&
+        hasAnyClass(root, child, ["vi", "vis", "ex-sent-group"]),
+    );
 
 const renderUsageNotes = (
   root: cheerio.CheerioAPI,
@@ -941,7 +971,24 @@ const renderUsageNotes = (
       );
     },
   );
-  return combineResults(usageNodes);
+  const standaloneExamples = combineResults(
+    collectStandaloneUsageExamples(root, element).map(
+      (example: Element, index: number): RenderResult =>
+        renderInlineNode(root, example, [...path, 100 + index], plan),
+    ),
+  );
+  const standaloneResult =
+    standaloneExamples.nodes.length === 0
+      ? emptyResult()
+      : renderResult(
+          [
+            container("div", standaloneExamples.nodes, {
+              data: unitData("usage-note", { level: 6 }),
+            }),
+          ],
+          standaloneExamples.findings,
+        );
+  return combineResults([...usageNodes, standaloneResult]);
 };
 
 const renderScopedDefinition = (
@@ -969,12 +1016,9 @@ const renderDefinitionFlow = (
   level = 5,
   leadingNodes: readonly AnyNode[] = [],
 ): RenderResult => {
-  const sourceNodes = [
-    ...leadingNodes,
-    ...root(element).contents().toArray(),
-  ];
-  const results = sourceNodes
-    .map((child: AnyNode, index: number): RenderResult => {
+  const sourceNodes = [...leadingNodes, ...root(element).contents().toArray()];
+  const results = sourceNodes.map(
+    (child: AnyNode, index: number): RenderResult => {
       if (child.type === "tag" && hasClass(root, child, "ex-sent-group")) {
         return renderExampleGroup(root, child, [...path, index], plan);
       }
@@ -985,7 +1029,8 @@ const renderDefinitionFlow = (
         return renderScopedDefinition(root, child, [...path, index], plan);
       }
       return renderInlineNode(root, child, [...path, index], plan);
-    });
+    },
+  );
   const combined = combineResults(results);
   return renderResult(
     [
@@ -1021,8 +1066,7 @@ const renderSense = (
           .slice(0, definitionIndex)
           .filter(
             (child: AnyNode): boolean =>
-              child.type === "tag" &&
-              hasAnyClass(root, child, ["if", "spl"]),
+              child.type === "tag" && hasAnyClass(root, child, ["if", "spl"]),
           );
   const results = children
     .filter((child: AnyNode): boolean => !leadingFormNodes.includes(child))
@@ -1435,6 +1479,464 @@ const renderOrigin = (
   );
 };
 
+const synonymNodeText = (root: cheerio.CheerioAPI, node: AnyNode): string =>
+  node.type === "text"
+    ? node.data
+    : node.type === "tag"
+      ? elementText(root, node)
+      : "";
+
+const isSynonymTerm = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  node.tagName === "a" &&
+  hasClass(root, node, "mw_t_sc");
+
+const synonymTermName = (root: cheerio.CheerioAPI, node: Element): string =>
+  elementText(root, node).toLocaleLowerCase();
+
+const isSynonymTermSeparator = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+): boolean =>
+  /^[\s,;&]*(?:(?:and|or)\s*)?[\s,;&]*$/iu.test(
+    nodes.map((node: AnyNode): string => synonymNodeText(root, node)).join(""),
+  );
+
+const findSynonymTermGroupIndexes = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+): readonly number[] => {
+  const firstIndex = nodes.findIndex((node: AnyNode): boolean =>
+    isSynonymTerm(root, node),
+  );
+  if (firstIndex < 0) return [];
+
+  return nodes.slice(firstIndex + 1).reduce(
+    (
+      indexes: readonly number[],
+      node: AnyNode,
+      offset: number,
+    ): readonly number[] => {
+      if (!isSynonymTerm(root, node)) return indexes;
+      const candidateIndex = firstIndex + offset + 1;
+      const previousIndex = indexes[indexes.length - 1];
+      return previousIndex !== undefined &&
+        isSynonymTermSeparator(
+          root,
+          nodes.slice(previousIndex + 1, candidateIndex),
+        )
+        ? indexes.concat(candidateIndex)
+        : indexes;
+    },
+    [firstIndex],
+  );
+};
+
+const renderSynonymTerm = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const content = renderInlineChildren(root, element, path, plan, {
+    plainLinks: true,
+  });
+  return renderResult(
+    [
+      container("span", content.nodes, {
+        data: unitData("synonym-term", {
+          level: 1,
+          relation: "synonym",
+          sourceMarker: elementText(root, element),
+          sourceUnit: "mw_t_sc",
+        }),
+      }),
+    ],
+    content.findings,
+  );
+};
+
+const renderSynonymInlineNodes = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  combineResults(
+    nodes.map(
+      (node: AnyNode, index: number): RenderResult =>
+        renderInlineNode(root, node, [...path, index], plan),
+    ),
+  );
+
+const isStandaloneSynonymExample = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  hasClass(root, node, "ex-sent") &&
+  !hasClass(root, node, "aq");
+
+const isSynonymAttribution = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  hasClass(root, node, "ex-sent") &&
+  hasClass(root, node, "aq");
+
+const nextSynonymAttribution = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  index: number,
+): Element | undefined => {
+  const nextMeaningful = nodes
+    .slice(index + 1)
+    .find(
+      (node: AnyNode): boolean =>
+        node.type !== "text" || node.data.trim().length > 0,
+    );
+  return nextMeaningful !== undefined &&
+    isSynonymAttribution(root, nextMeaningful)
+    ? nextMeaningful
+    : undefined;
+};
+
+const renderSynonymExamples = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  collapseExampleResults(
+    nodes.flatMap((node: AnyNode, index: number): readonly RenderResult[] => {
+      if (!isStandaloneSynonymExample(root, node)) return [];
+      const sibling = nextSynonymAttribution(root, nodes, index);
+      const siblingSource =
+        sibling === undefined ? null : renderAttribution(root, sibling);
+      const nestedAttribution = root(node).find(".aq").first().get(0);
+      const source =
+        siblingSource ??
+        (nestedAttribution === undefined
+          ? null
+          : renderAttribution(root, nestedAttribution));
+      return [
+        renderExampleSentence(root, node, [...path, index], plan, source),
+      ];
+    }),
+  );
+
+const isSeeInAddition = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" && hasClass(root, node, "see-in-addition");
+
+const isSynonymExampleNode = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): boolean =>
+  isStandaloneSynonymExample(root, node) || isSynonymAttribution(root, node);
+
+const lastMeaningfulSynonymNode = (
+  nodes: readonly AnyNode[],
+): AnyNode | undefined =>
+  nodes.reduce(
+    (last: AnyNode | undefined, node: AnyNode): AnyNode | undefined =>
+      node.type !== "text" || node.data.trim().length > 0 ? node : last,
+    undefined,
+  );
+
+const synonymTextEndsSentence = (text: string): boolean =>
+  /[.!?](?:["'”’)\]]*)$/u.test(text.trim());
+
+const isSynonymEntryBoundary = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  previousIndex: number,
+  currentIndex: number,
+): boolean => {
+  const previousTerm = nodes[previousIndex];
+  const currentTerm = nodes[currentIndex];
+  if (!isSynonymTerm(root, previousTerm) || !isSynonymTerm(root, currentTerm)) {
+    return false;
+  }
+
+  // MWU stores entry starts as adjacent links; examples and sentence endings
+  // are the source boundaries that distinguish them from inline references.
+  const between = nodes.slice(previousIndex + 1, currentIndex);
+  const lastExampleOffset = between.reduce(
+    (last: number, node: AnyNode, index: number): number =>
+      isSynonymExampleNode(root, node) ? index : last,
+    -1,
+  );
+  const trailingText = between
+    .slice(lastExampleOffset + 1)
+    .map((node: AnyNode): string => synonymNodeText(root, node))
+    .join("")
+    .trim();
+  const lastMeaningful = lastMeaningfulSynonymNode(between);
+  const hasTrailingExample =
+    lastMeaningful !== undefined && isSynonymExampleNode(root, lastMeaningful);
+  const hasExampleBeforeTrailingText = lastExampleOffset >= 0;
+  const repeatedTerm =
+    synonymTermName(root, previousTerm) === synonymTermName(root, currentTerm);
+
+  return (
+    hasTrailingExample ||
+    synonymTextEndsSentence(trailingText) ||
+    (hasExampleBeforeTrailingText && !repeatedTerm && trailingText.length > 0)
+  );
+};
+
+const findSynonymEntryIndexes = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  groupTermEnd: number,
+  groupIndexes: readonly number[],
+): readonly number[] => {
+  const groupTerms = groupIndexes.map((index: number): string =>
+    synonymTermName(root, nodes[index] as Element),
+  );
+  const bodyIndexes = nodes
+    .map((node: AnyNode, index: number): number | null =>
+      index > groupTermEnd && isSynonymTerm(root, node) ? index : null,
+    )
+    .filter((index: number | null): index is number => index !== null);
+  const firstBodyIndex = bodyIndexes[0];
+  if (firstBodyIndex === undefined) return [];
+
+  const initialEntries = groupTerms.includes(
+    synonymTermName(root, nodes[firstBodyIndex] as Element),
+  )
+    ? [firstBodyIndex]
+    : [];
+
+  return bodyIndexes
+    .slice(1)
+    .reduce(
+      (
+        entryIndexes: readonly number[],
+        currentIndex: number,
+        offset: number,
+      ): readonly number[] => {
+        const previousIndex = bodyIndexes[offset];
+        return previousIndex !== undefined &&
+          isSynonymEntryBoundary(root, nodes, previousIndex, currentIndex)
+          ? entryIndexes.concat(currentIndex)
+          : entryIndexes;
+      },
+      initialEntries,
+    );
+};
+
+const renderSynonymGroup = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  indexes: readonly number[],
+  displayEnd: number,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const firstIndex = indexes[0];
+  if (firstIndex === undefined) return emptyResult();
+
+  const groupResults = nodes
+    .slice(firstIndex, displayEnd + 1)
+    .map((node: AnyNode, offset: number): RenderResult => {
+      const sourceIndex = firstIndex + offset;
+      return isSynonymTerm(root, node) && indexes.includes(sourceIndex)
+        ? renderSynonymTerm(root, node, [...path, sourceIndex], plan)
+        : renderInlineNode(root, node, [...path, sourceIndex], plan);
+    });
+  const group = combineResults(groupResults);
+  return renderResult(
+    [
+      container("div", group.nodes, {
+        data: unitData("synonym-term-group", {
+          level: 1,
+          relation: "synonym",
+        }),
+      }),
+    ],
+    group.findings,
+  );
+};
+
+const synonymGroupDisplayEnd = (
+  nodes: readonly AnyNode[],
+  termEnd: number,
+): number => {
+  const firstMeaningfulOffset = nodes
+    .slice(termEnd + 1)
+    .findIndex(
+      (node: AnyNode): boolean =>
+        node.type !== "text" || node.data.trim().length > 0,
+    );
+  if (firstMeaningfulOffset < 0) return termEnd;
+  const firstMeaningful = nodes[termEnd + 1 + firstMeaningfulOffset];
+  return firstMeaningful?.type === "text" &&
+    /^:\s*$/u.test(firstMeaningful.data.trim())
+    ? termEnd + 1 + firstMeaningfulOffset
+    : termEnd;
+};
+
+const renderSynonymIntroduction = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const prose = nodes.filter(
+    (node: AnyNode): boolean =>
+      !isStandaloneSynonymExample(root, node) &&
+      !isSynonymAttribution(root, node) &&
+      !isSeeInAddition(root, node),
+  );
+  const proseResult = renderSynonymInlineNodes(root, prose, path, plan);
+  const exampleResult = renderSynonymExamples(root, nodes, path, plan);
+  const content = combineResults([proseResult, exampleResult]);
+  return content.nodes.length === 0
+    ? emptyResult()
+    : renderResult(
+        [
+          container("div", content.nodes, {
+            data: unitData("synonym-introduction", {
+              level: 1,
+              relation: "synonym",
+            }),
+          }),
+        ],
+        content.findings,
+      );
+};
+
+const renderSynonymEntry = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  start: number,
+  end: number,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const term = nodes[start];
+  if (term === undefined || !isSynonymTerm(root, term)) return emptyResult();
+
+  const body = nodes.slice(start + 1, end);
+  const prose = body.filter(
+    (node: AnyNode): boolean =>
+      !isStandaloneSynonymExample(root, node) &&
+      !isSynonymAttribution(root, node) &&
+      !isSeeInAddition(root, node),
+  );
+  const termResult = renderSynonymTerm(root, term, [...path, start], plan);
+  const proseResult = renderSynonymInlineNodes(root, prose, path, plan);
+  const exampleResult = renderSynonymExamples(root, body, path, plan);
+  const explanation = container(
+    "span",
+    [...termResult.nodes, ...proseResult.nodes],
+    {
+      data: unitData("synonym-explanation", {
+        level: 1,
+        relation: "synonym",
+        sourceMarker: elementText(root, term),
+      }),
+    },
+  );
+  const content = [termResult, proseResult, exampleResult];
+  const findings = combineResults(content).findings;
+  return renderResult(
+    [
+      container("div", [explanation, ...exampleResult.nodes], {
+        data: unitData("synonym-entry", {
+          level: 1,
+          relation: "synonym",
+          sourceMarker: elementText(root, term),
+        }),
+      }),
+    ],
+    findings,
+  );
+};
+
+const renderSynonymDiscussion = (
+  root: cheerio.CheerioAPI,
+  discussion: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const paragraph = root(discussion)
+    .find("p.syn, .syn")
+    .toArray()
+    .find(
+      (candidate: Element): boolean =>
+        !hasClass(root, candidate, "synonym-discussion") &&
+        root(candidate).parents("p.syn").length === 0,
+    );
+  if (paragraph === undefined) {
+    return renderLooseChildren(root, discussion, path, plan);
+  }
+
+  const rawNodes = root(paragraph).contents().toArray();
+  const titleIndex = rawNodes.findIndex(
+    (node: AnyNode): boolean =>
+      node.type === "tag" &&
+      (node.tagName === "strong" || node.tagName === "b") &&
+      /^synonym discussion$/iu.test(elementText(root, node)),
+  );
+  const nodes = titleIndex < 0 ? rawNodes : rawNodes.slice(titleIndex + 1);
+  const groupIndexes = findSynonymTermGroupIndexes(root, nodes);
+  const groupTermEnd = groupIndexes[groupIndexes.length - 1];
+  if (groupTermEnd === undefined) {
+    return renderLooseChildren(root, discussion, path, plan);
+  }
+  const groupDisplayEnd = synonymGroupDisplayEnd(nodes, groupTermEnd);
+
+  const entryIndexes = findSynonymEntryIndexes(
+    root,
+    nodes,
+    groupTermEnd,
+    groupIndexes,
+  );
+  const introductionEnd = entryIndexes[0] ?? nodes.length;
+  const group = renderSynonymGroup(
+    root,
+    nodes,
+    groupIndexes,
+    groupDisplayEnd,
+    path,
+    plan,
+  );
+  const introduction = renderSynonymIntroduction(
+    root,
+    nodes.slice(groupDisplayEnd + 1, introductionEnd),
+    [...path, introductionEnd],
+    plan,
+  );
+  const entries = entryIndexes.map(
+    (start: number, index: number): RenderResult =>
+      renderSynonymEntry(
+        root,
+        nodes,
+        start,
+        entryIndexes[index + 1] ?? nodes.length,
+        [...path, index],
+        plan,
+      ),
+  );
+  const seeInAddition = root(discussion)
+    .find(".see-in-addition")
+    .toArray()
+    .map(
+      (element: Element, index: number): RenderResult =>
+        renderLooseNode(root, element, [...path, 100 + index], plan),
+    );
+  return combineResults([group, introduction, ...entries, ...seeInAddition]);
+};
+
 const renderRelated = (
   root: cheerio.CheerioAPI,
   owner: Element,
@@ -1454,10 +1956,13 @@ const renderRelated = (
         : "Related";
 
   const body = root(section).find(".section-content").first().get(0);
+  const discussion = root(section).find(".synonym-discussion").first().get(0);
   const renderedBody =
-    body === undefined
-      ? renderLooseChildren(root, section, path, plan, ["toggle"])
-      : renderLooseChildren(root, body, path, plan, ["toggle"]);
+    discussion === undefined
+      ? body === undefined
+        ? renderLooseChildren(root, section, path, plan, ["toggle"])
+        : renderLooseChildren(root, body, path, plan, ["toggle"])
+      : renderSynonymDiscussion(root, discussion, path, plan);
   return renderResult(
     [
       container(
@@ -1589,8 +2094,7 @@ const renderUndefinedRunOns = (
       .find(".uro")
       .toArray()
       .filter(
-        (runOn: Element): boolean =>
-          root(runOn).parents(".drp").length === 0,
+        (runOn: Element): boolean => root(runOn).parents(".drp").length === 0,
       )
       .map(
         (runOn: Element, index: number): RenderResult =>
