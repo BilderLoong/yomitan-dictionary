@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
-import { runBuild } from "../../src/build/runBuild";
+import { runBuild } from "../../src/pipeline/runBuild";
 
 type JsonObject = Record<string, unknown>;
 

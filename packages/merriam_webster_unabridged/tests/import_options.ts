@@ -25,6 +25,7 @@ interface ParsedOptions {
 }
 
 const usage =
+  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
 
 const parseOptions = (
   argumentsList: readonly string[],
