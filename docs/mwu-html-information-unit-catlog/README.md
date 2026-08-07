@@ -885,13 +885,15 @@ catalog in `src/survey/catalog.ts`.
 - The output follows the three-section contract (`interesting`,
   `notNeeded`, `notYetNoticed`) and the vocabulary of this survey.
 
-The class catalog mirrors the information-unit table above, including the
-2026-08-07 additions (`.pn` → `called-also-number`, `.l` →
-`pronunciation-note`, `.iw`/`.mw_t_a_link`/`.mw_t_i_link` →
-`cross-reference`, `.sense-(a)`/`.sense-(b)` → `subsense-letter`, the media
-units, …). **Keep `src/survey/catalog.ts` in sync with the catalog table
-whenever the table changes** — a new unit, a new class token, or an Ignore
-flip must land in the same change, or the inspector misclassifies.
+The machine-consumed catalog lives in `src/survey/catalog-data.ts` as the
+**single source of truth**: the unit rows (including the 2026-08-07
+additions — `.pn` → `called-also-number`, `.l` → `pronunciation-note`,
+`.iw`/`.mw_t_a_link`/`.mw_t_i_link` → `cross-reference`,
+`.sense-(a)`/`.sense-(b)` → `subsense-letter`, the media units, …), the
+class→unit→level map, and the ignored-units list derived from the Ignore
+flag. The information-unit catalog table above documents that data. When
+the catalog changes, edit the data file first and update the table to
+match — or the inspector misclassifies.
 
 ### Coverage audit — `bun run coverage:audit --words <words...>`
 

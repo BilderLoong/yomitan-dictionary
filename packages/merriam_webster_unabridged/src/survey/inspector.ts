@@ -8,7 +8,7 @@ import {
   PRESENTATION_CLASSES,
   SEMANTIC_CONTAINERS,
   type UnitMapping,
-} from "./catalog";
+} from "./catalog-data";
 
 export type SurveySection = "interesting" | "notNeeded" | "notYetNoticed";
 
