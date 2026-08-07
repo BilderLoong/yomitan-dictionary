@@ -1,3 +1,5 @@
+## review 
+done
 # 02 — Audit every superscript shape and its owner
 
 **What to build:** A verified inventory of every superscript shape in the
