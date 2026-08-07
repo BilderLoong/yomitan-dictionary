@@ -1,3 +1,9 @@
+
+
+## Review
+Update the test in the level1Structure.test.ts and doc with this new entry.
+also i want the oh is rank below `o` when searching `o`. rember we need to always how the same spelling entry first.
+
 # 01 — Cross-reference-only mean soft-link generation
 
 **What to build:** A definition-free mean whose only evidence is a

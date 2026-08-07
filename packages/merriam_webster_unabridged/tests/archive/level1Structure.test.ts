@@ -282,7 +282,7 @@ describe("term-bank level 1 generation test", () => {
       softLinkEntry("O", "o", ["alternative"]),
       softLinkEntry("oo-", "o-", ["alternative"]),
     ];
-    const bareAffixSoftLinks = [softLinkEntry("oo", "o-", ["alternative"])];
+    const bareAffixSoftLinks = [softLrinkEntry("oo", "o-", ["alternative"])];
     const ROOT_TERMS: TermInformation[] = [
       ...mainCanonicalEntries,
       ...alternativeSpellingCanonicalEntries,
