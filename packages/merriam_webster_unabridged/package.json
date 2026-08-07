@@ -6,7 +6,11 @@
   "main": "index.js",
   "scripts": {
     "build:selected": "bun run src/index.ts",
+    "build:full": "bun run src/index.ts --full",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
+    "design:survey": "bun run design-fixtures/survey-html.ts",
+    "design:what:zip": "bun run design-fixtures/what/write-zip.ts",
+    "design:what": "bun run design:what:zip && bun run tests/verify_styles.ts \"build/design-what/MWU-what-design.zip\" --close",
     "inspect:dict": "bun run tests/inspect_dict.ts \"build/Merriam Webster Unabridged.zip\" --query-file tests/testWords.txt",
     "update:fixture": "bun run tests/update-fixture.ts",
     "debug:unittest": "bun test --inspect-wait=/vscode",

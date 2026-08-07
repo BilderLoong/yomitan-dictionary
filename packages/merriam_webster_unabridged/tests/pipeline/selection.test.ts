@@ -14,12 +14,7 @@ describe("collectRequestedWords", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.value).toEqual([
-      "give",
-      "in",
-      "take the word",
-      "IN",
-    ]);
+    expect(result.value).toEqual(["give", "in", "take the word", "IN"]);
   });
 
   test("rejects an empty effective selection", () => {

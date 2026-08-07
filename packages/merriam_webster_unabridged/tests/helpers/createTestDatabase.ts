@@ -18,6 +18,7 @@ export interface TestDatabaseRow {
 export const createTestBuildRequest = async (input: {
   readonly words: readonly string[];
   readonly rows: readonly TestDatabaseRow[];
+  readonly fullDatabase?: boolean;
 }): Promise<BuildRequest> => {
   const directory = await mkdtemp(join(tmpdir(), "mwu-v1-"));
   const databasePath = join(directory, "MWU.db");
@@ -42,6 +43,7 @@ export const createTestBuildRequest = async (input: {
       reportPath: join(directory, "build", "build-report.json"),
       stylesPath,
     },
+    fullDatabase: input.fullDatabase,
   };
 };
 

@@ -1,13 +1,14 @@
 import type { ConvertedCanonical } from "../conversion/convertCanonical";
+import {
+  analyzeConversionCoverage,
+  type ConversionCoverage,
+} from "../conversion/coverage";
+import type { LinkRejection, SoftLinkEntryPlan } from "../level1/planLinks";
 import type {
   CanonicalEntryPlan,
   Level1Finding,
   OwnershipDecision,
 } from "../level1/types";
-import type {
-  LinkRejection,
-  SoftLinkEntryPlan,
-} from "../level1/planLinks";
 import type { IndexedSourceRow } from "../source/rows";
 
 export interface DependencyReportEntry {
@@ -27,6 +28,14 @@ export interface BuildReportInput {
   readonly linkRejections?: readonly LinkRejection[];
   readonly errors: readonly BuildFatalError[];
   readonly archivePath: string | null;
+  /** Full-database builds skip the per-entry detail fields. */
+  readonly fullDatabase?: boolean;
+  /** Record count for full-database builds, whose conversions are not retained. */
+  readonly recordCount?: number;
+  /** Conversion-finding count for full-database builds. */
+  readonly conversionFindings?: number;
+  /** Soft-link count for full-database builds, whose links are not retained. */
+  readonly softLinkCount?: number;
 }
 
 export type BuildFatalError =
@@ -41,6 +50,7 @@ export type BuildFatalError =
   | { readonly kind: "io"; readonly message: string };
 
 export interface BuildReport extends BuildReportInput {
+  readonly coverage: readonly ConversionCoverage[];
   readonly totals: {
     readonly roots: number;
     readonly dependencies: number;
@@ -53,6 +63,7 @@ export interface BuildReport extends BuildReportInput {
 }
 
 export const createBuildReport = (input: BuildReportInput): BuildReport => {
+  const fullDatabase = input.fullDatabase === true;
   const requestedWords = [...input.requestedWords];
   const rootRows = [...input.rootRows];
   const dependencyRows = input.dependencyRows.map(
@@ -62,12 +73,24 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
     }),
   );
   const decisions = [...input.decisions];
-  const canonicalEntryPlans = [...input.canonicalEntryPlans];
-  const softLinkEntries = [...input.softLinkEntries];
-  const conversions = [...input.conversions];
+  const canonicalEntryPlans = fullDatabase
+    ? []
+    : [...input.canonicalEntryPlans];
+  const softLinkEntries = fullDatabase ? [] : [...input.softLinkEntries];
+  const conversions = fullDatabase ? [] : [...input.conversions];
   const planningFindings = [...(input.planningFindings ?? [])];
   const linkRejections = [...(input.linkRejections ?? [])];
   const errors = [...input.errors];
+  const coverage = fullDatabase
+    ? []
+    : conversions.map(analyzeConversionCoverage);
+  const conversionFindings = fullDatabase
+    ? (input.conversionFindings ?? 0)
+    : conversions.reduce(
+        (total: number, conversion: ConvertedCanonical): number =>
+          total + conversion.findings.length,
+        0,
+      );
 
   return {
     requestedWords,
@@ -81,18 +104,16 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
     linkRejections,
     errors,
     archivePath: input.archivePath,
+    coverage,
     totals: {
       roots: rootRows.length,
       dependencies: dependencyRows.length,
       canonicalEntries: canonicalEntryPlans.length,
-      softLinkEntries: softLinkEntries.length,
-      records: conversions.length + softLinkEntries.length,
-      findings:
-        conversions.reduce(
-          (total: number, conversion: ConvertedCanonical): number =>
-            total + conversion.findings.length,
-          0,
-        ) + planningFindings.length,
+      softLinkEntries: fullDatabase
+        ? (input.softLinkCount ?? 0)
+        : softLinkEntries.length,
+      records: input.recordCount ?? conversions.length + softLinkEntries.length,
+      findings: conversionFindings + planningFindings.length,
       errors: errors.length,
     },
   };

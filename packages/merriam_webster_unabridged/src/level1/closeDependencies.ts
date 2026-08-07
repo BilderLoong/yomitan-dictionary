@@ -23,102 +23,73 @@ interface DependencyClosureInput {
   readonly edges: readonly DependencyEdge[];
 }
 
-interface DependencyClosureState {
-  readonly pendingRowIds: readonly number[];
-  readonly visitedRowIds: readonly number[];
-  readonly dependencyRowIds: readonly number[];
-  readonly reasons: readonly DependencyEdge[];
-}
+const uniqueRowIds = (rowIds: readonly number[]): readonly number[] => [
+  ...new Set(rowIds),
+];
 
-const uniqueRowIds = (rowIds: readonly number[]): readonly number[] =>
-  rowIds.reduce<readonly number[]>(
-    (unique: readonly number[], rowId: number): readonly number[] =>
-      unique.includes(rowId) ? unique : [...unique, rowId],
-    [],
-  );
+type FollowResult =
+  | { readonly ok: true; readonly isNewRow: boolean }
+  | { readonly ok: false; readonly error: MissingDependencyError };
 
 const followDependency = (
-  availableRowIds: readonly number[],
-  state: DependencyClosureState,
+  availableRowIds: ReadonlySet<number>,
+  visitedRowIds: ReadonlySet<number>,
   edge: DependencyEdge,
-): Result<DependencyClosureState, MissingDependencyError> => {
-  if (!availableRowIds.includes(edge.toRowId)) {
+): FollowResult => {
+  if (!availableRowIds.has(edge.toRowId)) {
     return {
       ok: false,
       error: { kind: "missing-dependency", target: edge.target },
     };
   }
-
-  const stateWithReason: DependencyClosureState = {
-    ...state,
-    reasons: [...state.reasons, edge],
-  };
-  if (state.visitedRowIds.includes(edge.toRowId)) {
-    return { ok: true, value: stateWithReason };
-  }
-
   return {
     ok: true,
-    value: {
-      ...stateWithReason,
-      pendingRowIds: [...state.pendingRowIds, edge.toRowId],
-      visitedRowIds: [...state.visitedRowIds, edge.toRowId],
-      dependencyRowIds: [...state.dependencyRowIds, edge.toRowId],
-    },
+    isNewRow: !visitedRowIds.has(edge.toRowId),
   };
-};
-
-const followDependencies = (
-  availableRowIds: readonly number[],
-  state: DependencyClosureState,
-  edges: readonly DependencyEdge[],
-): Result<DependencyClosureState, MissingDependencyError> =>
-  edges.reduce<Result<DependencyClosureState, MissingDependencyError>>(
-    (
-      result: Result<DependencyClosureState, MissingDependencyError>,
-      edge: DependencyEdge,
-    ): Result<DependencyClosureState, MissingDependencyError> =>
-      result.ok
-        ? followDependency(availableRowIds, result.value, edge)
-        : result,
-    { ok: true, value: state },
-  );
-
-const closePendingRows = (
-  input: DependencyClosureInput,
-  state: DependencyClosureState,
-): Result<DependencyClosureState, MissingDependencyError> => {
-  const currentRowId = state.pendingRowIds[0];
-  if (currentRowId === undefined) return { ok: true, value: state };
-
-  const result = followDependencies(
-    input.availableRowIds,
-    { ...state, pendingRowIds: state.pendingRowIds.slice(1) },
-    input.edges.filter(
-      (edge: DependencyEdge): boolean => edge.fromRowId === currentRowId,
-    ),
-  );
-  return result.ok ? closePendingRows(input, result.value) : result;
 };
 
 export const closeDependencies = (
   input: DependencyClosureInput,
 ): Result<DependencyClosure, MissingDependencyError> => {
+  const availableRowIds = new Set(input.availableRowIds);
   const rootTraversalIds = uniqueRowIds(input.rootRowIds);
-  const result = closePendingRows(input, {
-    pendingRowIds: rootTraversalIds,
-    visitedRowIds: rootTraversalIds,
-    dependencyRowIds: [],
-    reasons: [],
-  });
-  if (!result.ok) return result;
+  const visitedRowIds = new Set(rootTraversalIds);
+  const dependencyRowIds: number[] = [];
+  const reasons: DependencyEdge[] = [];
+  const edgesByFromRowId = new Map<number, readonly DependencyEdge[]>();
+  for (const edge of input.edges) {
+    const existing = edgesByFromRowId.get(edge.fromRowId);
+    edgesByFromRowId.set(
+      edge.fromRowId,
+      existing === undefined ? [edge] : [...existing, edge],
+    );
+  }
+
+  const pendingRowIds = [...rootTraversalIds];
+  let cursor = 0;
+  while (cursor < pendingRowIds.length) {
+    const currentRowId = pendingRowIds[cursor];
+    cursor += 1;
+    if (currentRowId === undefined) continue;
+
+    const edges = edgesByFromRowId.get(currentRowId) ?? [];
+    for (const edge of edges) {
+      const result = followDependency(availableRowIds, visitedRowIds, edge);
+      if (!result.ok) return result;
+      reasons.push(edge);
+      if (!result.isNewRow) continue;
+      visitedRowIds.add(edge.toRowId);
+      dependencyRowIds.push(edge.toRowId);
+      pendingRowIds.push(edge.toRowId);
+    }
+  }
 
   return {
     ok: true,
     value: {
       rootRowIds: [...input.rootRowIds],
-      dependencyRowIds: result.value.dependencyRowIds,
-      reasons: result.value.reasons,
+      dependencyRowIds,
+      reasons,
     },
   };
 };

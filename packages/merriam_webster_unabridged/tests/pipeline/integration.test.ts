@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { runBuild, type BuildRequest } from "../../src/pipeline/runBuild";
+import { type BuildRequest, runBuild } from "../../src/pipeline/runBuild";
+import { collectRequestedWords } from "../../src/pipeline/selection";
 import {
   createTestBuildRequest,
   representativeRows,
 } from "../helpers/createTestDatabase";
-import { collectRequestedWords } from "../../src/pipeline/selection";
 
 const createSelectedRequest = async (input: {
   readonly flagWords: readonly string[];
@@ -52,11 +52,12 @@ describe("selected-word build", () => {
     if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
 
     expect(attempt.report.requestedWords).toEqual(["o"]);
-    expect(attempt.report.dependencyRows.map(({ row }) => row.decodedKey)).toEqual([
-      "o'",
-      "oh",
-    ]);
-    expect(attempt.records.some(([term]) => term === "unrequested")).toBe(false);
+    expect(
+      attempt.report.dependencyRows.map(({ row }) => row.decodedKey),
+    ).toEqual(["o'", "oh"]);
+    expect(attempt.records.some(([term]) => term === "unrequested")).toBe(
+      false,
+    );
     expect(attempt.archivePath.endsWith("Merriam Webster Unabridged.zip")).toBe(
       true,
     );
@@ -76,5 +77,28 @@ describe("selected-word build", () => {
       { kind: "missing-root", word: "missing" },
     ]);
     expect(attempt.report.archivePath).toBeNull();
+  });
+
+  test("full mode plans every row of the database", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: representativeRows,
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.totals.roots).toBe(3);
+    expect(attempt.report.totals.records).toBe(attempt.records.length);
+    expect(attempt.report.canonicalEntryPlans).toEqual([]);
+    expect(attempt.report.conversions).toEqual([]);
+    expect(attempt.report.coverage).toEqual([]);
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("o");
+    expect(terms).toContain("o'");
+    expect(terms).toContain("oh");
+    expect(attempt.report.errors).toEqual([]);
   });
 });

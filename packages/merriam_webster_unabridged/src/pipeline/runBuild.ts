@@ -45,6 +45,7 @@ import {
   assembleCanonicalRecord,
   assembleSoftLinkRecord,
 } from "../yomitan/assembleRecords";
+import { MWU_TAGS } from "../yomitan/tagBank";
 import {
   type BuildFatalError,
   type BuildReport,
@@ -62,6 +63,8 @@ export interface BuildRequest {
   readonly databasePath: string;
   readonly buildPaths: BuildPaths;
   readonly sourceIndex?: SourceIndex;
+  /** Build every row of the source database instead of selected words. */
+  readonly fullDatabase?: boolean;
 }
 
 export type BuildAttempt =
@@ -80,7 +83,7 @@ const archiveFileName = "Merriam Webster Unabridged.zip";
 const archiveReportPath = archiveFileName;
 
 interface PlannedRow {
-  readonly row: SourceRow;
+  readonly row: IndexedSourceRow;
   readonly canonicalEntries: readonly CanonicalEntryPlan[];
   readonly decisions: readonly OwnershipDecision[];
   readonly requiredDependencyIds: readonly number[];
@@ -111,41 +114,35 @@ interface BuildState {
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const sameRules = (
-  left: readonly string[],
-  right: readonly string[],
-): boolean =>
-  left.length === right.length &&
-  left.every((rule: string, index: number): boolean => rule === right[index]);
-
-const sameSoftLinkRoute = (
-  left: SoftLinkEntryPlan,
-  right: SoftLinkEntryPlan,
-): boolean =>
-  left.lookup === right.lookup &&
-  left.target === right.target &&
-  sameRules(left.rules, right.rules);
-
-const mergeSoftLink = (
-  links: readonly SoftLinkEntryPlan[],
-  next: SoftLinkEntryPlan,
-): readonly SoftLinkEntryPlan[] => {
-  const existingIndex = links.findIndex((link: SoftLinkEntryPlan): boolean =>
-    sameSoftLinkRoute(link, next),
-  );
-  if (existingIndex < 0) return [...links, next];
-
-  return links.map(
-    (link: SoftLinkEntryPlan, index: number): SoftLinkEntryPlan =>
-      index === existingIndex
-        ? { ...link, evidence: [...link.evidence, ...next.evidence] }
-        : link,
-  );
-};
+const softLinkKey = (link: SoftLinkEntryPlan): string =>
+  `${link.lookup}\u0000${link.target}\u0000${link.rules.join("\u0000")}`;
 
 const deduplicateSoftLinks = (
   links: readonly SoftLinkEntryPlan[],
-): readonly SoftLinkEntryPlan[] => links.reduce(mergeSoftLink, []);
+): readonly SoftLinkEntryPlan[] => {
+  const byKey = new Map<string, SoftLinkEntryPlan>();
+  const indexByKey = new Map<string, number>();
+  const merged: SoftLinkEntryPlan[] = [];
+
+  for (const link of links) {
+    const key = softLinkKey(link);
+    const existing = byKey.get(key);
+    if (existing === undefined) {
+      byKey.set(key, link);
+      indexByKey.set(key, merged.length);
+      merged.push(link);
+      continue;
+    }
+    const combined: SoftLinkEntryPlan = {
+      ...existing,
+      evidence: [...existing.evidence, ...link.evidence],
+    };
+    byKey.set(key, combined);
+    merged[indexByKey.get(key) as number] = combined;
+  }
+
+  return merged;
+};
 
 const createAffixEvidence = (
   link: SoftLinkEntryPlan,
@@ -221,7 +218,11 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
   );
 
   return {
-    row,
+    row: {
+      id: row.id,
+      encodedKey: row.encodedKey,
+      decodedKey: row.decodedKey,
+    },
     canonicalEntries: canonicalResult.canonicalEntries,
     decisions: canonicalResult.decisions,
     requiredDependencyIds: canonicalResult.requiredDependencyIds,
@@ -283,51 +284,31 @@ const dependencyTarget = (
   return decision?.searchableHeadword ?? String(dependencyId);
 };
 
-const addDependencyEntry = (
-  entries: readonly BuildState["dependencyRows"][number][],
-  row: IndexedSourceRow,
-  reason: string,
-): readonly BuildState["dependencyRows"][number][] =>
-  entries.some(
-    ({ row: existing }: BuildState["dependencyRows"][number]): boolean =>
-      existing.id === row.id,
-  )
-    ? entries
-    : [...entries, { row, reason }];
-
-const addError = (
-  errors: readonly BuildFatalError[],
-  error: BuildFatalError,
-): readonly BuildFatalError[] =>
-  errors.some(
-    (existing: BuildFatalError): boolean =>
-      JSON.stringify(existing) === JSON.stringify(error),
-  )
-    ? errors
-    : [...errors, error];
-
 const planSelectedRows = (
   database: Database,
   index: SourceIndex,
   request: BuildRequest,
 ): BuildState => {
-  const resolvedRoots = resolveRootRows(index, request.requestedWords);
-  const rootIds = resolvedRoots.rows.map(
-    ({ id }: IndexedSourceRow): number => id,
+  const resolvedRoots =
+    request.fullDatabase === true
+      ? { rows: index.rows, missingWords: [] }
+      : resolveRootRows(index, request.requestedWords);
+  const rootIds = new Set(
+    resolvedRoots.rows.map(({ id }: IndexedSourceRow): number => id),
   );
-  let pendingRows: readonly PendingRow[] = resolvedRoots.rows.map(
+  const pendingRows: PendingRow[] = resolvedRoots.rows.map(
     (row: IndexedSourceRow): PendingRow => ({
       row,
       rootWord: row.decodedKey,
       dependencyTarget: null,
     }),
   );
-  let processedRowIds: readonly number[] = [];
-  let plannedRows: readonly PlannedRow[] = [];
-  let dependencyRows: readonly BuildState["dependencyRows"][number][] = [];
-  let findings: readonly Level1Finding[] = [...index.findings];
-  let rejections: readonly LinkRejection[] = [];
-  let errors: readonly BuildFatalError[] = resolvedRoots.missingWords.map(
+  const processedRowIds = new Set<number>();
+  const plannedRows: PlannedRow[] = [];
+  const dependencyRows: BuildState["dependencyRows"][number][] = [];
+  const findings: Level1Finding[] = [...index.findings];
+  const rejections: LinkRejection[] = [];
+  const errors: BuildFatalError[] = resolvedRoots.missingWords.map(
     (word: string): BuildFatalError => ({ kind: "missing-root", word }),
   );
 
@@ -335,79 +316,81 @@ const planSelectedRows = (
   while (cursor < pendingRows.length) {
     const pending = pendingRows[cursor];
     cursor += 1;
-    if (pending === undefined || processedRowIds.includes(pending.row.id)) {
+    if (pending === undefined || processedRowIds.has(pending.row.id)) {
       continue;
     }
 
-    processedRowIds = [...processedRowIds, pending.row.id];
+    processedRowIds.add(pending.row.id);
     let row: SourceRow | null;
     try {
       row = loadSourceRow(database, pending.row.id);
     } catch (error: unknown) {
       row = null;
-      errors = addError(errors, {
+      errors.push({
         kind: "io",
         message: `Unable to load row ${pending.row.id}: ${errorMessage(error)}`,
       });
     }
 
     if (row === null) {
-      errors =
+      errors.push(
         pending.dependencyTarget === null
-          ? addError(errors, {
+          ? {
               kind: "missing-root",
               word: pending.rootWord ?? pending.row.decodedKey,
-            })
-          : addError(errors, {
+            }
+          : {
               kind: "missing-dependency",
               target: pending.dependencyTarget,
-            });
+            },
+      );
       continue;
     }
 
     const planned = planRow(row, index);
-    plannedRows = [...plannedRows, planned];
-    findings = [...findings, ...planned.findings];
-    rejections = [...rejections, ...planned.rejections];
+    plannedRows.push(planned);
+    findings.push(...planned.findings);
+    rejections.push(...planned.rejections);
 
     for (const dependencyId of planned.requiredDependencyIds) {
-      if (rootIds.includes(dependencyId)) continue;
+      if (rootIds.has(dependencyId)) continue;
 
       const dependencyRow = index.rows.find(
         ({ id }: IndexedSourceRow): boolean => id === dependencyId,
       );
       if (dependencyRow === undefined) {
-        errors = addError(errors, {
+        errors.push({
           kind: "missing-dependency",
           target: dependencyTarget(planned, dependencyId),
         });
         continue;
       }
 
-      dependencyRows = addDependencyEntry(
-        dependencyRows,
-        dependencyRow,
-        dependencyReason(planned, dependencyId),
-      );
+      const reason = dependencyReason(planned, dependencyId);
+      if (
+        !dependencyRows.some(
+          ({ row: existing }: BuildState["dependencyRows"][number]): boolean =>
+            existing.id === dependencyId,
+        )
+      ) {
+        dependencyRows.push({ row: dependencyRow, reason });
+      }
       const isQueued = pendingRows.some(
         ({ row: queuedRow }: PendingRow): boolean =>
           queuedRow.id === dependencyId,
       );
-      if (!isQueued && !processedRowIds.includes(dependencyId)) {
-        pendingRows = [
-          ...pendingRows,
-          {
-            row: dependencyRow,
-            rootWord: null,
-            dependencyTarget: dependencyTarget(planned, dependencyId),
-          },
-        ];
+      if (!isQueued && !processedRowIds.has(dependencyId)) {
+        pendingRows.push({
+          row: dependencyRow,
+          rootWord: null,
+          dependencyTarget: dependencyTarget(planned, dependencyId),
+        });
       }
     }
   }
 
   const closure = closeDependencies({
-    rootRowIds: rootIds,
+    rootRowIds: [...rootIds],
     availableRowIds: index.rows.map(({ id }: IndexedSourceRow): number => id),
     edges: plannedRows.flatMap(
       ({ dependencyEdges }: PlannedRow): readonly DependencyEdge[] =>
@@ -415,7 +398,7 @@ const planSelectedRows = (
     ),
   });
   if (!closure.ok) {
-    errors = addError(errors, closure.error);
+    errors.push(closure.error);
   }
 
   return {
@@ -439,16 +422,6 @@ const validateTermInformation = (record: TermInformation): string | null => {
   return null;
 };
 
-interface SequenceAssignment {
-  readonly term: string;
-  readonly sequence: number;
-}
-
-interface SequenceAssignmentState {
-  readonly records: readonly TermInformation[];
-  readonly assignments: readonly SequenceAssignment[];
-}
-
 const replaceSequence = (
   record: TermInformation,
   sequence: number,
@@ -463,57 +436,10 @@ const replaceSequence = (
   record[7],
 ];
 
-const assignCanonicalSequences = (
-  records: readonly TermInformation[],
-): readonly TermInformation[] =>
-  records.reduce(
-    (
-      state: SequenceAssignmentState,
-      record: TermInformation,
-      index: number,
-    ): SequenceAssignmentState => {
-      const existing = state.assignments.find(
-        ({ term }: SequenceAssignment): boolean => term === record[0],
-      );
-      const sequence = existing?.sequence ?? index + 1;
-
-      return {
-        records: [...state.records, replaceSequence(record, sequence)],
-        assignments:
-          existing === undefined
-            ? [...state.assignments, { term: record[0], sequence }]
-            : state.assignments,
-      };
-    },
-    { records: [], assignments: [] },
-  ).records;
-
 const canonicalPopularity = (
   term: string,
-  rootWords: readonly string[],
-): number => (rootWords.includes(term) ? 100 : 0);
-
-const buildRecords = (
-  conversions: readonly ConvertedCanonical[],
-  softLinkEntries: readonly SoftLinkEntryPlan[],
-  rootWords: readonly string[],
-): readonly TermInformation[] => {
-  const canonicalRecords = assignCanonicalSequences(
-    conversions.map(
-      (converted: ConvertedCanonical, index: number): TermInformation =>
-        assembleCanonicalRecord(
-          converted,
-          index + 1,
-          canonicalPopularity(converted.plan.term, rootWords),
-        ),
-    ),
-  );
-  const softLinkRecords = softLinkEntries.map(
-    (link: SoftLinkEntryPlan, index: number): TermInformation =>
-      assembleSoftLinkRecord(link, canonicalRecords.length + index + 1),
-  );
-  return [...canonicalRecords, ...softLinkRecords];
-};
+  rootWords: ReadonlySet<string>,
+): number => (rootWords.has(term) ? 100 : 0);
 
 const exportDictionary = async (
   records: readonly TermInformation[],
@@ -531,6 +457,9 @@ const exportDictionary = async (
   const dictionary = new Dictionary({ fileName: archiveFileName });
 
   await dictionary.setIndex(index, "", "");
+  for (const tag of MWU_TAGS) {
+    await dictionary.addTag(tag);
+  }
   for (const record of records) {
     await dictionary.addTerm(record);
   }
@@ -553,6 +482,10 @@ const createReport = (
   archivePath: string | null,
   conversions: readonly ConvertedCanonical[],
   errors: readonly BuildFatalError[],
+  fullDatabase = false,
+  recordCount = 0,
+  conversionFindings = 0,
+  softLinkCount = 0,
 ): BuildReport =>
   createBuildReport({
     requestedWords: request.requestedWords,
@@ -576,12 +509,17 @@ const createReport = (
     linkRejections: state.rejections,
     errors,
     archivePath,
+    fullDatabase,
+    recordCount: fullDatabase ? recordCount : undefined,
+    conversionFindings: fullDatabase ? conversionFindings : undefined,
+    softLinkCount: fullDatabase ? softLinkCount : undefined,
   });
 
 const buildSelectedDictionary = async (
   request: BuildRequest,
   database: Database,
 ): Promise<BuildAttempt> => {
+  const fullDatabase = request.fullDatabase === true;
   const index =
     request.sourceIndex ?? buildSourceIndex(listSourceRowSummaries(database));
   const state = planSelectedRows(database, index, request);
@@ -595,38 +533,60 @@ const buildSelectedDictionary = async (
         softLinkEntries,
     ),
   );
-  let conversions: readonly ConvertedCanonical[] = [];
-  let errors: readonly BuildFatalError[] = [...state.errors];
+  const errors: BuildFatalError[] = [...state.errors];
+  const rootWordSet = new Set(
+    state.rootRows.map(
+      ({ decodedKey }: IndexedSourceRow): string => decodedKey,
+    ),
+  );
+  const canonicalTermSet = new Set<string>();
+  const conversions: ConvertedCanonical[] = [];
+  const canonicalRecords: TermInformation[] = [];
+  const sequenceByTerm = new Map<string, number>();
+  let convertedCount = 0;
+  let conversionFindings = 0;
 
   for (const plan of canonicalEntryPlans) {
     const result = convertCanonical(plan);
-    if (result.ok) {
-      conversions = [...conversions, result.value];
+    if (!result.ok) {
+      errors.push(result.error);
       continue;
     }
-    errors = addError(errors, result.error);
+    const converted = result.value;
+    canonicalTermSet.add(converted.plan.term);
+    const record = assembleCanonicalRecord(
+      converted,
+      convertedCount + 1,
+      canonicalPopularity(converted.plan.term, rootWordSet),
+    );
+    convertedCount += 1;
+    const sequence = sequenceByTerm.get(record[0]) ?? convertedCount;
+    if (sequenceByTerm.get(record[0]) === undefined) {
+      sequenceByTerm.set(record[0], sequence);
+    }
+    canonicalRecords.push(replaceSequence(record, sequence));
+    conversionFindings += converted.findings.length;
+    if (!fullDatabase) conversions.push(converted);
   }
 
-  const canonicalTerms = conversions.map(
-    ({ plan }: ConvertedCanonical): string => plan.term,
-  );
   for (const link of softLinkEntries) {
-    if (!canonicalTerms.includes(link.target)) {
-      errors = addError(errors, {
+    if (!canonicalTermSet.has(link.target)) {
+      errors.push({
         kind: "missing-dependency",
         target: link.target,
       });
     }
   }
 
-  const rootWords = state.rootRows.map(
-    ({ decodedKey }: IndexedSourceRow): string => decodedKey,
+  const softLinkRecords = softLinkEntries.map(
+    (link: SoftLinkEntryPlan, index: number): TermInformation =>
+      assembleSoftLinkRecord(link, canonicalRecords.length + index + 1),
   );
-  const records = buildRecords(conversions, softLinkEntries, rootWords);
+  const records = [...canonicalRecords, ...softLinkRecords];
   for (const record of records) {
     const validationError = validateTermInformation(record);
     if (validationError !== null) {
-      errors = addError(errors, {
+      errors.push({
         kind: "schema",
         message: `${record[0]}: ${validationError}`,
       });
@@ -640,15 +600,29 @@ const buildSelectedDictionary = async (
     canExport ? archiveReportPath : null,
     conversions,
     errors,
+    fullDatabase,
+    records.length,
+    conversionFindings,
+    softLinkEntries.length,
   );
   try {
     await writeReport(request.buildPaths.reportPath, report);
   } catch (error: unknown) {
-    errors = addError(errors, {
+    errors.push({
       kind: "io",
       message: `Unable to write build report: ${errorMessage(error)}`,
     });
-    report = createReport(request, state, null, conversions, errors);
+    report = createReport(
+      request,
+      state,
+      null,
+      conversions,
+      errors,
+      fullDatabase,
+      records.length,
+      conversionFindings,
+      softLinkEntries.length,
+    );
     try {
       await writeReport(request.buildPaths.reportPath, report);
     } catch (_reportError: unknown) {
@@ -667,11 +641,21 @@ const buildSelectedDictionary = async (
       request.buildPaths.stylesPath,
     );
   } catch (error: unknown) {
-    errors = addError(errors, {
+    errors.push({
       kind: "io",
       message: `Unable to export dictionary: ${errorMessage(error)}`,
     });
-    report = createReport(request, state, null, conversions, errors);
+    report = createReport(
+      request,
+      state,
+      null,
+      conversions,
+      errors,
+      fullDatabase,
+      records.length,
+      conversionFindings,
+      softLinkEntries.length,
+    );
     try {
       await writeReport(request.buildPaths.reportPath, report);
     } catch (_reportError: unknown) {
