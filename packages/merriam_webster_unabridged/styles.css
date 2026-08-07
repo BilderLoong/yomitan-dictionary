@@ -60,6 +60,7 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
 }
 [data-sc-content="example-sentence"] {
   margin-left: 1em;
+  color: gray;
 }
 [data-sc-content="example-source"] {
   font-style: italic;
@@ -70,12 +71,14 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   font-style: italic;
 }
 [data-sc-content="target-highlight"] {
-  background-color: orange;
-  font-weight: bold;
+  /* background-color: orange; */
+  /* font-weight: bold; */
+  font-style: italic;
+  color: #5f95c9;
 }
 [data-sc-content="cross-reference"],
 [data-sc-content="synonym-term"] {
-  text-decoration-line: underline;
+  /* text-decoration-line: underline; */
   color: #0066cc;
   font-weight: bold;
 }
@@ -97,6 +100,15 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   font-style: italic;
   color: #c53cc0;
   margin-right: 0.35em;
+  /* font-weight: bold;
+  padding: 0.2em 0.3em;
+  word-break: keep-all;
+  border-radius: 0.3em;
+  vertical-align: text-bottom;
+  background-color: #565656;
+  color: white;
+  cursor: help;
+  margin-right: 0.25em; */
 }
 [data-sc-content="grammar-label"] {
   font-style: italic;

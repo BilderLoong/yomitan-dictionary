@@ -33,3 +33,21 @@ test("phrase summary lists every alternate spelling of what's what", () => {
   const summaryText = whatsWhat.children("summary").first().text();
   expect(summaryText).toBe("what's what or what is what or what was what");
 });
+
+test("example source flows on the same line as the example", () => {
+  const sources = $(
+    '[data-sc-content="example-source"], [data-sc-content="example-source-inline"]',
+  );
+  expect(sources.length).toBeGreaterThan(0);
+  sources.each((_, element) => {
+    const source = $(element);
+    // A span is inline and shares the sentence's line box; a div is block
+    // and breaks to its own line.
+    expect(source.prop("tagName")?.toLowerCase()).toBe("span");
+    // Inline flow only shares the line if the source lives inside the
+    // sentence's block container.
+    expect(source.closest('[data-sc-content="example-sentence"]').length).toBe(
+      1,
+    );
+  });
+});

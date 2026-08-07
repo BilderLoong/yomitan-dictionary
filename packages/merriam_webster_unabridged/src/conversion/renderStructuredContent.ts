@@ -806,7 +806,7 @@ const renderAttribution = (
 ): StructuredContent | null => {
   const text = elementText(root, element);
   return isVisible(text)
-    ? container("div", text, {
+    ? container("span", text, {
         data: unitData("example-source", { level: 6 }),
       })
     : null;
