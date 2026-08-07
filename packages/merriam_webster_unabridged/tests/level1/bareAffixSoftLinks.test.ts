@@ -63,7 +63,7 @@ test("reuses an exact main-to-alternative-spelling route and retains both eviden
   const existing = softLinkEntryPlan(
     "il",
     "in-",
-    [],
+    ["alternative"],
     "main-to-alternative-spelling-soft-link",
     [linkEvidence("main-to-alternative-spelling-soft-link")],
   );
@@ -80,7 +80,7 @@ test("reuses an exact main-to-alternative-spelling route and retains both eviden
   );
 
   expect(result.softLinkEntries).toHaveLength(1);
-  expect(result.softLinkEntries[0]?.rules).toEqual([]);
+  expect(result.softLinkEntries[0]?.rules).toEqual(["alternative"]);
   expect(result.softLinkEntries[0]?.evidence).toHaveLength(2);
 });
 

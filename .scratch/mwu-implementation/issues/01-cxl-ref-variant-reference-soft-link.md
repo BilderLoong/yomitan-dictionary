@@ -4,6 +4,22 @@
 Update the test in the level1Structure.test.ts and doc with this new entry.
 also i want the oh is rank below `o` when searching `o`. rember we need to always how the same spelling entry first.
 
+## Review status (2026-08-07)
+done — both items addressed:
+
+1. `tests/archive/level1Structure.test.ts` "o" test now pins the new entry
+   `softLinkEntry("O", "oh", ["variant spelling of"])` (cxl-ref route); the
+   spec documents the route and the ranking rule.
+2. Same-spelling-first ranking: `main-to-alternative-spelling-soft-link`
+   entries now carry the `alternative` rule chain (were empty), so Yomitan's
+   shortest-inflection-chain sort key no longer ties the pulled target with
+   the exact spelling. Verified in the bundled Chromium: search `oh` →
+   `[oh, o, OH]` (was `[o, oh, OH]`), search `o` → `o` first, search `O` →
+   `o` first (Yomitan's case-insensitive term index + root popularity 100
+   keeps the lowercase root ahead; `O` moved from last to 2nd). The residual
+   `O` case is a Yomitan comparator artifact, not fixable from the dictionary
+   side.
+
 # 01 — Cross-reference-only mean soft-link generation
 
 **What to build:** A definition-free mean whose only evidence is a

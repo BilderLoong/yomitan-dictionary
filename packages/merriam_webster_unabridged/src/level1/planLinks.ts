@@ -78,6 +78,10 @@ const mainToAlternativeSpellingEvidence = (
   localText: decision.searchableHeadword,
 });
 
+// The rule chain is never empty: Yomitan ranks an exact match (no rules) above
+// a dictionary-deinflection pull (any rules). An empty chain would make the
+// pulled target tie with the exact spelling on the shortest-inflection-chain
+// key and let the build-root popularity (100) put a different spelling first.
 const mainToAlternativeSpellingSoftLink = (
   rowKey: string,
   decision: OwnershipDecision,
@@ -86,7 +90,7 @@ const mainToAlternativeSpellingSoftLink = (
   relationship: "main-to-alternative-spelling-soft-link",
   lookup: rowKey,
   target: decision.searchableHeadword,
-  rules: [],
+  rules: ["alternative"],
   evidence: [mainToAlternativeSpellingEvidence(decision)],
 });
 

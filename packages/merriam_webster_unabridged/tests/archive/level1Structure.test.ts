@@ -204,10 +204,10 @@ describe("term-bank level 1 generation test", () => {
       canonicalEntry("in for it", 0),
     ];
     const mainToAlternativeSpellingSoftLinks = [
-      softLinkEntry("in", "In", []),
-      softLinkEntry("in", "IN", []),
-      softLinkEntry("in", "in-", []),
-      softLinkEntry("in", "-in", []),
+      softLinkEntry("in", "In", ["alternative"]),
+      softLinkEntry("in", "IN", ["alternative"]),
+      softLinkEntry("in", "in-", ["alternative"]),
+      softLinkEntry("in", "-in", ["alternative"]),
     ];
     const vrMeanAlternateSoftLinks = [
       softLinkEntry("il-", "in-", ["alternative"]),
@@ -271,24 +271,28 @@ describe("term-bank level 1 generation test", () => {
       canonicalEntry("-o-", 0, null),
     ];
     const mainToAlternativeSpellingSoftLinks = [
-      softLinkEntry("o", "O", []),
-      softLinkEntry("o", "o-", []),
-      softLinkEntry("o", "-o", []),
-      softLinkEntry("o", "-o-", []),
-      softLinkEntry("o", "o'", []),
-      softLinkEntry("o", "oh", []),
+      softLinkEntry("o", "O", ["alternative"]),
+      softLinkEntry("o", "o-", ["alternative"]),
+      softLinkEntry("o", "-o", ["alternative"]),
+      softLinkEntry("o", "-o-", ["alternative"]),
+      softLinkEntry("o", "o'", ["alternative"]),
+      softLinkEntry("o", "oh", ["alternative"]),
     ];
     const vrMeanAlternateSoftLinks = [
       softLinkEntry("O", "o", ["alternative"]),
       softLinkEntry("oo-", "o-", ["alternative"]),
     ];
-    const bareAffixSoftLinks = [softLrinkEntry("oo", "o-", ["alternative"])];
+    const bareAffixSoftLinks = [softLinkEntry("oo", "o-", ["alternative"])];
+    const cxlRefVariantSoftLinks = [
+      softLinkEntry("O", "oh", ["variant spelling of"]),
+    ];
     const ROOT_TERMS: TermInformation[] = [
       ...mainCanonicalEntries,
       ...alternativeSpellingCanonicalEntries,
       ...mainToAlternativeSpellingSoftLinks,
       ...vrMeanAlternateSoftLinks,
       ...bareAffixSoftLinks,
+      ...cxlRefVariantSoftLinks,
     ];
 
     expect(termBank).toEqual(expect.arrayContaining(ROOT_TERMS));
