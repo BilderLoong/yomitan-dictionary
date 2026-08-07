@@ -98,4 +98,13 @@ real Yomitan fixture (Playwright).
 - [ ] If per-sense strict: update the doc contract in
   `docs/mwu-level-1-entry-generation.md` first, then batch example groups
   per sense in the renderer, land the E2E green.
+  - Status (2026-08-07, worktree-1 notes): still not collapsing properly —
+    some senses collapse, some don't. Preferred contract: ALL example
+    sentences across the entry — not only the main sense's — collapse to a
+    single one shown.
+
+## Example sentence author
+
+The example sentence author should render on the same line as the example
+sentence.
 
