@@ -1502,7 +1502,14 @@ const renderOriginNode = (
 ): RenderResult => {
   if (node.type === "text") return renderTextNode(node, false);
   if (node.type !== "tag") return emptyResult();
-  if (/^First Known Use:/u.test(elementText(root, node))) return emptyResult();
+  const originNodeText = elementText(root, node);
+  if (/^First Known Use:/u.test(originNodeText)) {
+    return renderResult([
+      container("div", [originNodeText], {
+        data: unitData("first-known-use", { level: 1 }),
+      }),
+    ]);
+  }
   if (!isBlockTag(node.tagName)) {
     return renderInlineNode(root, node, path, plan);
   }
@@ -2686,11 +2693,15 @@ const renderLooseNode = (
   ) {
     return emptyResult();
   }
-  if (
-    element.tagName === "p" &&
-    /^First Known Use:/u.test(elementText(root, element))
-  ) {
-    return emptyResult();
+  if (element.tagName === "p") {
+    const looseNodeText = elementText(root, element);
+    if (/^First Known Use:/u.test(looseNodeText)) {
+      return renderResult([
+        container("div", [looseNodeText], {
+          data: unitData("first-known-use", { level: 1 }),
+        }),
+      ]);
+    }
   }
   if (
     hasAnyClass(root, element, ignoredClasses) ||

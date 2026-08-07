@@ -430,7 +430,8 @@ test("renders titled collapsed origin and phrase sections", () => {
   expect(origins[0]?.open).toBe(false);
   expect(textOf(origins[0])).toContain("Origin of WHAT");
   expect(textOf(origins[0])).toContain("hwæt");
-  expect(textOf(origins[0])).not.toContain("First Known Use");
+  expect(textOf(origins[0])).toContain("First Known Use: before 12th century");
+  expect(unitsOf(result.value.content, "first-known-use")).toHaveLength(1);
 
   const phrases = unitsOf(result.value.content, "phrase");
   expect(phrases).toHaveLength(1);

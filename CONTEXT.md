@@ -199,6 +199,18 @@ Visible source content whose semantic class is not yet recognized. Preserve it
 inside its known owner and report the missing classification rather than
 silently dropping or flattening it.
 
+**Origin section**:
+The titled, collapsed etymology container of an entry (for example
+"Origin of WHAT"), rendered as one disclosure whose body holds the
+etymological history.
+_Avoid_: etymology (when the section container is meant)
+
+**First-known-use**:
+The earliest recorded use of an entry, preserved verbatim as the last line of
+the origin section, often with a sense reference (for example "before 12th
+century (sense 1a(1))").
+_Avoid_: FKU
+
 **Dictionary-deinflection tuple**:
 The Yomitan shape a soft-link record serializes to: a target canonical term
 plus an inflection-rule chain (for example `alternative`).

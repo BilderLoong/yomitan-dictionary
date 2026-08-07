@@ -51,3 +51,24 @@ test("example source flows on the same line as the example", () => {
     );
   });
 });
+
+test("renders the first known use verbatim inside the collapsed origin section", () => {
+  const origin = $('details[data-sc-content="origin"]');
+  expect(origin.length).toBe(1);
+  expect(origin.attr("open")).toBeUndefined();
+
+  const firstKnownUse = origin.find('[data-sc-content="first-known-use"]');
+  expect(firstKnownUse.length).toBe(1);
+  expect(firstKnownUse.text()).toBe(
+    "First Known Use: before 12th century (sense 1a(1))",
+  );
+
+  // The dateline stays in the collapsed body, after the etymology prose,
+  // not on the summary line.
+  const summary = origin.children("summary").first().text();
+  expect(summary).not.toContain("First Known Use");
+  const bodyText = origin.children("div").first().text();
+  expect(bodyText.indexOf("First Known Use")).toBeGreaterThan(
+    bodyText.indexOf("Middle English"),
+  );
+});

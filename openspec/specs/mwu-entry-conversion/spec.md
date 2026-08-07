@@ -100,7 +100,7 @@ structured-content generator drops unknown tags.
 | `.sdsense`, `.sd` | definition continuation (no separate unit) | inline |
 | `.see-in-addition` | `see-in-addition` | `div` |
 | `.urefs .ur` | `usage-discussion-reference` (visible pointer, no interactive link, no copied discussion) | `span`/`div` |
-| `.section[data-id=origin]` | `origin` + `origin-section-title` + `origin-text` | `details`/`summary`/`div` |
+| `.section[data-id=origin]` | `origin` + `origin-section-title` + `origin-text` + `first-known-use` | `details`/`summary`/`div` |
 | `.section[data-id=related-to]` | `related-item` + `synonym-discussion` | `details`/`div` |
 | `.dro` / `.drp` | `phrase` + `definition-flow` | `details`/`div` |
 
@@ -108,8 +108,10 @@ structured-content generator drops unknown tags.
 `data-content = emphasis`; `strong`/`b` SHALL become bold
 `data-content = strong` spans; `sup` SHALL become
 `data-content = superscript-reference` spans; `p` SHALL be transparent;
-`.mw_t_bc` SHALL render as plain colon text. `First Known Use` paragraphs and
-`.entry-status` images SHALL be excluded from output.
+`.mw_t_bc` SHALL render as plain colon text. `.entry-status` images SHALL be
+excluded from output. `First Known Use` paragraphs inside the origin section
+SHALL render as `first-known-use` units (`div`) with their text verbatim, in
+source order after the etymology prose.
 
 #### Scenario: Sense-local label stays local
 

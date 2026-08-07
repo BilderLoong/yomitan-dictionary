@@ -434,7 +434,7 @@ that a source block boundary can require a line break even without a literal
 ### Recognized but intentionally ignored
 
 - `pronunciation-audio`: audio extraction is deferred;
-- `first-known-use` and `phrase-date`: excluded from the current dictionary;
+- `phrase-date`: excluded from the current dictionary;
 - `entry-status-image`: the observed image is header status artwork, not
   dictionary meaning;
 - `illustration`, `illustration-caption`, `table-image`, and
@@ -741,8 +741,9 @@ parserStatus is recognized, partially-recognized, or unrecognized.
   separate until their source ownership and Yomitan search behavior are
   understood. Defined `.drp` phrase forms already have the decision that each
   searchable expression is retained while the parent keeps its phrase section.
-- The catalog marks first-known-use and pronunciation-audio as Ignore=true for
-  the current dictionary. Audio extraction is a separate later phase.
+- The catalog marks pronunciation-audio as Ignore=true for the current
+  dictionary; audio extraction is a separate later phase. First-known-use is
+  recognized: its value renders verbatim inside the collapsed origin body.
 
 ## Resolved chat decisions
 
