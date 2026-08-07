@@ -105,11 +105,6 @@ For bun: `bun -e 'const db = new Database("assets/MWU.db", {readonly:true}); con
 | `.visible-phone` | `class="toggle-icon visible-phone"` | abysm (828) | `span.toggle-icon.visible-phone` with `[+]` inside `h2.toggle` — responsive accordion icon, presentation only |
 
 
-## My note
-We don't need this information:
-- .table-image
-- .table-section
-- .visible-phone
 
 ## In the build it appears as (verified 2026-08-07)
 
@@ -119,22 +114,22 @@ table_collegiate_alphabet`) and inspected the resulting ZIP records
 (`term_bank_1.json`). The table below is the per-class verdict; it is
 mirrored in the living survey README ("Class and media inventory").
 
-| Class | Rows | Information unit | In the build it appears as… | To do |
-| --- | --- | --- | --- | --- |
-| `.caption` | 3,982 | illustration-caption | not emitted — illustration section ignored by decision (aardvark record has no illustration text) | media phase (deferred) |
-| `.date` | 2 | phrase-date | not emitted — ignored (the American way record has no `1850`) | — (decided ignore) |
-| `.disc` | 0 | — | n/a — the class does not exist | — |
-| `.illustrations` | 3,984 | illustration | not emitted — ignored (aardvark) | media phase (deferred) |
-| `.iw` | 158 | cross-reference | plain text inside the inflection group (`see numbered senses`, anecdote) | consider emitting a marked cross-reference for catalog consistency |
-| `.l` | 3,255 | pronunciation-note | text merged inside the pronunciation-reading span (`/for 1 also ə-ˈlam-brə/`, Alhambra) | renderer contract says the note stays outside reading delimiters — align |
-| `.mw_t_a_link` | 77,309 | cross-reference | cross-reference span, href discarded (`city in central ⟦ref:Alabama⟧`, Alabaster) | — |
-| `.mw_t_bold` | 61 | presentation | `strong` span — bold preserved (`run aground`, aground) | — |
-| `.mw_t_i_link` | 471 | cross-reference | cross-reference span (`genus ⟦ref:Acrasis⟧`, Acrasiales) | — |
-| `.pn` | 59 | called-also-number | inline text (`(1)`, `(2)`, alligation) | — |
-| `.sense-(a)` / `.sense-(b)` | 1 | subsense-letter | letter drawn by the CSS sense markers (indirect) | — |
-| `.table-image` | 52 | table-image | no entry — the row yields a `missing-root` finding (table_collegiate_alphabet) | media phase; confirm the expected finding for direct table-page lookups |
-| `.table-section` | 65 | table-reference | not emitted — ignored (alphabet record has no table pointer) | media phase (deferred) |
-| `.visible-phone` | 64,901 | presentation | not emitted — presentation only (abysm) | — |
+| Class | Rows | State | Information unit | In the build it appears as… | To do |
+| --- | --- | --- | --- | --- | --- |
+| `.caption` | 3,982 | resolved | illustration-caption | not emitted — illustration section ignored by decision (aardvark record has no illustration text) | media phase (deferred) |
+| `.date` | 2 | resolved | phrase-date | not emitted — ignored (the American way record has no `1850`) | — (decided ignore) |
+| `.disc` | 0 | n/a | — | n/a — the class does not exist | — |
+| `.illustrations` | 3,984 | resolved | illustration | not emitted — ignored (aardvark) | media phase (deferred) |
+| `.iw` | 158 | follow-up | cross-reference | plain text inside the inflection group (`see numbered senses`, anecdote) | consider emitting a marked cross-reference for catalog consistency |
+| `.l` | 3,255 | follow-up | pronunciation-note | text merged inside the pronunciation-reading span (`/for 1 also ə-ˈlam-brə/`, Alhambra) | renderer contract says the note stays outside reading delimiters — align |
+| `.mw_t_a_link` | 77,309 | resolved | cross-reference | cross-reference span, href discarded (`city in central ⟦ref:Alabama⟧`, Alabaster) | — |
+| `.mw_t_bold` | 61 | resolved | presentation | `strong` span — bold preserved (`run aground`, aground) | — |
+| `.mw_t_i_link` | 471 | resolved | cross-reference | cross-reference span (`genus ⟦ref:Acrasis⟧`, Acrasiales) | — |
+| `.pn` | 59 | resolved | called-also-number | inline text (`(1)`, `(2)`, alligation) | — |
+| `.sense-(a)` / `.sense-(b)` | 1 | resolved | subsense-letter | letter drawn by the CSS sense markers (indirect) | — |
+| `.table-image` | 52 | open | table-image | no entry — the row yields a `missing-root` finding (table_collegiate_alphabet) | media phase; confirm the expected finding for direct table-page lookups |
+| `.table-section` | 65 | resolved | table-reference | not emitted — ignored (alphabet record has no table pointer) | media phase (deferred) |
+| `.visible-phone` | 64,901 | resolved | presentation | not emitted — presentation only (abysm) | — |
 
 Method: source needles were scanned in the built rows' raw HTML
 (`word(id, w, m)`); each record in the ZIP was then searched for the
