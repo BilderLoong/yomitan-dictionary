@@ -865,11 +865,14 @@ later audio phase.
 
 ## Source survey tool
 
-The repeatable read-only inspector ships as `bun run survey:inspect --words
-<words...>` (package `merriam_webster_unabridged`,
-`tests/survey_inspector.ts` + `src/survey/inspector.ts` + the class catalog
-in `src/survey/catalog.ts`). It opens the source database read-only and
-never emits Yomitan entries.
+Two read-only tools ship with the package (`merriam_webster_unabridged`).
+Both open the source database read-only and never emit Yomitan entries; both
+write their reports under `build/`.
+
+### Survey inspector — `bun run survey:inspect --words <words...>`
+
+Built on `tests/survey_inspector.ts` + `src/survey/inspector.ts` + the class
+catalog in `src/survey/catalog.ts`.
 
 - Inspect mode walks every element of the requested rows and emits one
   finding per classified element: word, information name, unit level,
@@ -880,13 +883,34 @@ never emits Yomitan entries.
   counts, and the example words that exhibit each selector. Unknown or
   unrecognized selectors are listed explicitly, never silently discarded.
 - The output follows the three-section contract (`interesting`,
-  `notNeeded`, `notYetNoticed`) and the vocabulary of this survey; the
-  class catalog mirrors the information-unit table above, including the
-  2026-08-07 additions (`.pn`, `.l`, `.iw`, media units, …). The separate
-  `design:update-metadata` helper only copies explicitly mapped repetitive
-  header facts (`<h1><sup>`, `.lbs`, and variant-only `.cxl-ref`) into the
-  hand-authored fixture and emits a match report; it is not a general
-  parser.
+  `notNeeded`, `notYetNoticed`) and the vocabulary of this survey.
+
+The class catalog mirrors the information-unit table above, including the
+2026-08-07 additions (`.pn` → `called-also-number`, `.l` →
+`pronunciation-note`, `.iw`/`.mw_t_a_link`/`.mw_t_i_link` →
+`cross-reference`, `.sense-(a)`/`.sense-(b)` → `subsense-letter`, the media
+units, …). **Keep `src/survey/catalog.ts` in sync with the catalog table
+whenever the table changes** — a new unit, a new class token, or an Ignore
+flip must land in the same change, or the inspector misclassifies.
+
+### Coverage audit — `bun run coverage:audit --words <words...>`
+
+Built on `tests/coverage_audit.ts` + `src/pipeline/coverage.ts`. Proves no
+source information is lost in conversion: for every converted record it
+tokenizes the source owner HTML (excluding the record's own term tokens,
+which are deliberately not repeated in the content) and checks each token
+against the rendered structured content. Output: `build/coverage-report.json`
+with per-record coverage, missing tokens, finding kinds, and records flagged
+below 95%.
+
+Baseline (2026-08-07, words what/o/take/in/oh/turn/run): 202 records, mean
+coverage 94.3%, 64 flagged — every missing-token category explained
+(CSS-drawn sense markers such as `1a`, ignored `first-known-use` lines,
+syllabification-dot artifacts). Run it after any renderer change: a dip in
+coverage flags a real drop before it reaches the ZIP. The separate
+`design:update-metadata` helper only copies explicitly mapped repetitive
+header facts (`<h1><sup>`, `.lbs`, and variant-only `.cxl-ref`) into the
+hand-authored fixture and emits a match report; it is not a general parser.
 
 Its report has the three requested finding sections: `interesting`,
 `notNeeded`, and `notYetNoticed`. The selected-word report is written to

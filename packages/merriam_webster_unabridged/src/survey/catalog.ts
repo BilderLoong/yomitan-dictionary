@@ -1,6 +1,8 @@
 // Survey vocabulary: class tokens and containers mapped to information
-// units and levels, mirroring docs/mwu-html-survey/README.md. The inspector
-// is read-only: it reports, it never emits Yomitan entries.
+// units and levels, mirroring the information-unit catalog table in
+// docs/mwu-html-information-unit-catlog/README.md. Keep this file in sync
+// with that table (new units, new class tokens, Ignore flips). The
+// inspector is read-only: it reports, it never emits Yomitan entries.
 
 export interface UnitMapping {
   readonly unit: string;
