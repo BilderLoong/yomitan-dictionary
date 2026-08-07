@@ -1,10 +1,13 @@
 import {
   copyFile,
+  lstat,
   mkdir,
   readdir,
+  readlink,
   rename,
   rm,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
@@ -225,6 +228,91 @@ const refreshVendoredRenderer = async (
   }
 };
 
+/**
+ * True when this checkout is a git worktree (its own git dir lives under the
+ * main checkout's `.git/worktrees/`) rather than the main checkout itself.
+ */
+const detectWorktree = async (): Promise<Result<boolean, string>> => {
+  const gitDir = await run("git", ["rev-parse", "--git-dir"], process.cwd());
+  if (!gitDir.ok) return gitDir;
+  const commonDir = await run(
+    "git",
+    ["rev-parse", "--git-common-dir"],
+    process.cwd(),
+  );
+  if (!commonDir.ok) return commonDir;
+  return {
+    ok: true,
+    value:
+      path.resolve(gitDir.value.trim()) !==
+      path.resolve(commonDir.value.trim()),
+  };
+};
+
+/**
+ * Worktree mode: the fixture is owned by the main checkout, so instead of
+ * cloning and building a second copy this links `tests/fixture` to the main
+ * checkout's fixture. Errors out when the main checkout has no fixture, so a
+ * worktree can never silently become the fixture owner.
+ */
+const linkWorktreeFixture = async (
+  fixturePath: string,
+  dryRun: boolean,
+): Promise<Result<string, string>> => {
+  const commonDir = await run(
+    "git",
+    ["rev-parse", "--git-common-dir"],
+    process.cwd(),
+  );
+  if (!commonDir.ok) return commonDir;
+  const mainRoot = path.dirname(path.resolve(commonDir.value.trim()));
+  const mainFixture = path.join(
+    mainRoot,
+    "packages/merriam_webster_unabridged/tests/fixture",
+  );
+  try {
+    await stat(path.join(mainFixture, "yomitan-chrome-playwright"));
+  } catch {
+    return {
+      ok: false,
+      error:
+        `Main checkout has no fixture at ${mainFixture}.\n` +
+        "Run `bun run update:fixture` in the main checkout first.",
+    };
+  }
+  if (dryRun) {
+    return {
+      ok: true,
+      value: `[dry-run] would link ${fixturePath} -> ${mainFixture}`,
+    };
+  }
+  try {
+    let current: Awaited<ReturnType<typeof lstat>> | null = null;
+    try {
+      current = await lstat(fixturePath);
+    } catch {
+      // missing — the link will be created
+    }
+    if (
+      current?.isSymbolicLink() === true &&
+      path.resolve(await readlink(fixturePath)) === mainFixture
+    ) {
+      return { ok: true, value: `Already linked to ${mainFixture}` };
+    }
+    // Replace whatever sits at the path (a stale symlink, a real directory
+    // left by an older flow, or nothing) with the link to the main fixture.
+    await rm(fixturePath, { recursive: true, force: true });
+    await mkdir(path.dirname(fixturePath), { recursive: true });
+    await symlink(mainFixture, fixturePath);
+    return { ok: true, value: `Linked ${fixturePath} -> ${mainFixture}` };
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Failed to link worktree fixture: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+};
+
 const main = async (): Promise<number> => {
   const optionsResult = parseFixtureArguments(process.argv.slice(2));
   if (!optionsResult.ok) {
@@ -232,19 +320,39 @@ const main = async (): Promise<number> => {
     return 1;
   }
   const { ref, cacheDir, dryRun } = optionsResult.value;
-  const fixtureDir = path.resolve(
-    import.meta.dirname,
-    "fixture/yomitan-chrome-playwright",
-  );
-  const provenancePath = path.resolve(
-    import.meta.dirname,
-    "fixture/UPSTREAM.json",
-  );
+  const fixtureRoot = path.resolve(import.meta.dirname, "fixture");
+  const fixtureDir = path.join(fixtureRoot, "yomitan-chrome-playwright");
+  const provenancePath = path.join(fixtureRoot, "UPSTREAM.json");
   const provenanceTmpPath = `${provenancePath}.tmp`;
-  const stagingDir = path.resolve(
-    import.meta.dirname,
-    "fixture/.yomitan-staging",
-  );
+  const stagingDir = path.join(fixtureRoot, ".yomitan-staging");
+
+  const worktree = await detectWorktree();
+  if (!worktree.ok) {
+    console.error(`Failed to detect checkout kind: ${worktree.error}`);
+    return 1;
+  }
+  if (worktree.value) {
+    if (ref !== "latest") {
+      console.warn(
+        `--ref ${ref} is ignored in a worktree: the fixture is owned by the main checkout`,
+      );
+    }
+    const linked = await linkWorktreeFixture(fixtureRoot, dryRun);
+    if (!linked.ok) {
+      console.error(linked.error);
+      return 1;
+    }
+    console.log(linked.value);
+    if (!dryRun) {
+      const vendored = await refreshVendoredRenderer(fixtureDir);
+      if (!vendored.ok) {
+        console.error(vendored.error);
+        return 1;
+      }
+      console.log(vendored.value);
+    }
+    return 0;
+  }
 
   const cacheReady = await prepareCache(cacheDir);
   if (!cacheReady.ok) {
