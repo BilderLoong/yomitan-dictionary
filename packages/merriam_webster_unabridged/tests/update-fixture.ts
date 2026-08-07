@@ -1,4 +1,12 @@
-import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 import type { Result } from "../src/shared/result";
@@ -182,6 +190,41 @@ const resolveRef = async (
   return { ok: true, value: latestTag };
 };
 
+const VENDORED_RENDERER_FILES = [
+  "display/structured-content-generator.js",
+  "display/display-content-manager.js",
+  "templates/anki-template-renderer-content-manager.js",
+  "language/text-utilities.js",
+  "language/ja/japanese.js",
+  "language/zh/chinese.js",
+  "language/CJK-util.js",
+  "core/event-listener-collection.js",
+  "data/array-buffer-util.js",
+] as const;
+
+const refreshVendoredRenderer = async (
+  fixtureDir: string,
+): Promise<Result<string, string>> => {
+  const vendorDir = path.resolve(import.meta.dirname, "rendered/vendor");
+  try {
+    for (const relativePath of VENDORED_RENDERER_FILES) {
+      const source = path.join(fixtureDir, "js", relativePath);
+      const target = path.join(vendorDir, "js", relativePath);
+      await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(source, target);
+    }
+    return {
+      ok: true,
+      value: `Vendored renderer refreshed from ${fixtureDir} (${VENDORED_RENDERER_FILES.length} files)`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Failed to refresh vendored renderer: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+};
+
 const main = async (): Promise<number> => {
   const optionsResult = parseFixtureArguments(process.argv.slice(2));
   if (!optionsResult.ok) {
@@ -359,6 +402,13 @@ const main = async (): Promise<number> => {
     `Fixture updated: ${provenance.extensionName} ${provenance.version} (${commit.slice(0, 12)}, resolved ${resolvedLabel})`,
   );
   console.log(`Provenance: ${provenancePath}`);
+
+  const vendored = await refreshVendoredRenderer(fixtureDir);
+  if (!vendored.ok) {
+    console.error(vendored.error);
+    return 1;
+  }
+  console.log(vendored.value);
   return 0;
 };
 
