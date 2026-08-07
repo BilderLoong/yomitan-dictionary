@@ -3,6 +3,9 @@
 This package builds a Yomitan-compatible ZIP from the MWU SQLite source at
 `assets/MWU.db`.
 
+End users: see [USER-MANUAL.md](USER-MANUAL.md) for how to read the entries —
+including why definitions start with a colon (`: that which : those which`).
+
 ## Setup
 
 ```bash
@@ -93,9 +96,10 @@ The renderer is pure and owner-local: Level 1 planning selects the canonical
 paths such as `1 a (1)` become nested ordered lists; `.uns` remains beside its
 own definition; each local `.vis` example group shows its first example and
 collapses the remainder; `.dro` phrases become separately titled collapsed
-sections in the parent entry; and `First Known Use`/audio controls are omitted
-by policy. Unsupported visible elements are retained once as readable fallback
-text and recorded as conversion findings.
+sections in the parent entry; the origin section carries the etymology and
+the First Known Use dateline; and audio controls are omitted by policy.
+Unsupported visible elements are retained once as readable fallback text and
+recorded as conversion findings.
 
 The Yomitan reading field stays empty. MWU pronunciations remain visible in the
 structured header, with `¦` normalized to `ˈ`; the canonical tuple's definition
