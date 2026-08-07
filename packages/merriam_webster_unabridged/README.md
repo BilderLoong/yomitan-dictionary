@@ -9,6 +9,45 @@ This package builds a Yomitan-compatible ZIP from the MWU SQLite source at
 pnpm install
 ```
 
+## Yomitan test fixture
+
+Tests that drive the real extension (`tests/inspect_dict.ts`,
+`tests/archive/schema.test.ts`) need the Yomitan fixture — a Chrome-extension
+build of upstream Yomitan with the schemas and browser harness — installed at
+`tests/fixture/` (gitignored):
+
+```bash
+# main checkout: clone upstream, build the fixture, install it
+bun run update:fixture
+
+# pin a specific upstream release instead of the newest tag
+bun run update:fixture --ref 26.7.29.0
+
+# preview without touching anything
+bun run update:fixture --dry-run
+```
+
+The same pass refreshes the vendored Yomitan structured-content renderer under
+`tests/rendered/vendor/`, so the render-contract tests always exercise the
+generator version the fixture ships.
+
+### Worktrees
+
+A worktree must not own a second fixture: running `update:fixture` inside any
+worktree detects the checkout kind and links `tests/fixture` to the main
+checkout's fixture instead of cloning and building:
+
+```bash
+git worktree add ../my-worktree master
+cd ../my-worktree/packages/merriam_webster_unabridged
+bun run update:fixture        # links to the main checkout fixture
+```
+
+If the main checkout has no fixture yet, the worktree run fails with an error
+telling you to run `update:fixture` there first — a worktree can never silently
+become the fixture owner. `--ref` is ignored in worktrees; the main checkout
+owns the fixture version.
+
 ## Build selected words
 
 v1 requires explicit target words. A multiword target must be quoted when it

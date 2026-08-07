@@ -8,7 +8,7 @@ node_modules/
 # are real source and must stay trackable.
 /build/
 assets
-fixture/
+fixture
 # Source-HTML render fixtures: regenerated from assets/MWU.db via
 # `bun run update:render-fixtures` (same provenance as the build itself).
 /tests/rendered/fixtures/
