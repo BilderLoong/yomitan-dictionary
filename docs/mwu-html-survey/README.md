@@ -365,6 +365,28 @@ a `.table-image` page (52); the remaining 10,105 images are `.entry-status`
 artwork. Dates split exactly: `.aqdate` (14,073 rows) = example-date;
 `.date` (2 rows) = phrase-date.
 
+The "In the build it appears as…" column below was verified 2026-08-07 by
+building the representative rows (aardvark, anecdote, Alhambra, alligation,
+indirect, abysm, alphabet, alabaster, Acrasiales, aground, the American way,
+table_collegiate_alphabet) and inspecting the resulting ZIP records.
+
+| Class | Rows | Information unit | In the build it appears as… | To do |
+| --- | --- | --- | --- | --- |
+| `.caption` | 3,982 | illustration-caption | not emitted — illustration section ignored by decision (aardvark record has no illustration text) | media phase (deferred) |
+| `.date` | 2 | phrase-date | not emitted — ignored (the American way record has no `1850`) | — (decided ignore) |
+| `.disc` | 0 | — | n/a — the class does not exist | — |
+| `.illustrations` | 3,984 | illustration | not emitted — ignored (aardvark) | media phase (deferred) |
+| `.iw` | 158 | cross-reference | plain text inside the inflection group (`see numbered senses`, anecdote) | consider emitting a marked cross-reference for catalog consistency |
+| `.l` | 3,255 | pronunciation-note | text merged inside the pronunciation-reading span (`/for 1 also ə-ˈlam-brə/`, Alhambra) | renderer contract says the note stays outside reading delimiters — align |
+| `.mw_t_a_link` | 77,309 | cross-reference | cross-reference span, href discarded (`city in central ⟦ref:Alabama⟧`, Alabaster) | — |
+| `.mw_t_bold` | 61 | presentation | `strong` span — bold preserved (`run aground`, aground) | — |
+| `.mw_t_i_link` | 471 | cross-reference | cross-reference span (`genus ⟦ref:Acrasis⟧`, Acrasiales) | — |
+| `.pn` | 59 | called-also-number | inline text (`(1)`, `(2)`, alligation) | — |
+| `.sense-(a)` / `.sense-(b)` | 1 | subsense-letter | letter drawn by the CSS sense markers (indirect) | — |
+| `.table-image` | 52 | table-image | no entry — the row yields a `missing-root` finding (table_collegiate_alphabet) | media phase; confirm the expected finding for direct table-page lookups |
+| `.table-section` | 65 | table-reference | not emitted — ignored (alphabet record has no table pointer) | media phase (deferred) |
+| `.visible-phone` | 64,901 | presentation | not emitted — presentation only (abysm) | — |
+
 #### Presentation decisions
 
 - **Nested citations**: example attributions stay attached to their owning
