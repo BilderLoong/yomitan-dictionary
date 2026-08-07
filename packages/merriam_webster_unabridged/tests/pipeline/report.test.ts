@@ -35,14 +35,12 @@ describe("build report", () => {
       decisions: [
         decision("in-", "alternative-spelling-canonical-entry", null),
       ],
-      canonicalEntryPlans: [
-        canonicalMean("in-", definition("in- definition")),
-      ],
+      canonicalEntryPlans: [canonicalMean("in-", definition("in- definition"))],
       softLinkEntries: [
         softLinkEntryPlan(
           "in",
           "in-",
-          [],
+          ["alternative"],
           "main-to-alternative-spelling-soft-link",
         ),
       ],

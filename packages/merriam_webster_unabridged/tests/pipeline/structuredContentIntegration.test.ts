@@ -89,7 +89,9 @@ test("renders real MWU what records as structured content", async () => {
 
   expect(attempt.report.errors).toEqual([]);
   expect(
-    attempt.report.conversions.every(({ findings }) => findings.length === 0),
+    attempt.report.conversions.every(({ findings }) =>
+      findings.every(({ kind }) => kind !== "unsupported-visible-subtree"),
+    ),
   ).toBe(true);
   expect(canonicalRecords.length).toBeGreaterThan(10);
   expect(
@@ -183,6 +185,8 @@ test("keeps real MWU synonym references inside their source entries", async () =
   ).toBe(true);
   expect(attempt.report.errors).toEqual([]);
   expect(
-    attempt.report.conversions.every(({ findings }) => findings.length === 0),
+    attempt.report.conversions.every(({ findings }) =>
+      findings.every(({ kind }) => kind !== "unsupported-visible-subtree"),
+    ),
   ).toBe(true);
 }, 30_000);

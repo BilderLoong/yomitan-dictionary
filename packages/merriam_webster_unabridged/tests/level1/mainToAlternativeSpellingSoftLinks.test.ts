@@ -19,7 +19,7 @@ test("creates main-to-alternative-spelling soft links without definitions", () =
       rules,
     })),
   ).toEqual([
-    { lookup: "o", target: "O", rules: [] },
-    { lookup: "o", target: "oh", rules: [] },
+    { lookup: "o", target: "O", rules: ["alternative"] },
+    { lookup: "o", target: "oh", rules: ["alternative"] },
   ]);
 });

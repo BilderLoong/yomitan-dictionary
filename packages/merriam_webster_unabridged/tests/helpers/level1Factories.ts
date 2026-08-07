@@ -1,14 +1,12 @@
 import type {
-  LinkEvidence,
-  SoftLinkEntryPlan,
-  SoftLinkEntryRelationship,
-} from "../../src/level1/planLinks";
-import type {
   AlternativeSpellingCanonicalEntryPlan,
   DrpPhraseCanonicalEntryPlan,
+  LinkEvidence,
   MainCanonicalEntryPlan,
   OwnershipDecision,
   OwnershipRule,
+  SoftLinkEntryPlan,
+  SoftLinkEntryRelationship,
 } from "../../src/level1/types";
 import type {
   SourceIndex,

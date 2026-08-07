@@ -27,7 +27,65 @@ export type Level1Finding =
       readonly rowId: number;
       readonly meanIndex: number;
       readonly preview: string;
+    }
+  | {
+      readonly kind: "cxl-ref-not-emitted";
+      readonly rowId: number;
+      readonly meanIndex: number;
+      readonly relation: string | null;
+      readonly target: string | null;
+      readonly reason: "unapproved-relation" | "missing-target" | "self-link";
+      readonly preview: string;
     };
+
+export type SoftLinkEntryRelationship =
+  | "main-to-alternative-spelling-soft-link"
+  | "vr-mean-alternate-soft-link"
+  | "phrase-alternate-soft-link"
+  | "bare-affix-soft-link"
+  | "cxl-ref-variant-reference-soft-link";
+
+export interface LinkEvidence {
+  readonly rowId: number;
+  readonly rowKey: string;
+  readonly meanIndex: number;
+  readonly phraseIndex: number | null;
+  readonly selector: string;
+  readonly qualifier: string | null;
+  readonly localText: string;
+}
+
+export interface SoftLinkEntryPlan {
+  readonly kind: "soft-link-entry";
+  readonly relationship: SoftLinkEntryRelationship;
+  readonly lookup: string;
+  readonly target: string;
+  readonly rules: readonly string[];
+  readonly evidence: readonly LinkEvidence[];
+}
+
+export interface LinkPlanningResult {
+  readonly softLinkEntries: readonly SoftLinkEntryPlan[];
+  readonly rejections: readonly LinkRejection[];
+}
+
+export interface ConfirmedAffixEvidence {
+  readonly marked: string;
+  readonly bare: string;
+  readonly target: string;
+  readonly evidence: LinkEvidence;
+}
+
+export type BareLookupError = {
+  readonly kind: "not-confirmed-affix";
+};
+
+export interface LinkRejection {
+  readonly kind: "alternate-distinct-meaning";
+  readonly lookup: string;
+  readonly target: string;
+  readonly evidence: readonly LinkEvidence[];
+}
 
 export interface MainCanonicalEntryPlan {
   readonly kind: "main-canonical-entry";
@@ -72,5 +130,6 @@ export interface CanonicalPlanningResult {
   readonly canonicalEntries: readonly CanonicalEntryPlan[];
   readonly decisions: readonly OwnershipDecision[];
   readonly requiredDependencyIds: readonly number[];
+  readonly softLinkEntries: readonly SoftLinkEntryPlan[];
   readonly findings: readonly Level1Finding[];
 }

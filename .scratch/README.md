@@ -6,23 +6,23 @@ ticket whose blockers are done can be grabbed.
 
 ## mwu-source-research — source evidence (HTML classes, markers, shapes)
 
-| # | Ticket | Blocked by |
-|---|---|---|
-| 01 | classify-unknown-html-classes | None — can start immediately |
-| 02 | audit-superscript-shapes | None — can start immediately |
-| 03 | audit-line-break-shapes | None — can start immediately |
-| 04 | settle-presentation-questions | None — can start immediately |
-| 05 | investigate-media-and-dynamic-markers | None — can start immediately |
-| 06 | validate-v-phr-acceptance | None — can start immediately |
-| 07 | information-loss-detection | None — can start immediately |
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | classify-unknown-html-classes | None | resolved 2026-08-07 |
+| 02 | audit-superscript-shapes | None | resolved 2026-08-07 |
+| 03 | audit-line-break-shapes | None | resolved 2026-08-07 |
+| 04 | settle-presentation-questions | None | resolved 2026-08-07 |
+| 05 | investigate-media-and-dynamic-markers | None | resolved 2026-08-07 |
+| 06 | validate-v-phr-acceptance | None | resolved 2026-08-07 |
+| 07 | information-loss-detection | None | resolved 2026-08-07 |
 
 ## mwu-implementation — planning, rules, tooling
 
-| # | Ticket | Blocked by |
-|---|---|---|
-| 01 | cxl-ref-variant-reference-soft-link | User decision (deferred 2026-08-06) |
-| 02 | tag-generation-rules | None — can start immediately |
-| 03 | survey-inspector-design | None — can start immediately |
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | cxl-ref-variant-reference-soft-link | User decision — un-deferred 2026-08-07 by blanket overnight delegation (review when back) | resolved 2026-08-07 |
+| 02 | tag-generation-rules | None | resolved 2026-08-07 (ADR 0005) |
+| 03 | survey-inspector-design | None | resolved 2026-08-07 |
 
 ## Resolved during migration
 

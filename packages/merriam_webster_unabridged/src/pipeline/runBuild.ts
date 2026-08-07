@@ -22,12 +22,13 @@ import {
   planMainToAlternativeSpellingSoftLinks,
   planPhraseAlternateSoftLinks,
   planVrMeanAlternateSoftLinks,
-  type SoftLinkEntryPlan,
+  replaceShadowedAlternateLinks,
 } from "../level1/planLinks";
 import type {
   CanonicalEntryPlan,
   Level1Finding,
   OwnershipDecision,
+  SoftLinkEntryPlan,
 } from "../level1/types";
 import {
   buildSourceIndex,
@@ -185,13 +186,14 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
       readonly softLinkEntries: readonly SoftLinkEntryPlan[];
     }): readonly SoftLinkEntryPlan[] => softLinkEntries,
   );
-  const existingSoftLinkEntries = [
+  const existingSoftLinkEntries = replaceShadowedAlternateLinks([
+    ...canonicalResult.softLinkEntries,
     ...planMainToAlternativeSpellingSoftLinks({
       rowKey: row.decodedKey,
       decisions: canonicalResult.decisions,
     }),
     ...localSoftLinkEntries,
-  ];
+  ]);
   const affixEvidence = localSoftLinkEntries.flatMap(createAffixEvidence);
   const softLinkEntries = deduplicateSoftLinks(
     deriveBareAffixSoftLinks(existingSoftLinkEntries, affixEvidence)
@@ -259,28 +261,51 @@ const resolveRootRows = (
   return { rows, missingWords };
 };
 
+const cxlRefDependencyLink = (
+  planned: PlannedRow,
+  dependencyId: number,
+  index: SourceIndex,
+): SoftLinkEntryPlan | undefined =>
+  planned.softLinkEntries.find(
+    (link: SoftLinkEntryPlan): boolean =>
+      link.relationship === "cxl-ref-variant-reference-soft-link" &&
+      findSourceRows(index, link.target).some(
+        ({ id }: IndexedSourceRow): boolean => id === dependencyId,
+      ),
+  );
+
 const dependencyReason = (
   planned: PlannedRow,
   dependencyId: number,
+  index: SourceIndex,
 ): string => {
   const decision = planned.decisions.find(
     ({ dedicatedRowId }: OwnershipDecision): boolean =>
       dedicatedRowId === dependencyId,
   );
-  return decision === undefined
+  if (decision !== undefined) {
+    return `alternative-spelling-canonical-entry:${decision.searchableHeadword}`;
+  }
+
+  const cxlRefLink = cxlRefDependencyLink(planned, dependencyId, index);
+  return cxlRefLink === undefined
     ? "canonical-dependency"
-    : `alternative-spelling-canonical-entry:${decision.searchableHeadword}`;
+    : `cxl-ref-variant-reference-soft-link:${cxlRefLink.target}`;
 };
 
 const dependencyTarget = (
   planned: PlannedRow,
   dependencyId: number,
+  index: SourceIndex,
 ): string => {
   const decision = planned.decisions.find(
     ({ dedicatedRowId }: OwnershipDecision): boolean =>
       dedicatedRowId === dependencyId,
   );
-  return decision?.searchableHeadword ?? String(dependencyId);
+  if (decision !== undefined) return decision.searchableHeadword;
+
+  const cxlRefLink = cxlRefDependencyLink(planned, dependencyId, index);
+  return cxlRefLink?.target ?? String(dependencyId);
 };
 
 const addDependencyEntry = (
@@ -379,7 +404,7 @@ const planSelectedRows = (
       if (dependencyRow === undefined) {
         errors = addError(errors, {
           kind: "missing-dependency",
-          target: dependencyTarget(planned, dependencyId),
+          target: dependencyTarget(planned, dependencyId, index),
         });
         continue;
       }
@@ -387,7 +412,7 @@ const planSelectedRows = (
       dependencyRows = addDependencyEntry(
         dependencyRows,
         dependencyRow,
-        dependencyReason(planned, dependencyId),
+        dependencyReason(planned, dependencyId, index),
       );
       const isQueued = pendingRows.some(
         ({ row: queuedRow }: PendingRow): boolean =>
@@ -399,7 +424,7 @@ const planSelectedRows = (
           {
             row: dependencyRow,
             rootWord: null,
-            dependencyTarget: dependencyTarget(planned, dependencyId),
+            dependencyTarget: dependencyTarget(planned, dependencyId, index),
           },
         ];
       }
@@ -566,9 +591,11 @@ const createReport = (
         canonicalEntries,
     ),
     softLinkEntries: deduplicateSoftLinks(
-      state.plannedRows.flatMap(
-        ({ softLinkEntries }: PlannedRow): readonly SoftLinkEntryPlan[] =>
-          softLinkEntries,
+      replaceShadowedAlternateLinks(
+        state.plannedRows.flatMap(
+          ({ softLinkEntries }: PlannedRow): readonly SoftLinkEntryPlan[] =>
+            softLinkEntries,
+        ),
       ),
     ),
     conversions,
@@ -590,9 +617,11 @@ const buildSelectedDictionary = async (
       canonicalEntries,
   );
   const softLinkEntries = deduplicateSoftLinks(
-    state.plannedRows.flatMap(
-      ({ softLinkEntries }: PlannedRow): readonly SoftLinkEntryPlan[] =>
-        softLinkEntries,
+    replaceShadowedAlternateLinks(
+      state.plannedRows.flatMap(
+        ({ softLinkEntries }: PlannedRow): readonly SoftLinkEntryPlan[] =>
+          softLinkEntries,
+      ),
     ),
   );
   let conversions: readonly ConvertedCanonical[] = [];

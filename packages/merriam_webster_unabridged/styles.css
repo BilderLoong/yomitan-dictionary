@@ -83,6 +83,9 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   vertical-align: super;
   font-size: 0.75em;
 }
+[data-sc-content="superscript-reference"][data-sc-source-unit="text-lowercase"] {
+  vertical-align: sub;
+}
 [data-sc-content="emphasis"] {
   font-style: italic;
   color: #d04449;

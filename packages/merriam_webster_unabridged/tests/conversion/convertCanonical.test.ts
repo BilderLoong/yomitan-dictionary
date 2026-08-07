@@ -1161,3 +1161,162 @@ test("keeps multiple synonym references inside one inline entry", () => {
   expect(unitsOf(twirlEntry, "synonym-explanation")[0]?.tag).toBe("span");
   expect(result.value.findings).toEqual([]);
 });
+
+const phraseOwner = (headword: string, body: string): string =>
+  '<div class="dro"><span class="drp">' +
+  headword +
+  '</span><span class="fl">transitive verb</span>' +
+  body +
+  "</div>";
+
+const example = (highlightPairs: string): string =>
+  '<span class="vis"><span class="vi"><span class="ex-sent-group">' +
+  '<span class="ex-sent t no-aq sents">' +
+  highlightPairs +
+  "</span></span></span></span>";
+
+const phrasePlan = (ownerHtml: string) => ({
+  kind: "drp-phrase-canonical-entry" as const,
+  term: "take apart",
+  parentTerm: "take",
+  source: {
+    rowId: 1,
+    rowKey: "take",
+    meanIndex: 0,
+    phraseIndex: 0,
+    ownerHtml,
+  },
+});
+
+test("attaches v_phr rules to a phrase with paired target highlights", () => {
+  const result = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example(
+            'they <span class="mw_t_wi">took</span> the engine <span class="mw_t_wi">apart</span>',
+          ) +
+          example(
+            'she <span class="mw_t_wi">takes</span> it <span class="mw_t_wi">apart</span>',
+          ) +
+          "</span></div></div>",
+      ),
+    ),
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.rules).toBe("v_phr");
+  expect(result.value.findings).toContainEqual({
+    kind: "interposed-object-v-phr",
+    rowId: 1,
+    term: "take apart",
+    exampleCount: 2,
+  });
+});
+
+test("never attaches v_phr for a single highlight or adjacent highlights", () => {
+  const single = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example('they took it <span class="mw_t_wi">apart</span>') +
+          "</span></div></div>",
+      ),
+    ),
+  );
+  expect(single.ok && single.value.rules).toBeNull();
+
+  const adjacent = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example(
+            'they <span class="mw_t_wi">took</span><span class="mw_t_wi">apart</span> the engine',
+          ) +
+          "</span></div></div>",
+      ),
+    ),
+  );
+  expect(adjacent.ok && adjacent.value.rules).toBeNull();
+});
+
+test("never treats ordinary emphasis as interposed-object evidence", () => {
+  const result = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example("they took the <em>whole</em> engine apart") +
+          "</span></div></div>",
+      ),
+    ),
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.value.rules).toBeNull();
+  expect(result.value.findings).toEqual([]);
+});
+
+test("keeps v_phr off non-phrase entries with the same example shapes", () => {
+  const result = convert(
+    "<mean>" +
+      header("take", "verb", "¦tāk") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      '<div class="sense has-sn"><span class="sn sense-1">1</span>' +
+      '<span class="dt ">to remove' +
+      example(
+        'they <span class="mw_t_wi">took</span> the engine <span class="mw_t_wi">apart</span>',
+      ) +
+      "</span></div>" +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.value.rules).toBeNull();
+});
+
+test("tags etymology links as origin and text-lowercase spans as sense pointers", () => {
+  const result = convert(
+    "<mean>" +
+      header("who", "pronoun", "¦hü") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">' +
+            '<a href="bword://who" class="mw_t_et_link">who</a>' +
+            '<span class="text-lowercase">8</span>, ' +
+            '<a href="bword://who[1]" class="mw_t_sx"><sup>1</sup>who</a>' +
+            '<span class="text-lowercase">1a(1)</span>, ' +
+            '<a href="bword://depend" class="mw_t_sc">depend</a>' +
+            '<span class="text-lowercase">intransitive sense 1</span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "who",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(
+    unitsOf(result.value.content, "cross-reference").map(
+      (node: JsonObject): unknown => node.data?.relation,
+    ),
+  ).toEqual(["origin", "see", "related"]);
+  const pointers = unitsOf(
+    result.value.content,
+    "superscript-reference",
+  ).filter(
+    (node: JsonObject): unknown => node.data?.sourceUnit === "text-lowercase",
+  );
+  expect(pointers.map(textOf)).toEqual(["8", "1a(1)"]);
+});

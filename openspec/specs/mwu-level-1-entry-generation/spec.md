@@ -179,7 +179,7 @@ variant family SHALL NOT create soft-link entries.
 - **WHEN** the `in` row owns an embedded canonical `in-` `<mean>`
 - **THEN** generation emits a
   `main-to-alternative-spelling-soft-link` from `in → in-` with source
-  evidence and an empty deinflection rule chain
+  evidence and the `alternative` deinflection rule chain
 
 #### Scenario: Main-to-alternative-spelling soft link with a dedicated target
 
@@ -187,7 +187,7 @@ variant family SHALL NOT create soft-link entries.
   belongs to the dedicated `oh` row
 - **THEN** generation emits a
   `main-to-alternative-spelling-soft-link` from `o → oh` with source evidence
-  and an empty deinflection rule chain
+  and the `alternative` deinflection rule chain
 
 #### Scenario: VR mean alternate soft link
 
@@ -254,6 +254,28 @@ spelling or when no decoded source row exists for the target.
 - **WHEN** the extracted target equals the lookup spelling, or no decoded
   source row exists for the target
 - **THEN** generation skips the link and records the reason
+
+### Requirement: Keep soft-link rule chains non-empty
+
+The generator SHALL serialize every soft-link entry with a non-empty
+dictionary-deinflection rule chain: `alternative` for spelling-alternative
+links (`main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
+`phrase-alternate-soft-link`, `bare-affix-soft-link`) and the confirmed
+relation phrase for `cxl-ref-variant-reference-soft-link`. A SHALL NOT
+serialize a soft link with an empty rule chain. The chain is the only
+dictionary-side lever that keeps Yomitan's shortest-inflection-chain sort key
+from tying the link's pulled target with the queried spelling; an empty chain
+lets a pulled different-spelling canonical entry (for example the `o` row's
+letter entry) outrank the same-spelling entry (for example `oh` or `O`) when
+the build-root popularity is higher.
+
+#### Scenario: Same spelling ranks first
+
+- **WHEN** Yomitan looks up `oh` or `O` in an archive that selected the `o`
+  row as a root
+- **THEN** the same-spelling canonical entries (`oh`, `O`) rank above the
+  pulled `o` entries because the pulling links (`o → oh`,
+  `O → o`) carry a non-empty rule chain
 
 ### Requirement: Audit alternative-local metadata
 
