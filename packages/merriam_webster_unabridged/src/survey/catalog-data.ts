@@ -402,10 +402,10 @@ export const CATALOG_UNITS: readonly CatalogUnit[] = [
     unit: "first-known-use",
     explanation: "Earliest recorded use, often with a sense reference.",
     example: "before 12th century (sense 1a)",
-    classes: "No dedicated class; plain text inside .section-content.etymology",
+    classes: "Bare <p> inside .sub-well; .section-content.etymology",
     binding:
-      "Usually attached to Level 1 origin text, while referring to Level 3–5. It is plain text, not a dedicated class.",
-    ignore: true,
+      "Level 1, inside the origin section after the etymology prose. It is plain text recognized by its 'First Known Use:' prefix, not a dedicated class (187,911 rows, 39.9%). Render the value verbatim in the collapsed origin body for every canonical entry whose source carries it; the optional parenthesized sense reference stays part of the value.",
+    ignore: false,
     rows: null,
     state: null,
     inBuild: null,
