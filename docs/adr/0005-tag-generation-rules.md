@@ -16,8 +16,11 @@ scopes:
    expression and appear near the headword.
 2. **Definition tags** (term-bank field 2) describe the complete definition
    card / term-bank row: a space-separated string, with an empty string
-   meaning no tags. They also act as dictionary-form conditions when the tag
-   name is an English transform condition.
+   meaning no tags. In the bundled fixture (26.7.29.0) they are display
+   chips only: they flow into `tagAggregator.addTags` and never enter the
+   matching path — `_matchEntriesToDeinflections` reads only the rules
+   field. (An older claim that tag names matching an English condition act
+   as conditions is not supported by the fixture code.)
 3. **Rules / deinflectors** (term-bank field 3) is a space-separated list of
    rule identifiers used to validate deinflection. Yomitan derives a term's
    inflection conditions from this field (`getConditionFlagsFromPartsOfSpeech`
