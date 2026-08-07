@@ -276,6 +276,80 @@ test("keeps nested example groups and their target highlights", () => {
   expect(textOf(result.value.content)).toContain("what is two");
 });
 
+test("collapses consecutive sibling example groups into one extras block", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "verb", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to cause to move' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent first-child t no-aq sents">→ ' +
+            '<span class="mw_t_wi">turn</span> a wheel</span></span>' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ ' +
+            '<span class="mw_t_wi">turn</span> a crank</span></span>' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent t has-aq sents">→ great wheel ' +
+            '<span class="mw_t_wi">turns</span> its axle</span>' +
+            '<span class="ex-sent aq has-aq sents"><span class="aq">' +
+            '<span class="auth"> — Theodore Roethke</span></span></span>' +
+            "</span></span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "example-sentence")).toHaveLength(3);
+  expect(unitsOf(result.value.content, "target-highlight")).toHaveLength(3);
+  expect(unitsOf(result.value.content, "example-source").map(textOf)).toEqual([
+    "— Theodore Roethke",
+  ]);
+  const extras = unitsOf(result.value.content, "extra-examples");
+  expect(extras).toHaveLength(1);
+  expect(extras[0]?.open).toBe(false);
+  expect(textOf(extras[0]?.content)).toContain("2 more examples");
+  expect(textOf(extras[0]?.content)).toContain("turn a crank");
+  expect(textOf(extras[0]?.content)).toContain("great wheel turns its axle");
+  expect(
+    textOf(unitsOf(result.value.content, "example-sentence")[0]?.content),
+  ).toContain("turn a wheel");
+});
+
+test("keeps example groups separated by definition text uncollapsed", () => {
+  const result = convert(
+    "<mean>" +
+      header("turn", "verb", "¦tərn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">first sense' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent first-child t no-aq sents">→ ' +
+            '<span class="mw_t_wi">turn</span> one</span></span>' +
+            '<strong class="mw_t_bc">: </strong>second sense' +
+            '<span class="ex-sent-group">' +
+            '<span class="ex-sent t no-aq sents">→ ' +
+            '<span class="mw_t_wi">turn</span> two</span></span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "example-sentence")).toHaveLength(2);
+  expect(unitsOf(result.value.content, "extra-examples")).toHaveLength(0);
+});
+
 test("preserves examples directly under a usage wrapper", () => {
   const result = convert(
     "<mean>" +

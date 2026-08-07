@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "maxSize": 5242880
+    "maxSize": 5242880,
+    "includes": [
+      "**",
+      "!packages/merriam_webster_unabridged/tests/rendered/vendor",
+      "!packages/merriam_webster_unabridged/tests/rendered/fixtures"
+    ]
   },
   "formatter": {
     "enabled": true,

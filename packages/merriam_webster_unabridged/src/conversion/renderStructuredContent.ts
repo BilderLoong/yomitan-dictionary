@@ -910,6 +910,67 @@ const renderExampleGroup = (
   plan: CanonicalEntryPlan,
 ): RenderResult => renderExampleGroups(root, [element], path, plan);
 
+const isExampleGroup = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" && hasClass(root, node, "ex-sent-group");
+
+/**
+ * Partitions sibling nodes into maximal homogeneous runs of consecutive
+ * ex-sent-group elements. Sources emit a sense's example block either as a
+ * single `.vis` wrapper or as several bare sibling `.ex-sent-group`s (e.g.
+ * turn 1a); batching the siblings through collapseExampleResults makes both
+ * shapes render as one inline example plus "N more examples".
+ */
+const partitionExampleRuns = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+): readonly (readonly AnyNode[])[] => {
+  const runs: (readonly AnyNode[])[] = [];
+  let current: AnyNode[] = [];
+  let previousGroup = false;
+  for (const node of nodes) {
+    const isGroup = isExampleGroup(root, node);
+    if (current.length > 0 && isGroup !== previousGroup) {
+      runs.push(current);
+      current = [];
+    }
+    current.push(node);
+    previousGroup = isGroup;
+  }
+  if (current.length > 0) runs.push(current);
+  return runs;
+};
+
+/**
+ * Renders sibling nodes, collapsing each maximal run of consecutive
+ * ex-sent-group elements into a single example block and dispatching every
+ * other node through `dispatch`.
+ */
+const renderNodeRuns = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+  dispatch: (node: AnyNode, index: number) => RenderResult,
+): readonly RenderResult[] => {
+  const results: RenderResult[] = [];
+  for (const run of partitionExampleRuns(root, nodes)) {
+    if (run.every((node: AnyNode): boolean => isExampleGroup(root, node))) {
+      const groups = run.filter((node: AnyNode): node is Element =>
+        isExampleGroup(root, node),
+      );
+      results.push(renderExampleGroups(root, groups, path, plan));
+      continue;
+    }
+    for (const node of run) {
+      results.push(dispatch(node, results.length));
+    }
+  }
+  return results;
+};
+
 const collectUsageNotes = (
   root: cheerio.CheerioAPI,
   element: Element,
@@ -1017,11 +1078,12 @@ const renderDefinitionFlow = (
   leadingNodes: readonly AnyNode[] = [],
 ): RenderResult => {
   const sourceNodes = [...leadingNodes, ...root(element).contents().toArray()];
-  const results = sourceNodes.map(
+  const results = renderNodeRuns(
+    root,
+    sourceNodes,
+    path,
+    plan,
     (child: AnyNode, index: number): RenderResult => {
-      if (child.type === "tag" && hasClass(root, child, "ex-sent-group")) {
-        return renderExampleGroup(root, child, [...path, index], plan);
-      }
       if (child.type === "tag" && hasClass(root, child, "uns")) {
         return renderUsageNotes(root, child, [...path, index], plan);
       }
@@ -1068,9 +1130,14 @@ const renderSense = (
             (child: AnyNode): boolean =>
               child.type === "tag" && hasAnyClass(root, child, ["if", "spl"]),
           );
-  const results = children
-    .filter((child: AnyNode): boolean => !leadingFormNodes.includes(child))
-    .map((child: AnyNode, index: number): RenderResult => {
+  const results = renderNodeRuns(
+    root,
+    children.filter(
+      (child: AnyNode): boolean => !leadingFormNodes.includes(child),
+    ),
+    path,
+    plan,
+    (child: AnyNode, index: number): RenderResult => {
       if (child.type === "tag" && hasClass(root, child, "dt")) {
         return renderDefinitionFlow(
           root,
@@ -1084,14 +1151,12 @@ const renderSense = (
       if (child.type === "tag" && hasClass(root, child, "uns")) {
         return renderUsageNotes(root, child, [...path, index], plan);
       }
-      if (child.type === "tag" && hasClass(root, child, "ex-sent-group")) {
-        return renderExampleGroup(root, child, [...path, index], plan);
-      }
       if (child.type === "tag" && hasClass(root, child, "sdsense")) {
         return renderScopedDefinition(root, child, [...path, index], plan);
       }
       return renderInlineNode(root, child, [...path, index], plan);
-    });
+    },
+  );
   return combineResults(results);
 };
 
@@ -2110,7 +2175,11 @@ const renderPhraseSection = (
   plan: CanonicalEntryPlan,
   embedded: boolean,
 ): RenderResult => {
-  const bodyResults = bodyChildren.map(
+  const bodyResults = renderNodeRuns(
+    root,
+    bodyChildren,
+    path,
+    plan,
     (child: AnyNode, index: number): RenderResult => {
       if (child.type === "tag" && hasClass(root, child, "vg")) {
         return renderDefinitionGroup(root, child, plan);
@@ -2121,11 +2190,10 @@ const renderPhraseSection = (
       if (child.type === "tag" && hasClass(root, child, "dt")) {
         return renderDefinitionFlow(root, child, [...path, index], plan, 3);
       }
-      if (child.type === "tag" && hasClass(root, child, "ex-sent-group")) {
-        return renderExampleGroup(root, child, [...path, index], plan);
-      }
       if (child.type === "tag" && hasClass(root, child, "vr")) {
-        return renderAlternateForm(root, child);
+        // In a titled section the alternate spellings live in the summary
+        // line; only the embedded (summary-less) flow keeps them inline.
+        return embedded ? renderAlternateForm(root, child) : emptyResult();
       }
       return renderLooseNode(root, child, [...path, index], plan, ["drp"]);
     },
@@ -2141,12 +2209,23 @@ const renderPhraseSection = (
       body.findings,
     );
   }
+  const alternates = bodyChildren
+    .filter(
+      (child: AnyNode): child is Element =>
+        child.type === "tag" && hasClass(root, child, "vr"),
+    )
+    .flatMap((child: Element): readonly StructuredContent[] =>
+      alternateFormParts(root, child),
+    );
   return renderResult(
     [
       container(
         "details",
         [
-          container("summary", container("span", elementText(root, title))),
+          container("summary", [
+            container("span", elementText(root, title)),
+            ...alternates,
+          ]),
           container("div", body.nodes, {
             data: unitData("definition-flow", { level: 3 }),
           }),
