@@ -248,10 +248,9 @@ const parseArguments = (
   args: string[],
 ): { lookups: string[]; outputPath: string } => {
   const outputIndex = args.indexOf("--output");
+  const outputArg = outputIndex >= 0 ? args[outputIndex + 1] : undefined;
   const outputPath =
-    outputIndex >= 0 && args[outputIndex + 1] !== undefined
-      ? path.resolve(args[outputIndex + 1]!)
-      : defaultOutputPath;
+    outputArg !== undefined ? path.resolve(outputArg) : defaultOutputPath;
   const lookups = args
     .filter(
       (argument, index) =>

@@ -56,6 +56,16 @@ const nodesFor = (
 const entriesForTerm = (term: string): (typeof termBank)[number][] =>
   termBank.filter(([entryTerm]) => entryTerm === term);
 
+const firstOf = (
+  entries: (typeof termBank)[number][],
+): (typeof termBank)[number] => {
+  const entry = entries[0];
+  if (entry === undefined) {
+    throw new Error("expected at least one entry in the fixture");
+  }
+  return entry;
+};
+
 const visibleExampleCount = (node: JsonObject): number =>
   nodeChildren(node).filter(
     (child) => isObject(child) && unitOf(child) === "example-sentence",
@@ -140,10 +150,10 @@ describe("hand-authored MWU Yomitan design fixture", () => {
       }
     }
 
-    const whatOrigin = nodesFor(entriesForTerm("what")[0]!, "origin")[0];
+    const whatOrigin = nodesFor(firstOf(entriesForTerm("what")), "origin")[0];
     expect(textContent(whatOrigin)).toContain("Origin of WHAT");
     expect(
-      nodesFor(entriesForTerm("what")[0]!, "origin-section-title"),
+      nodesFor(firstOf(entriesForTerm("what")), "origin-section-title"),
     ).toHaveLength(1);
   });
 
@@ -205,7 +215,7 @@ describe("hand-authored MWU Yomitan design fixture", () => {
     expect(entriesForTerm("process")).toHaveLength(4);
     expect(processText).toContain("pro·cess");
     expect(
-      nodesFor(entriesForTerm("process")[0]!, "pronunciation"),
+      nodesFor(firstOf(entriesForTerm("process")), "pronunciation"),
     ).toHaveLength(1);
     expect(processText).toContain("ˈprä-ˌses");
 
@@ -326,7 +336,7 @@ describe("hand-authored MWU Yomitan design fixture", () => {
 
     if (!processNoun) return;
 
-    expect(textContent(nodesFor(processNoun, "inflection-group")[0]!)).toBe(
+    expect(textContent(nodesFor(processNoun, "inflection-group")[0])).toBe(
       "inflected form(s): plural pro·cess·es /ˈprä-ˌse-səz, ˈprō-, -sə-, -ˌsēz/",
     );
   });
@@ -477,37 +487,41 @@ describe("hand-authored MWU Yomitan design fixture", () => {
 
   test("keeps embedded hand meanings and the O variant as canonical entries", () => {
     expect(entriesForTerm("hand cheese")).toHaveLength(1);
-    expect(entriesForTerm("hand cheese")[0]![2]).toBe("n");
+    expect(firstOf(entriesForTerm("hand cheese"))[2]).toBe("n");
     expect(textContent(entriesForTerm("hand cheese")[0])).toContain("hand21");
 
     expect(entriesForTerm("hand game")).toHaveLength(1);
-    expect(entriesForTerm("hand game")[0]![2]).toBe("n");
+    expect(firstOf(entriesForTerm("hand game"))[2]).toBe("n");
     expect(textContent(entriesForTerm("hand game")[0])).toContain("hand17");
 
     const oEntries = entriesForTerm("O").filter(
       (entry) => !Array.isArray(entry[5][0]),
     );
     expect(oEntries).toHaveLength(3);
-    expect(oEntries[0]![2]).toBe("");
+    expect(firstOf(oEntries)[2]).toBe("");
     expect(textContent(oEntries[0])).toContain("variant spelling of oh");
-    expect(nodesFor(oEntries[0]!, "homograph-number").map(textContent)).toEqual(
-      ["1"],
-    );
-    expect(nodesFor(oEntries[0]!, "variant-reference")).toHaveLength(1);
+    expect(
+      nodesFor(firstOf(oEntries), "homograph-number").map(textContent),
+    ).toEqual(["1"]);
+    expect(nodesFor(firstOf(oEntries), "variant-reference")).toHaveLength(1);
   });
 
   test("keeps source header metadata in MWU order", () => {
-    const handHeader = nodesFor(entriesForTerm("hand")[0]!, "mwu-header")[0];
-    const oHeader = nodesFor(entriesForTerm("o")[0]!, "mwu-header")[0];
+    const handHeader = nodesFor(
+      firstOf(entriesForTerm("hand")),
+      "mwu-header",
+    )[0];
+    const oHeader = nodesFor(firstOf(entriesForTerm("o")), "mwu-header")[0];
 
     expect(handHeader).toBeDefined();
     expect(oHeader).toBeDefined();
     if (!handHeader || !oHeader) return;
 
     const unitsIn = (node: JsonObject): string[] =>
-      nodeChildren(node).flatMap((child) =>
-        isObject(child) && unitOf(child) !== undefined ? [unitOf(child)!] : [],
-      );
+      nodeChildren(node).flatMap((child) => {
+        const unit = isObject(child) ? unitOf(child) : undefined;
+        return unit === undefined ? [] : [unit];
+      });
 
     const handUnits = unitsIn(handHeader);
     expect(handUnits.indexOf("homograph-number")).toBeGreaterThanOrEqual(0);

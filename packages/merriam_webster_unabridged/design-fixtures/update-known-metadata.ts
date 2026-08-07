@@ -79,7 +79,7 @@ const childrenOf = (value: unknown): readonly unknown[] => {
 const cleanText = (value: string): string => value.replace(/\s+/g, " ").trim();
 
 const textOf = (
-  $: cheerio.CheerioAPI,
+  _$: cheerio.CheerioAPI,
   element: cheerio.Cheerio<cheerio.Element>,
 ): string => cleanText(element.text());
 
@@ -319,7 +319,8 @@ const main = async (): Promise<void> => {
     });
     if (matchIndex < 0) return entry;
 
-    const source = metadata[matchIndex]!;
+    const source = metadata[matchIndex];
+    if (source === undefined) return entry;
     used.add(matchIndex);
     const next = updateHeader(entry, source);
     report.matched.push({

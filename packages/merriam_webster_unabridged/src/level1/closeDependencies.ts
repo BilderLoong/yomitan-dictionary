@@ -30,12 +30,9 @@ interface DependencyClosureState {
   readonly reasons: readonly DependencyEdge[];
 }
 
-const uniqueRowIds = (rowIds: readonly number[]): readonly number[] =>
-  rowIds.reduce<readonly number[]>(
-    (unique: readonly number[], rowId: number): readonly number[] =>
-      unique.includes(rowId) ? unique : [...unique, rowId],
-    [],
-  );
+const uniqueRowIds = (rowIds: readonly number[]): readonly number[] => [
+  ...new Set(rowIds),
+];
 
 const followDependency = (
   availableRowIds: readonly number[],

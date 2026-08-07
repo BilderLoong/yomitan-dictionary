@@ -47,7 +47,6 @@ export const assertCollapsedExamples = (
   }
 };
 
-
 export const findPhraseSection = (
   root: HTMLElement,
   canonical: string,

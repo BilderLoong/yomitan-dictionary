@@ -164,14 +164,17 @@ const senseMarker = (
 };
 
 const extractClassCounts = ($: cheerio.CheerioAPI): Record<string, number> =>
-  $("[class]")
-    .toArray()
-    .flatMap((element) => (element.attribs.class ?? "").split(/\s+/))
-    .filter(Boolean)
-    .reduce<Record<string, number>>(
-      (counts, name) => ({ ...counts, [name]: (counts[name] ?? 0) + 1 }),
-      {},
-    );
+  Object.fromEntries(
+    $("[class]")
+      .toArray()
+      .flatMap((element) => (element.attribs.class ?? "").split(/\s+/))
+      .filter(Boolean)
+      .reduce(
+        (counts: Map<string, number>, name: string) =>
+          counts.set(name, (counts.get(name) ?? 0) + 1),
+        new Map<string, number>(),
+      ),
+  );
 
 const extractClassNames = (html: string): string[] =>
   [...html.matchAll(/\bclass\s*=\s*(["'])(.*?)\1/gi)]
