@@ -76,3 +76,28 @@ counts after resolving substring noise (see per-class notes).
   `.sense-(a)`/`.sense-(b)` → `subsense-letter`.
 - **No mapping**: `.disc` (does not exist as a class); `.mw_t_bold` and
   `.visible-phone` (presentation only).
+
+## How to find these examples
+
+DB: `packages/merriam_webster_unabridged/assets/MWU.db`, table
+`word(id, w, m)` — `w` is the percent-encoded word (decode with
+`decodeURIComponent`), `m` is the row's HTML. Every needle below is a
+literal substring of `m` (`SELECT id, w, m FROM word WHERE instr(m, '<needle>') > 0`).
+For bun: `bun -e 'const db = new Database("assets/MWU.db", {readonly:true}); console.log(db.query(`SELECT id, w FROM word WHERE instr(m, ?) > 0 LIMIT 3`).all("class=\\"iw"))'`.
+
+| Class | Needle | Word (id) | What to look at |
+| --- | --- | --- | --- |
+| `.caption` | `class="caption"` | aardvark (125) | `p.caption` inside `div.section.custom-accordion.illustrations`, under `h2.toggle` "Illustration of AARDVARK" |
+| `.date` | `class="date"` | American way (7677) | `span.date` containing `1850`, immediately before `<span id="the-American-way-anchor" class="drp">the American way</span>` |
+| `.disc` | `class="disc"` | none | 0 rows — the class does not exist; 49,214 raw "disc" hits are prose (`discussion`, `discover`, `compact disc`) |
+| `.illustrations` | `class="illustrations"` | aardvark (125) | `<div id="art" class="section custom-accordion illustrations" data-id="artwork">` with `h2.toggle` + `p.caption` |
+| `.iw` | `class="iw` | anecdote (9006) | `span.iw.see.numbered.senses` ("see numbered senses") directly after `span.last-slash` in the headword row; addendum (2540) shows the `see sense 3` variant |
+| `.l` | `class="l"` | Alhambra (5790) | `span.l` with text ` for 1 also ` inside `span.pr` (between the slashes of the pronunciation) |
+| `.mw_t_a_link` | `class="mw_t_a_link"` | alabaster (5222) | `a.mw_t_a_link` with `href="bword://Alabama"` inside `span.dt` |
+| `.mw_t_bold` | `class="mw_t_bold"` | aground (4580) | `strong.mw_t_bold` with text `run aground` at the start of a `span.mw_t_phrase` in an example |
+| `.mw_t_i_link` | `class="mw_t_i_link"` | Acrasiales (1946) | `a.mw_t_i_link` with `href="bword://Acrasis"` inside `span.dt` |
+| `.pn` | `class="pn"` | alligation (6220) | `span.pn` with `(1)`/`(2)` between `span.ucat` terms on the "called also respectively" line |
+| `.sense-(a)` / `.sense-(b)` | `sense-(a)` (note: no `class="` prefix — it is the SECOND class token) | indirect (213897) | `<span class="sn sense-(a)"><span class="letter">a</span></span>` — legacy variant duplicating the `.letter` child |
+| `.table-image` | `class="table-image"` | table_collegiate_alphabet (361661) | whole row is one table page: `<p class="table-image"><img src="table_collegiate_alphabet.jpg"></p>` |
+| `.table-section` | `class="table-section"` | alphabet (6705) | `div.table-section` with `<a href="bword:///table/unabridged/alphabet.htm"> Alphabet Table </a>`, directly after the definition body |
+| `.visible-phone` | `class="toggle-icon visible-phone"` | abysm (828) | `span.toggle-icon.visible-phone` with `[+]` inside `h2.toggle` — responsive accordion icon, presentation only |

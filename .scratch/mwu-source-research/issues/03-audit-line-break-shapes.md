@@ -178,3 +178,13 @@ hyphenation.
 3. The 8 `br`+`breakpoints` rows confirm the two markers are independent
    mechanisms that can co-exist in one row without interacting (headword
    chunking vs usage prose).
+
+## How to find these examples
+
+Same DB/table as ticket 01 (`word(id, w, m)`; `w` percent-encoded, `m` = HTML; needles are literal `instr(m, …)` substrings).
+
+| Shape | Needle | Word (id) | What to look at |
+| --- | --- | --- | --- |
+| literal `<br>` (Level 6 prose) | `<br` | abortive (506) | `<span>Usage Discussion of <i>abortive</i></span><br> Sense 2 has been objected to occasionally since the 1880s…` — the `<br>` separates the "Usage Discussion of X" heading span from the body. 62 rows total, every `<br>` lives in usage/etymology prose |
+| `.breakpoints` / `.breakpoint` (responsive headword) | `class="breakpoints"` | a cappella (71) | `<h1 class="hword"> <span class="breakpoints"><sup>1</sup> <span class="breakpoint">a</span></span> <span class="breakpoints"><span class="breakpoint no-hyphen">cap…` — always `h1.hword > span.breakpoints > span.breakpoint*`; chunks of ~2 chars, presentation only |
+| both markers in one row | `class="breakpoints"` + `<br` | anticipate (10576) | the two markers are in disjoint DOM regions: headword (`breakpoints`) vs usage prose (`<br>`) — never the same line |

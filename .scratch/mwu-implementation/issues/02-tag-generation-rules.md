@@ -51,3 +51,42 @@ on them:
 - [Yomitan translator](https://github.com/yomidevs/yomitan/blob/master/ext/js/language/translator.js)
 - [WTY project](https://github.com/yomidevs/wiktionary-to-yomitan)
 - [WTY tag documentation](https://yomidevs.github.io/wiktionary-to-yomitan/tags/)
+
+## How to find these examples
+
+### Source evidence (DB)
+
+DB: `packages/merriam_webster_unabridged/assets/MWU.db`, table `word(id, w, m)`. Word `take` (id 362180), needle `take-apart-anchor`, then the first paired-highlight example (needle `take</span> a town`):
+
+```html
+<span class="mw_t_sp"><span class="mw_t_wi">take</span> a town <span class="mw_t_wi">apart</span></span>
+```
+
+7 such examples in the `take apart` scope prove verb+particle with object between → the phrase gets `rules: "v_phr"`. Negative case: `give` (id 194504) — `you up` appears in 0 rows; the similar-looking example uses `em.mw_t_it` (emphasis), which is correctly ignored.
+
+### Reproduce the build output
+
+From `packages/merriam_webster_unabridged`:
+
+```
+bun run src/index.ts --words take
+jq -c '.conversions[] | select(.rules=="v_phr")' build/build-report.json
+```
+
+Expected samples (verbatim from the 2026-08-07 build):
+
+```json
+{"term":"what for","rules":"v_phr","findings":["interposed-object-v-phr"]}
+{"term":"turn one's back on","rules":"v_phr","findings":["interposed-object-v-phr"]}
+{"term":"turn one's hand","rules":"v_phr","findings":["interposed-object-v-phr"]}
+{"term":"turn tail","rules":"v_phr","findings":["interposed-object-v-phr"]}
+```
+
+In the ZIP, the rule lands in term-bank field 3 (the field Yomitan's `getConditionFlagsFromPartsOfSpeech` derives inflection conditions from):
+
+```
+unzip -p "build/Merriam Webster Unabridged.zip" term_bank_1.json | jq -c '.[] | select(.[0]=="take apart")'
+# → ["take apart",...,"v_phr",...]
+```
+
+Code pointers: `src/conversion/convertCanonical.ts` (`interposedObjectExampleCount` — exactly two `.mw_t_wi` spans with retained text between, inside `.ex-sent`); `src/conversion/types.ts` (`ConvertedCanonical.rules: string | null`, finding kind `interposed-object-v-phr`); `src/pipeline/assembleRecords.ts` (writes field 3); decision: `docs/adr/0005-tag-generation-rules.md`.

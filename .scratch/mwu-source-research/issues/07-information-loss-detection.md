@@ -56,3 +56,19 @@ findings — no ADR needed (the metric is a report; reversing it is cheap).
   carries the example-source units — no attribution loss found.
 - The audit doubles as a regression canary: any future silent drop shows up
   as a new missing token with its record and row id.
+
+## How to reproduce the baseline
+
+From the package dir `packages/merriam_webster_unabridged`:
+
+```
+bun run coverage:audit --words what o take in oh turn run
+```
+
+Writes `build/coverage-report.json` (`totals`: records 202, meanCoverage ~0.9425, flaggedRecords 64). Per-record entries carry `term`, `rowId`, `findingKinds`, and `coverage {sourceTokenCount, renderedTokenCount, missingTokens, coverage}`.
+
+- Perfect record to inspect: `no matter what` (rowId 464223 — the `what` row) → coverage 1.0, `missingTokens: []`.
+- Flagged record to inspect: `take apart` (rowId 362180) → coverage ~0.96, missing tokens `["1","2","3a","b"]` — CSS-drawn sense numbers, not a real loss.
+- Flagged record to inspect: `turn` (rowId 450356) → missing tokens are sense markers (`1a`, `2a`, …), `First Known Use` lines (unit `first-known-use`, Ignore=true), and syllabification-dot artifacts (`ur·rann·jan`).
+
+Tool implementation: `src/pipeline/coverage.ts` (`textTokens`, `renderedText`, `computeTextCoverage`); runner `tests/coverage_audit.ts`; npm script `coverage:audit`.

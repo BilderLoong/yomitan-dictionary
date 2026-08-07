@@ -203,3 +203,15 @@ None — all five items are decided. The only open work is the renderer
 traversal for the Level 6 `.see-in-addition` placements and the `.sdsense`
 sibling attribution, which is implementation work, not a presentation
 decision.
+
+## How to find these examples
+
+Same DB/table as ticket 01 (`word(id, w, m)`; `w` percent-encoded, `m` = HTML; needles are literal `instr(m, …)` substrings).
+
+| Decision | Needle | Word (id) | What to look at |
+| --- | --- | --- | --- |
+| 1. Nested citation — in-group attribution | `Khan` | 2.0 (9) | `span.ex-sent.aq` (classes `t has-aq sents`) containing `span.aq > span.auth "— Amina Khan"`, `span.source "Los Angeles Times"`, `span.aqdate "27 Feb. 2014"` — attribution INSIDE the example group |
+| 1. Nested citation — sub-definition attribution | `sdsense` | A post (92) | the `.sdsense` block inside `.sense`; its examples carry attribution as a trailing `.ex-sent.aq` SIBLING of `.ex-sent-group` (scan: 163/163 of these were the sibling shape) |
+| 2. Related inline items | `Synonym Discussion` | turn (450356) | `<div class="syn synonym-discussion"><p class="syn"> <strong>Synonym Discussion</strong> <a class="mw_t_sc">revolve</a>, <a>rotate</a>, <a>gyrate</a>…` — title, then comma-separated inline term links |
+| 3. `.sgram` scoped inline | `sgram` | abate (196) | `<span class="sgram"><em>intransitive</em></span>` immediately after the sense number — a label, rendered inline |
+| 4. Level 6 `.see-in-addition` | `see-in-addition` | absolute (642) | `<p class="see-in-addition"><strong>synonyms</strong> see in addition <a href="bword://pure" class="sa-link sc">pure</a>…` — Level 6 cross-pointer |

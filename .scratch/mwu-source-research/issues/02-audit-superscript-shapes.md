@@ -107,3 +107,16 @@ relation label.
 3. `'em` (id 19) has a literal `<sup>21</sup>` inside `.prs` — worth
    confirming against print what the raised "21" denotes before deciding
    whether it needs a dedicated unit beyond generic superscript rendering.
+
+## How to find these examples
+
+Same DB/table as ticket 01 (`word(id, w, m)`, `w` percent-encoded, `m` = HTML; needles are literal `instr(m, …)` substrings).
+
+| Shape | Needle | Word (id) | What to look at |
+| --- | --- | --- | --- |
+| (a) headword homograph | `<h1 class="hword">` then first `<sup>` | cayenne (39205) | `<h1 class="hword"> <sup>1</sup> cay·enne</h1>` — the sup is a direct child; a cappella (71) shows the same sup nested inside `span.breakpoints` |
+| (b) sense reference | `class="text-lowercase"` | Absaroka (596) | `<span class="text-uppercase">crow</span></a> <span class="text-lowercase">8</span>` — a lowered span whose immediately PRECEDING sibling is a cross-reference anchor (`a.mw_t_sx`), i.e. "sense 8 of crow" |
+| (c) cross-reference number | `class="mw_t_et_link"` | starquake (352867) | `<a href="bword://star[1]" class="mw_t_et_link"><sup>1</sup>star</a>` — the sup is the homograph prefix of the link TARGET; 4-aminobiphenyl (45) shows the same for `amino-` + `biphenyl` |
+| (d) called-also number | `class="cat"><sup` | none | 0 rows (also 0 for `class="ucat"><sup`, `class="ca"><sup`) — this shape does not exist |
+| (e) pronunciation-content sup | `<sup>21</sup>` | 'em (19) | `ˈsāb<sup>21</sup>m` inside `span.prs` — literal reading text, not a reference |
+| (f) chemical-formula sup | `<sup>+</sup>` | thetin (441962) | `(CH<sub>3</sub>)<sub>2</sub>S<sup>+</sup>CH<sub>2</sub>COO<sup>−</sup>` inside an example |

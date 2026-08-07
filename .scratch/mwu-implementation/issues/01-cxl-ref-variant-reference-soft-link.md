@@ -52,3 +52,42 @@ cxl-ref targets and rules conservatively).
   `["O","",null,"",-100,[["oh",["variant spelling of"]]],…]` with zero
   findings and zero errors; unit + integration + full suite green (129
   tests).
+
+## How to find these examples
+
+### Source evidence (DB)
+
+DB: `packages/merriam_webster_unabridged/assets/MWU.db`, table `word(id, w, m)`.
+
+- The `o` row (id 288348), needle `cxl-ref`:
+  ```html
+  <p class="cxl-ref"> <span class="cxl">variant spelling of</span> <a rel="prev" href="bword://oh" class="cxt">oh</a> </p>
+  ```
+  This is the definition-free mean whose only evidence is the reference → emits the soft link. The target comes from the `bword://oh` href.
+- The `oh` row (id 289655), needle `O-anchor`:
+  ```html
+  <span class="vr"><span class="vl"> or </span><span id="O-anchor" class="va">O</span></span>
+  ```
+  The `oh` row's own alternate evidence ("or O") merges into the same link's `evidence[]` across rows.
+
+### Reproduce the build output
+
+From `packages/merriam_webster_unabridged`:
+
+```
+bun run src/index.ts --words o
+jq -c '.softLinkEntries[] | select(.lookup=="O")' build/build-report.json
+```
+
+Expected (verbatim from the 2026-08-07 build):
+
+```json
+{"kind":"soft-link-entry","relationship":"cxl-ref-variant-reference-soft-link","lookup":"O","target":"oh","rules":["variant spelling of"],"evidence":[{"rowId":288348,"rowKey":"o","meanIndex":1,"phraseIndex":null,"selector":".cxl-ref","qualifier":null,"localText":"oh"},{"rowId":289655,"rowKey":"oh","meanIndex":0,"phraseIndex":null,"selector":".vr","qualifier":"or","localText":"or O"},{"rowId":289655,"rowKey":"oh","meanIndex":1,"phraseIndex":null,"selector":".vr","qualifier":"or","localText":"or O"}]}
+```
+
+And in the ZIP (serialized Yomitan tuple — term, reading, definitionTags, rules, popularity, definitions, sequence, termTags):
+
+```
+unzip -p "build/Merriam Webster Unabridged.zip" term_bank_1.json | jq -c '.[] | select(.[0]=="O")'
+# → ["O","",null,"",-100,[["oh",["variant spelling of"]]],13,""]
+```

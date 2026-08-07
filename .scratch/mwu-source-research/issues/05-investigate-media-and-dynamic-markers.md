@@ -115,3 +115,16 @@ media/tables/dates/marker inventory.
   not be confused with `.aqdate`.
 - `.sense-(a)`/`.sense-(b)` need no parser special-casing: they are legacy
   tokens of the existing `subsense-letter` unit.
+
+## How to find these examples
+
+Same DB/table as ticket 01 (`word(id, w, m)`; `w` percent-encoded, `m` = HTML; needles are literal `instr(m, …)` substrings).
+
+| Shape | Needle | Word (id) | What to look at |
+| --- | --- | --- | --- |
+| definition image (`.illustrations`) | `class="illustrations"` | aardvark (125) | `<div id="art" class="section custom-accordion illustrations" data-id="artwork">` with `h2.toggle` "Illustration of AARDVARK" + `p.caption`. 3,951 rows are this shape; the ONLY other image shape is `.table-image` (52) — no other non-status image contexts exist |
+| table page (`.table-image`) | `class="table-image"` | table_collegiate_alphabet (361661) | the whole row is `<p class="table-image"><img src="table_collegiate_alphabet.jpg"></p>` — there are ZERO `<table>` elements in the DB; tables are full-page images |
+| table pointer (`.table-section`) | `class="table-section"` | alphabet (6705) | `div.table-section` with `<a href="bword:///table/unabridged/alphabet.htm"> Alphabet Table </a>` right after the definition body |
+| phrase date (`.date`) | `class="date"` | American way (7677) | `span.date` with `1850` inside `div.dro`, before the `#the-American-way-anchor` phrase — 2 rows total |
+| example date (`.aqdate`) | `aqdate` | 2.0 (9) | `span.aqdate` with `27 Feb. 2014` inside `span.aq` of an example attribution — 14,073 rows; distinct from `.date` |
+| responsive toggle icon (`.visible-phone`) | `class="toggle-icon visible-phone"` | abysm (828) | `span.toggle-icon.visible-phone` with `[+]` inside `h2.toggle` — 64,901 rows, presentation only |

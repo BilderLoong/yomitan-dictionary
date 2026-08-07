@@ -161,3 +161,27 @@ attaching `v_phr` to `drp-phrase-canonical-entry` records now (accepting the
 mapping) or keep it deferred until the regex lives in a tracked transform
 module rather than the archived prompts file. The evidence supports
 acceptance either way.
+
+## How to find these examples
+
+Same DB/table as ticket 01 (`word(id, w, m)`; `w` percent-encoded, `m` = HTML; needles are literal `instr(m, …)` substrings).
+
+### Positive case — `take apart` (word `take`, id 362180)
+
+Needle `take-apart-anchor` finds the phrase scope: `<span id="take-apart-anchor" class="drp">take apart</span>` followed by its `.vg` sense tree. Inside that scope, the 7 interposed-object examples live in `.ex-sent` spans under `.ex-sent-group`; each is two `.mw_t_wi` highlights with plain object text between. The first one (needle `take</span> a town`):
+
+```html
+<span class="mw_t_sp"><span class="mw_t_wi">take</span> a town <span class="mw_t_wi">apart</span></span>
+```
+
+The other six (needle `mw_t_wi` and scan the `take apart` scope): `takes</span> it <span…apart`, `take the various games and sponsors apart`, `takes the ordinary American citizen apart`, `take the witness apart`, `take your opponent apart`, `took wives apart`.
+
+### Negative case — `give you up` (word `give`, id 194504)
+
+The literal string `you up` appears in **0 rows** of the DB. The `give` row's 18 `.drp` phrases include none `give up`. What looks similar is ordinary emphasis — e.g. needle `gave</em> him a watch` shows:
+
+```html
+<span class="mw_t_sp"><em class="mw_t_it">gave</em> him a watch on his birthday</span>
+```
+
+`em.mw_t_it` is emphasis italics, NOT `.mw_t_wi` target highlighting — so no v_phr evidence is produced. This is the negative case the rule must pass, and it does.

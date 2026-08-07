@@ -49,3 +49,33 @@ is reported, never silently discarded.
   report under `build/` and never emits Yomitan entries.
 - Smoke-tested on what/o/take/set/hand: all elements classified, zero
   unknown selectors on those rows.
+
+## How to find these examples
+
+From `packages/merriam_webster_unabridged`:
+
+```
+bun run survey:inspect --words what o take set hand
+```
+
+Real output for `what` (row 464223) — three-section contract:
+
+```
+=== what (row 464223) ===
+interesting: 1181 | notNeeded: 267 | notYetNoticed: 0
+[interesting] headword-display L1 @ h1.hword → mean
+[interesting] part-of-speech L1 @ span.fl → mean
+[interesting] sense-number L3 @ span.sn.sense-1.a.(1) → div.sense.has-sn
+[interesting] example-sentence L6 @ span.ex-sent.t.no-aq.sents.sents-block → span.ex-sent-group
+[notNeeded] presentation L4 @ span.sb-0 → div.sb
+```
+
+Inventory aggregates into `build/survey-inventory.json`; example entries:
+
+```
+jq -c '.inventory.entries[] | select(.unit=="target-highlight") | {selector, rows: .rowCount, words: .exampleWords[0:3]}' build/survey-inventory.json
+# {"selector":"span.mw_t_wi","rows":840,"words":["take","set","hand"]}
+# {"selector":"span.mw_t_sp","rows":329,"words":["take","set","hand"]}
+```
+
+Unknown selectors are listed explicitly at the end of every run (and in the report) with their owner — never silently discarded. Code: `src/survey/inspector.ts` (walk + classify + ownership), `src/survey/catalog.ts` (class→unit map mirroring the living survey), runner `tests/survey_inspector.ts`.
