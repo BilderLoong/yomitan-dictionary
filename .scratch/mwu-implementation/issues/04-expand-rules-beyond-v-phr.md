@@ -36,6 +36,18 @@ minimal boundary).
       no-op, false-negative risk when labels are wrong, `v_phr` as a
       sub-condition of `v` (shared flag, so verb rules cover phrasal chains)
 
+## Current-state assessment (2026-08-07, agreed with ticket owner)
+
+With "Part of speech filtering" OFF — the default — the `v_phr` rule (and
+rules in general) has **zero lookup effect**: the interposed-object
+transform runs unconditionally on the search side, the entry matches by
+text, and the rules field is never consulted. Today `v_phr`'s actual value
+is limited to: the "Phrasal verb" chip on the card, correct behavior for
+the small opt-in filter audience, and being the one rule we can emit with
+zero risk because the source proves it. If the filter audience is judged
+not worth serving, `v_phr` (and all rules) could be dropped or kept as
+cosmetic metadata — this ticket is the place that judgment gets made.
+
 ## Background (researched 2026-08-07, verified against the bundled
 ## Yomitan 26.7.29.0 fixture source and its real engine)
 
