@@ -2228,14 +2228,18 @@ const renderPhraseSection = (
       body.findings,
     );
   }
-  const alternates = bodyChildren
+  const alternateGroups = bodyChildren
     .filter(
       (child: AnyNode): child is Element =>
         child.type === "tag" && hasClass(root, child, "vr"),
     )
-    .flatMap((child: Element): readonly StructuredContent[] =>
+    .map((child: Element): readonly StructuredContent[] =>
       alternateFormParts(root, child),
     );
+  const alternates = alternateGroups.flatMap(
+    (parts: readonly StructuredContent[]): readonly StructuredContent[] =>
+      parts.length === 0 ? [] : [" ", ...parts],
+  );
   return renderResult(
     [
       container(
