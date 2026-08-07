@@ -138,6 +138,19 @@ root's `word.w`, `0` for other canonical terms, `-100` for soft links.
 Yomitan's node-based content representation that carries the rendered
 definition tree of a canonical record.
 
+**Rendered HTML**:
+The exact HTML Yomitan's runtime generator produces from a structured-content
+node. It carries the structure back in `data-sc-content`/`data-sc-level`
+attributes, so it is both the display artifact and the enforced render
+contract.
+_Avoid_: render output (ambiguous with the source renderer)
+
+**Phrase section summary**:
+The visible summary line of a collapsed phrase section. It carries the
+phrase headword together with its alternate spellings (for example
+`what's what or what is what or what was what`), matching the source phrase
+line; the definition stays in the collapsed body.
+
 ### Structured-content vocabulary
 
 **Structured-content unit**:

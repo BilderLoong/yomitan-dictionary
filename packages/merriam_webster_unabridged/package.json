@@ -11,6 +11,10 @@
     "coverage:audit": "bun run tests/coverage_audit.ts",
     "survey:inspect": "bun run tests/survey_inspector.ts",
     "update:fixture": "bun run tests/update-fixture.ts",
+    "update:render-fixtures": "bun run tests/updateRenderFixtures.ts",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test-storybook": "vitest run --project storybook",
     "debug:unittest": "bun test --inspect-wait=/vscode",
     "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && biome format --write \"build/Merriam Webster Unabridged\" *.json"
   },
@@ -24,8 +28,14 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
+    "@storybook/addon-vitest": "^10.5.7",
+    "@storybook/html-vite": "^10.5.7",
     "@types/bun": "^1.2.5",
     "@types/node": "^22.13.10",
-    "domhandler": "^5.0.3"
+    "@vitest/browser": "^4.1.10",
+    "@vitest/browser-playwright": "^4.1.10",
+    "domhandler": "^5.0.3",
+    "storybook": "^10.5.7",
+    "vitest": "^4.1.10"
   }
 }
