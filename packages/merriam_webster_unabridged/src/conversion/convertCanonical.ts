@@ -24,7 +24,7 @@ const segmentsOf = (
   if (node.type !== "tag") return [];
 
   const current = root(node);
-  if (current.is(".mw_t_wi"))
+  if (current.is(".mw_t_wi, .mw_t_it"))
     return [{ kind: "highlight", value: current.text() }];
 
   return current
@@ -38,6 +38,7 @@ const segmentsOf = (
 const hasInterposedObjectCandidate = (
   root: cheerio.CheerioAPI,
   example: Element,
+  finalToken: string,
 ): boolean =>
   segmentsOf(root, example).some(
     (
@@ -51,17 +52,21 @@ const hasInterposedObjectCandidate = (
         segment.kind === "text" &&
         segment.value.trim().length > 0 &&
         previous?.kind === "highlight" &&
-        next?.kind === "highlight"
+        next?.kind === "highlight" &&
+        next.value.trim().toLowerCase() === finalToken
       );
     },
   );
 
-const interposedObjectExampleCount = (ownerHtml: string): number => {
+const interposedObjectExampleCount = (
+  ownerHtml: string,
+  finalToken: string,
+): number => {
   const root = cheerio.load(ownerHtml, null, false);
   return root(".ex-sent")
     .toArray()
     .filter((example: Element): boolean =>
-      hasInterposedObjectCandidate(root, example),
+      hasInterposedObjectCandidate(root, example, finalToken),
     ).length;
 };
 
@@ -71,10 +76,16 @@ export const convertCanonical = (
   const rendered = renderCanonicalContent(plan);
   if (!rendered.ok) return rendered;
 
+  const termTokens = plan.term.split(" ");
+  const finalToken = termTokens[termTokens.length - 1];
+  const interposedCount =
+    termTokens.length >= 2 && finalToken !== undefined
+      ? interposedObjectExampleCount(
+          plan.source.ownerHtml,
+          finalToken.toLowerCase(),
+        )
+      : 0;
   const isPhrase = plan.kind === "drp-phrase-canonical-entry";
-  const interposedCount = isPhrase
-    ? interposedObjectExampleCount(plan.source.ownerHtml)
-    : 0;
 
   return {
     ok: true,

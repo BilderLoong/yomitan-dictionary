@@ -1246,7 +1246,32 @@ test("never attaches v_phr for a single highlight or adjacent highlights", () =>
   expect(adjacent.ok && adjacent.value.rules).toBeNull();
 });
 
-test("never treats ordinary emphasis as interposed-object evidence", () => {
+test("treats emphasis pairs as interposed-object evidence when the second mark is the final token", () => {
+  const result = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example(
+            'they <em class="mw_t_it">took</em> the engine <em class="mw_t_it">apart</em>',
+          ) +
+          "</span></div></div>",
+      ),
+    ),
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.value.rules).toBe("v_phr");
+  expect(result.value.findings).toContainEqual({
+    kind: "interposed-object-v-phr",
+    rowId: 1,
+    term: "take apart",
+    exampleCount: 1,
+  });
+});
+
+test("ignores emphasis that is not an interposed pair", () => {
   const result = convertCanonical(
     phrasePlan(
       phraseOwner(
@@ -1264,15 +1289,55 @@ test("never treats ordinary emphasis as interposed-object evidence", () => {
   expect(result.value.findings).toEqual([]);
 });
 
-test("keeps v_phr off non-phrase entries with the same example shapes", () => {
+test("requires the second mark to be the term's final token", () => {
+  const result = convertCanonical(
+    phrasePlan(
+      phraseOwner(
+        "take apart",
+        '<div class="vg"><div class="sense"><span class="dt">: to separate' +
+          example(
+            'they <em class="mw_t_it">took</em> it <em class="mw_t_it">out</em>',
+          ) +
+          "</span></div></div>",
+      ),
+    ),
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.value.rules).toBeNull();
+  expect(result.value.findings).toEqual([]);
+});
+
+test("attaches v_phr to a multiword main entry with interposed evidence", () => {
   const result = convert(
     "<mean>" +
-      header("take", "verb", "¦tāk") +
+      header("give up", "transitive verb", "¦giv ˈəp") +
       '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
       '<div class="sense has-sn"><span class="sn sense-1">1</span>' +
-      '<span class="dt ">to remove' +
+      '<span class="dt ">to abandon' +
       example(
-        'they <span class="mw_t_wi">took</span> the engine <span class="mw_t_wi">apart</span>',
+        'couldn\'t answer the riddle and so <em class="mw_t_it">gave</em> it <em class="mw_t_it">up</em>',
+      ) +
+      "</span></div>" +
+      "</div></div></div></mean>",
+    "give up",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.value.rules).toBe("v_phr");
+});
+
+test("keeps v_phr off single-word entries with the same example shapes", () => {
+  const result = convert(
+    "<mean>" +
+      header("give", "verb", "¦giv") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      '<div class="sense has-sn"><span class="sn sense-1">1</span>' +
+      '<span class="dt ">to make a present of' +
+      example(
+        'as for me, <span class="mw_t_wi">give</span> me liberty or <span class="mw_t_wi">give</span> me death',
       ) +
       "</span></div>" +
       "</div></div></div></mean>",

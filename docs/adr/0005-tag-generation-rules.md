@@ -80,3 +80,29 @@ reported, never dropped.
   affect lookup) and moderate for `v_phr` (it changes reachable lookups);
   both are recorded in the build report, which makes the reversal
   verifiable.
+
+## Amendment (2026-08-08)
+
+Decision point 3 is superseded:
+
+3. **The rules field stays empty** except for `v_phr`, which now attaches to
+   any canonical entry — `main-canonical-entry`,
+   `alternative-spelling-canonical-entry`, or `drp-phrase-canonical-entry` —
+   whose searchable term has at least two space-separated words and whose
+   own examples contain an interposed-object candidate: two marked spans
+   (`.mw_t_wi` target highlight or `.mw_t_it` emphasis) with retained text
+   between them, where the second marked span equals the term's final token
+   (for example `give it up` proves `give up`, including the emphasis-marked
+   `<em>gave</em> it <em>up</em>`). Rationale: a full-database audit found
+   the emphasis pair is the source's own interposed-object proof (for
+   example `he bawled me out`, `they bid the prices up`); the final-token
+   equality filter removes the measured spurious classes (italic titles
+   such as `Vanity Fair`, repeated-word emphasis `came … came`,
+   cross-idiom contamination `did herself proud`, split-idiom objects
+   `batted in 70 runs`); the multiword gate keeps single-word entries
+   (`give`) from carrying the rule via repeated-word pairs (`give me
+   liberty or give me death`). The final word is deliberately not checked
+   against Yomitan's particle list: the evidence itself pins the separated
+   word, and Yomitan's lookup-time particle check remains the filter, so
+   preposition-final phrases with genuine evidence (for example `bring to`)
+   may carry a flag that never fires.

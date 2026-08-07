@@ -337,17 +337,24 @@ table_collegiate_alphabet) and inspecting the resulting ZIP records.
 
 #### v_phr acceptance
 
-`v_phr` is accepted for production. The evidence rule is exactly two
-`.mw_t_wi` target-highlight spans with retained text between them (`take
-apart` row: 7 unique examples, all verb + particle separation). Ordinary
-emphasis (`.mw_t_it`, `em`) never creates evidence — the `gave you up`
-example is emphasis-marked and correctly ignored. The only false-positive
-shape found (repeated-verb `give … give` paired highlights in the `give`
-row) is rejected at lookup time by Yomitan's own particle-list check, which
-is why the rule stays part of the mapping. The DB stores canonical `.drp`
-phrases, never wildcard expressions. Since 2026-08-07 the builder attaches
-the `v_phr` rule to phrase entries with candidate examples (see
-[ADR 0005](../../adr/0005-tag-generation-rules.md)).
+`v_phr` is accepted for production. The evidence rule is two marked spans
+with retained text between them, where "marked" means a `.mw_t_wi` target
+highlight **or** a `.mw_t_it` emphasis span, and where the second marked
+span equals the entry's final token (`take apart` row: 7 unique examples,
+all verb + particle separation; `give up` row: `gave it up` proves
+separability even though it is emphasis-marked). A 2026-08-08 full-database
+audit measured the emphasis relaxation: 133 → 576 candidate rows (+443), of
+which the spurious classes — italic titles (`Vanity Fair`, `King Lear`),
+repeated-word emphasis (`came … came`), cross-idiom contamination (`did
+herself proud` inside `do away with`), split-idiom objects (`batted in 70
+runs`) — are all excluded by the final-token equality filter. The
+repeated-verb `give … give` shape in the `give` row is excluded by the
+multiword gate (single-word entries never carry the rule). The final word is
+not checked against Yomitan's particle list; Yomitan's lookup-time particle
+check is the filter, so preposition-final phrases with genuine evidence (for
+example `bring to`) may carry a flag that never fires. Since 2026-08-07 the
+builder attaches the `v_phr` rule to canonical entries with candidate
+examples (see [ADR 0005](../../adr/0005-tag-generation-rules.md)).
 
 ### Ten-word design-fixture expansion
 

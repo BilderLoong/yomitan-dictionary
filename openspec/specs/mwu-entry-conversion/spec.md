@@ -113,6 +113,14 @@ excluded from output. `First Known Use` paragraphs inside the origin section
 SHALL render as `first-known-use` units (`div`) with their text verbatim, in
 source order after the etymology prose.
 
+The term-bank rules field SHALL be empty except for `v_phr`: a canonical
+entry (main, alternative-spelling, or drp-phrase) whose term has at least
+two space-separated words and whose own examples contain two marked spans
+(`.mw_t_wi` or `.mw_t_it`) with retained text between them, where the second
+marked span equals the term's final token, SHALL receive the rule `v_phr`
+(evidence-based; see ADR 0005). Every attachment SHALL be reported as an
+`interposed-object-v-phr` conversion finding.
+
 #### Scenario: Sense-local label stays local
 
 - **WHEN** a `.sl` label such as `chiefly substandard` qualifies one sense

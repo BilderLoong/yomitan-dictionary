@@ -989,10 +989,10 @@ export const CATALOG_UNITS: readonly CatalogUnit[] = [
     unit: "interposed-object-candidate",
     explanation:
       "Derived evidence that the components of a phrasal verb are separated by an intervening object in an example.",
-    example: "take [a town] apart; takes [it] apart",
-    classes: ".ex-sent-group; .ex-sent; .mw_t_wi",
+    example: "take [a town] apart; takes [it] apart; gave it up",
+    classes: ".ex-sent-group; .ex-sent; .mw_t_wi; .mw_t_it",
     binding:
-      "Observed at Level 6, but points to the Level 1 phrase entry where the canonical expression and Yomitan v_phr rule belong. Derive it from two target-highlight spans with retained text between them; do not treat italic markup alone as semantic proof. Phrases with candidates now serialize the v_phr rule in the term-bank rules field (evidence-based; see ADR 0005).",
+      "Observed at Level 6, but points to the Level 1 entry where the canonical expression and Yomitan v_phr rule belong. Derive it from two marked spans (target highlight .mw_t_wi or emphasis .mw_t_it) with retained text between them, where the second marked span equals the term's final token. Entries with candidates serialize the v_phr rule in the term-bank rules field (evidence-based; see ADR 0005).",
     ignore: false,
     rows: null,
     state: null,
