@@ -1,4 +1,4 @@
-- Always address me with a handsome before my name.
+- Always address me with a `Handsome` before my name.
 - When describing anything that can be include with examples, always include examples.
 - Make sure what you said is human-readable and easy to understand, don't assmue context.
 - Do not preserve backward compatibility. Remove obsolete paths instead of adding compatibility layers, fallbacks, or migrations.
