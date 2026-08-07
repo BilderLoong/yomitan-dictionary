@@ -7,7 +7,7 @@
   "scripts": {
     "build:selected": "bun run src/index.ts",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
-    "inspect:dict": "bun run tests/inspect_dict.ts \"build/Merriam Webster Unabridged.zip\" --query-file tests/testWords.txt",
+    "inspect:dict": "bun run tests/inspect_dict.ts \"build/Merriam Webster Unabridged.zip\" --query-file tests/testWords.txt --chrome-flag \"--remote-debugging-port=9222\"",
     "coverage:audit": "bun run tests/coverage_audit.ts",
     "survey:inspect": "bun run tests/survey_inspector.ts",
     "update:fixture": "bun run tests/update-fixture.ts",

@@ -84,6 +84,106 @@ const setLanguage = async (page: Page, languageCode: string): Promise<void> => {
   await page.click("#recommended-settings-apply-button");
 };
 
+const readStoredPartOfSpeechFilter = async (
+  page: Page,
+  dictionaryTitle: string,
+): Promise<boolean> =>
+  page.evaluate(async (title: string): Promise<boolean> => {
+    const chromeApi = (
+      globalThis as unknown as {
+        chrome: {
+          storage: {
+            local: {
+              get: (keys: readonly string[]) => Promise<Record<string, string>>;
+            };
+          };
+        };
+      }
+    ).chrome;
+    const store = await chromeApi.storage.local.get(["options"]);
+    const options = JSON.parse(store.options) as {
+      profileCurrent: number;
+      profiles: readonly {
+        options: {
+          dictionaries: readonly {
+            name: string;
+            partsOfSpeechFilter: boolean;
+          }[];
+        };
+      }[];
+    };
+    const dictionaries =
+      options.profiles[options.profileCurrent].options.dictionaries;
+    const entry = dictionaries.find(
+      (dictionary: { name: string }): boolean => dictionary.name === title,
+    );
+    if (entry === undefined) {
+      throw new Error(`Dictionary not found in stored options: ${title}`);
+    }
+    return entry.partsOfSpeechFilter;
+  }, dictionaryTitle);
+
+const disablePartOfSpeechFilter = async (
+  page: Page,
+  settingsPageUrl: string,
+  dictionaryTitle: string,
+): Promise<void> => {
+  await page.goto(settingsPageUrl);
+  await page
+    .locator('.settings-item-button[data-modal-action="show,dictionaries"]')
+    .click();
+  const modal = page.locator("#dictionaries-modal");
+  await modal.waitFor({ state: "visible" });
+  const titleContainer = modal
+    .locator(".dictionary-item-title-container")
+    .filter({ hasText: dictionaryTitle });
+  await titleContainer.waitFor({ state: "visible" });
+  await titleContainer
+    .locator(
+      "xpath=following-sibling::button[contains(@class, 'dictionary-menu-button')]",
+    )
+    .click();
+  await page
+    .locator('.popup-menu-container:visible [data-menu-action="showDetails"]')
+    .click();
+  const detailsModal = page.locator("#dictionary-details-modal");
+  await detailsModal.waitFor({ state: "visible" });
+  // The modal open animation (~375ms) makes the first click land on the
+  // dimmer, which closes the modal again. Wait for it to settle first.
+  await page.waitForTimeout(600);
+  await page
+    .locator(".dictionary-parts-of-speech-filter-setting")
+    .waitFor({ state: "visible" });
+  const toggleInput = detailsModal.locator(
+    ".dictionary-parts-of-speech-filter-toggle",
+  );
+  const toggleControl = detailsModal.locator(
+    ".dictionary-parts-of-speech-filter-setting .toggle",
+  );
+  if (!(await toggleInput.isChecked())) {
+    throw new Error(
+      `Expected the parts-of-speech filter of ${dictionaryTitle} to be enabled`,
+    );
+  }
+  // The checkbox input is CSS-hidden (opacity 0, 0x0); clicking the
+  // wrapping label activates it and saves through the data-setting binder.
+  await toggleControl.click();
+  await page.waitForFunction(
+    (): boolean =>
+      !(
+        document.querySelector(
+          ".dictionary-parts-of-speech-filter-toggle",
+        ) as HTMLInputElement
+      ).checked,
+  );
+  const stored = await readStoredPartOfSpeechFilter(page, dictionaryTitle);
+  if (stored) {
+    throw new Error(
+      `Part-of-speech filter still enabled in stored options for ${dictionaryTitle}`,
+    );
+  }
+};
+
 const main = async (): Promise<void> => {
   const parsed = parseImportArguments(process.argv.slice(2));
   if (!parsed.ok) throw new Error(parsed.error.message);
@@ -115,6 +215,8 @@ const main = async (): Promise<void> => {
   const extensionUrlPrefix =
     "chrome-extension://mlbjoknafgaddicpadejdmfnimmacble";
   const searchPageUrl = `${extensionUrlPrefix}/search.html`;
+  const settingsPageUrl = `${extensionUrlPrefix}/settings.html`;
+  const dictionaryTitle = "Merriam Webster Unabridged";
   const welcomePageUrl = `${extensionUrlPrefix}/welcome.html`;
   const welcomePage = await browserContext.newPage();
   const searchPage = await browserContext.newPage();
@@ -142,12 +244,15 @@ const main = async (): Promise<void> => {
       importDictionary(welcomePage, dictionaryPath),
     ]);
 
+    await disablePartOfSpeechFilter(
+      searchPage,
+      settingsPageUrl,
+      dictionaryTitle,
+    );
+
     await searchPage.goto(
       `${searchPageUrl}?query=${encodeURIComponent(searchQueries.join(". "))}`,
     );
-    // for (const query of searchQueries) {
-    //   await assertSearchResult(searchPage, searchPageUrl, query);
-    // }
   } finally {
     if (options.close) await browserContext.close();
   }
