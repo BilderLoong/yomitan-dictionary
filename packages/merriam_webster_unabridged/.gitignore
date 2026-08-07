@@ -10,6 +10,9 @@ node_modules/
 /build/
 assets
 fixture/
+# Source-HTML render fixtures: regenerated from assets/MWU.db via
+# `bun run update:render-fixtures` (same provenance as the build itself).
+/tests/rendered/fixtures/
 
 # Keep build-focused integration tests visible; the build/ rule above is
 # intentionally broad for generated artifacts.

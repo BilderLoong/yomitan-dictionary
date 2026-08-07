@@ -14,6 +14,10 @@ import whatHtml from "./fixtures/what.html?raw";
  * The real pipeline output for the test-word source articles. Stories and
  * render-contract tests share these converted entries, so the displayed
  * HTML is exactly the HTML the tests assert on.
+ *
+ * The source articles in ./fixtures/ are generated data (extracted from
+ * assets/MWU.db) and are gitignored — regenerate them on a fresh checkout
+ * with `bun run update:render-fixtures` (requires the source DB).
  */
 
 const unwrap = (
