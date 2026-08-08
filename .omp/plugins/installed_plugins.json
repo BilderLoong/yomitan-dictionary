@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "plugins": {
+    "ponytail@ponytail": [
+      {
+        "scope": "project",
+        "installPath": "/Users/birudo/.omp/plugins/cache/plugins/ponytail___ponytail___4.9.0",
+        "version": "4.9.0",
+        "installedAt": "2026-08-08T04:55:42.633Z",
+        "lastUpdated": "2026-08-08T04:55:42.633Z"
+      }
+    ]
+  }
+}
