@@ -8,6 +8,7 @@ export interface ImportOptions {
   readonly chromeFlags: readonly string[];
   readonly screenshotPath: string | null;
   readonly extensionPath: string | null;
+  readonly userDataDirectory: string | null;
 }
 
 export interface ImportArgumentError {
@@ -22,10 +23,11 @@ interface ParsedOptions {
   readonly chromeFlags: readonly string[];
   readonly screenshotPath: string | null;
   readonly extensionPath: string | null;
+  readonly userDataDirectory: string | null;
 }
 
 const usage =
-  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
+  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--user-data-dir <path>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
 
 const parseOptions = (
   argumentsList: readonly string[],
@@ -73,6 +75,23 @@ const parseOptions = (
     return parseOptions(argumentsList, index + 2, {
       ...options,
       extensionPath: value,
+    });
+  }
+
+  if (argument === "--user-data-dir") {
+    const value = argumentsList[index + 1];
+    if (value === undefined || value.length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "--user-data-dir requires a non-empty value",
+        },
+      };
+    }
+    return parseOptions(argumentsList, index + 2, {
+      ...options,
+      userDataDirectory: value,
     });
   }
 
@@ -152,6 +171,7 @@ export const parseImportArguments = (
     chromeFlags: [],
     screenshotPath: null,
     extensionPath: null,
+    userDataDirectory: null,
   });
   if (!parsed.ok) return parsed;
 

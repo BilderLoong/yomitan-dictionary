@@ -3,6 +3,7 @@
 
 /* Header */
 [data-sc-content="homograph-number"] {
+  display: none;
   vertical-align: super;
   font-size: 0.75em;
 }

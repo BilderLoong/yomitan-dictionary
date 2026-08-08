@@ -24,6 +24,7 @@ test("parses a query file and close option", () => {
       chromeFlags: [],
       screenshotPath: "mwu-search.png",
       extensionPath: "/tmp/yomitan-extension",
+      userDataDirectory: null,
     },
   });
 });
@@ -47,6 +48,7 @@ test("forwards chrome flags verbatim in order", () => {
       chromeFlags: ["--remote-debugging-port=9222", "--remote-allow-origins=*"],
       screenshotPath: null,
       extensionPath: null,
+      userDataDirectory: null,
     },
   });
 });
@@ -61,6 +63,36 @@ test("rejects an empty chrome flag", () => {
       },
     },
   );
+});
+
+test("parses a user data directory", () => {
+  expect(
+    parseImportArguments(["dictionary.zip", "--user-data-dir", "/tmp/profile"]),
+  ).toEqual({
+    ok: true,
+    value: {
+      dictionaryPath: "dictionary.zip",
+      query: null,
+      queryFilePath: null,
+      close: false,
+      chromeFlags: [],
+      screenshotPath: null,
+      extensionPath: null,
+      userDataDirectory: "/tmp/profile",
+    },
+  });
+});
+
+test("rejects an empty user data directory", () => {
+  expect(
+    parseImportArguments(["dictionary.zip", "--user-data-dir", ""]),
+  ).toEqual({
+    ok: false,
+    error: {
+      kind: "usage",
+      message: "--user-data-dir requires a non-empty value",
+    },
+  });
 });
 
 test("rejects simultaneous query sources", () => {

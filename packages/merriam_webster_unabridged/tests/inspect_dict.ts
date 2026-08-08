@@ -130,59 +130,75 @@ const disablePartOfSpeechFilter = async (
   settingsPageUrl: string,
   dictionaryTitle: string,
 ): Promise<void> => {
-  await page.goto(settingsPageUrl);
-  await page
-    .locator('.settings-item-button[data-modal-action="show,dictionaries"]')
-    .click();
-  const modal = page.locator("#dictionaries-modal");
-  await modal.waitFor({ state: "visible" });
-  const titleContainer = modal
-    .locator(".dictionary-item-title-container")
-    .filter({ hasText: dictionaryTitle });
-  await titleContainer.waitFor({ state: "visible" });
-  await titleContainer
-    .locator(
-      "xpath=following-sibling::button[contains(@class, 'dictionary-menu-button')]",
-    )
-    .click();
-  await page
-    .locator('.popup-menu-container:visible [data-menu-action="showDetails"]')
-    .click();
-  const detailsModal = page.locator("#dictionary-details-modal");
-  await detailsModal.waitFor({ state: "visible" });
-  // The modal open animation (~375ms) makes the first click land on the
-  // dimmer, which closes the modal again. Wait for it to settle first.
-  await page.waitForTimeout(600);
-  await page
-    .locator(".dictionary-parts-of-speech-filter-setting")
-    .waitFor({ state: "visible" });
-  const toggleInput = detailsModal.locator(
-    ".dictionary-parts-of-speech-filter-toggle",
-  );
-  const toggleControl = detailsModal.locator(
-    ".dictionary-parts-of-speech-filter-setting .toggle",
-  );
-  if (!(await toggleInput.isChecked())) {
-    throw new Error(
-      `Expected the parts-of-speech filter of ${dictionaryTitle} to be enabled`,
+  // The dictionary import can still be committing to the backend when the
+  // first settings page loads; its list is populated once per page load, so
+  // reload and retry until the dictionary row appears.
+  const maxAttempts = 5;
+  for (let attempt = 1; ; ++attempt) {
+    await page.goto(settingsPageUrl);
+    await page
+      .locator('.settings-item-button[data-modal-action="show,dictionaries"]')
+      .click();
+    const modal = page.locator("#dictionaries-modal");
+    await modal.waitFor({ state: "visible" });
+    const titleContainer = modal
+      .locator(".dictionary-item-title-container")
+      .filter({ hasText: dictionaryTitle });
+    try {
+      await titleContainer.waitFor({ state: "visible", timeout: 10000 });
+    } catch {
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Dictionary "${dictionaryTitle}" never appeared in the settings list after ${maxAttempts} reloads`,
+        );
+      }
+      continue;
+    }
+    await titleContainer
+      .locator(
+        "xpath=following-sibling::button[contains(@class, 'dictionary-menu-button')]",
+      )
+      .click();
+    await page
+      .locator('.popup-menu-container:visible [data-menu-action="showDetails"]')
+      .click();
+    const detailsModal = page.locator("#dictionary-details-modal");
+    await detailsModal.waitFor({ state: "visible" });
+    // The modal open animation (~375ms) makes the first click land on the
+    // dimmer, which closes the modal again. Wait for it to settle first.
+    await page.waitForTimeout(600);
+    await page
+      .locator(".dictionary-parts-of-speech-filter-setting")
+      .waitFor({ state: "visible" });
+    const toggleInput = detailsModal.locator(
+      ".dictionary-parts-of-speech-filter-toggle",
     );
-  }
-  // The checkbox input is CSS-hidden (opacity 0, 0x0); clicking the
-  // wrapping label activates it and saves through the data-setting binder.
-  await toggleControl.click();
-  await page.waitForFunction(
-    (): boolean =>
-      !(
-        document.querySelector(
-          ".dictionary-parts-of-speech-filter-toggle",
-        ) as HTMLInputElement
-      ).checked,
-  );
-  const stored = await readStoredPartOfSpeechFilter(page, dictionaryTitle);
-  if (stored) {
-    throw new Error(
-      `Part-of-speech filter still enabled in stored options for ${dictionaryTitle}`,
+    const toggleControl = detailsModal.locator(
+      ".dictionary-parts-of-speech-filter-setting .toggle",
     );
+    if (!(await toggleInput.isChecked())) {
+      throw new Error(
+        `Expected the parts-of-speech filter of ${dictionaryTitle} to be enabled`,
+      );
+    }
+    // The checkbox input is CSS-hidden (opacity 0, 0x0); clicking the
+    // wrapping label activates it and saves through the data-setting binder.
+    await toggleControl.click();
+    await page.waitForFunction(
+      (): boolean =>
+        !(
+          document.querySelector(
+            ".dictionary-parts-of-speech-filter-toggle",
+          ) as HTMLInputElement
+        ).checked,
+    );
+    const stored = await readStoredPartOfSpeechFilter(page, dictionaryTitle);
+    if (stored) {
+      throw new Error(
+        `Part-of-speech filter still enabled in stored options for ${dictionaryTitle}`,
+      );
+    }
+    return;
   }
 };
 
@@ -192,7 +208,8 @@ const main = async (): Promise<void> => {
 
   const options = parsed.value;
   const dictionaryPath = path.resolve(options.dictionaryPath);
-  const userDataDirectory = "/tmp/test-user-data-dir";
+  const userDataDirectory =
+    options.userDataDirectory ?? "/tmp/test-user-data-dir";
   await rm(userDataDirectory, { force: true, recursive: true });
   await mkdir(userDataDirectory, { recursive: true });
 
