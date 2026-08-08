@@ -30,7 +30,10 @@ const createProgram = (): Command =>
     })
     .option("--words <words...>", "Target words to build")
     .option("--words-file <path>", "Newline-delimited target words file")
-    .option("--full", "Build the whole source database");
+    .option(
+      "--full",
+      "Build every Unabridged entry (excludes collegiate_, medical_, and thesaurus_ twin rows)",
+    );
 
 export const parseCliArgs = (
   argv: readonly string[],

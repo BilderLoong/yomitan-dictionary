@@ -35,6 +35,7 @@ import {
   type IndexedSourceRow,
   type SourceIndex,
   type SourceRow,
+  type SourceRowSummary,
 } from "../source/rows";
 import {
   listSourceRowSummaries,
@@ -81,6 +82,19 @@ export type BuildAttempt =
 
 const archiveFileName = "Merriam Webster Unabridged.zip";
 const archiveReportPath = archiveFileName;
+
+/**
+ * Full-database builds cover the Unabridged entries only. Rows prefixed with
+ * another Merriam-Webster product key (`collegiate_`, `medical_`,
+ * `thesaurus_`) are condensed twin entries of words already present in the
+ * Unabridged; planning them doubles the corpus, and their embedded means
+ * defer to definition-free dedicated rows, producing unresolvable soft-link
+ * targets.
+ */
+const isUnabridgedRow = (row: SourceRowSummary): boolean =>
+  !row.encodedKey.startsWith("collegiate_") &&
+  !row.encodedKey.startsWith("medical_") &&
+  !row.encodedKey.startsWith("thesaurus_");
 
 interface PlannedRow {
   readonly row: IndexedSourceRow;
@@ -291,7 +305,7 @@ const planSelectedRows = (
 ): BuildState => {
   const resolvedRoots =
     request.fullDatabase === true
-      ? { rows: index.rows, missingWords: [] }
+      ? { rows: index.rows.filter(isUnabridgedRow), missingWords: [] }
       : resolveRootRows(index, request.requestedWords);
   const rootIds = new Set(
     resolvedRoots.rows.map(({ id }: IndexedSourceRow): number => id),

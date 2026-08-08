@@ -103,6 +103,45 @@ describe("selected-word build", () => {
     expect(attempt.report.errors).toEqual([]);
   });
 
+  test("full mode excludes collegiate, medical, and thesaurus rows", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: [
+        ...representativeRows,
+        {
+          id: 10,
+          encodedKey: "collegiate_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 11,
+          encodedKey: "medical_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 12,
+          encodedKey: "thesaurus_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+      ],
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.totals.roots).toBe(3);
+    expect(attempt.report.errors).toEqual([]);
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("o");
+    expect(terms).toContain("o'");
+    expect(terms).toContain("oh");
+    expect(terms).not.toContain("collegiate_oh");
+    expect(terms).not.toContain("medical_oh");
+    expect(terms).not.toContain("thesaurus_oh");
+  });
+
   test("full mode drops soft links whose target emits no entry", async () => {
     const request = await createTestBuildRequest({
       words: [],
