@@ -1,8 +1,4 @@
 import type { ConvertedCanonical } from "../conversion/convertCanonical";
-import {
-  analyzeConversionCoverage,
-  type ConversionCoverage,
-} from "../conversion/coverage";
 import type { LinkRejection, SoftLinkEntryPlan } from "../level1/planLinks";
 import type {
   CanonicalEntryPlan,
@@ -50,7 +46,6 @@ export type BuildFatalError =
   | { readonly kind: "io"; readonly message: string };
 
 export interface BuildReport extends BuildReportInput {
-  readonly coverage: readonly ConversionCoverage[];
   readonly totals: {
     readonly roots: number;
     readonly dependencies: number;
@@ -81,9 +76,6 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
   const planningFindings = [...(input.planningFindings ?? [])];
   const linkRejections = [...(input.linkRejections ?? [])];
   const errors = [...input.errors];
-  const coverage = fullDatabase
-    ? []
-    : conversions.map(analyzeConversionCoverage);
   const conversionFindings = fullDatabase
     ? (input.conversionFindings ?? 0)
     : conversions.reduce(
@@ -104,7 +96,6 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
     linkRejections,
     errors,
     archivePath: input.archivePath,
-    coverage,
     totals: {
       roots: rootRows.length,
       dependencies: dependencyRows.length,

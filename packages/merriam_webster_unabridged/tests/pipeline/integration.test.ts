@@ -136,7 +136,6 @@ describe("selected-word build", () => {
     expect(attempt.report.totals.records).toBe(attempt.records.length);
     expect(attempt.report.canonicalEntryPlans).toEqual([]);
     expect(attempt.report.conversions).toEqual([]);
-    expect(attempt.report.coverage).toEqual([]);
     const terms = attempt.records.map(([term]) => term);
     expect(terms).toContain("o");
     expect(terms).toContain("o'");

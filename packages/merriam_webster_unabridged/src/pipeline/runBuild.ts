@@ -47,7 +47,6 @@ import {
   assembleCanonicalRecord,
   assembleSoftLinkRecord,
 } from "../yomitan/assembleRecords";
-import { MWU_TAGS } from "../yomitan/tagBank";
 import {
   type BuildFatalError,
   type BuildReport,
@@ -496,9 +495,6 @@ const exportDictionary = async (
   const dictionary = new Dictionary({ fileName: archiveFileName });
 
   await dictionary.setIndex(index, "", "");
-  for (const tag of MWU_TAGS) {
-    await dictionary.addTag(tag);
-  }
   for (const record of records) {
     await dictionary.addTerm(record);
   }
