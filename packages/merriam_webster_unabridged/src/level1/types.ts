@@ -27,6 +27,11 @@ export type Level1Finding =
       readonly rowId: number;
       readonly meanIndex: number;
       readonly preview: string;
+    }
+  | {
+      readonly kind: "soft-link-target-not-emitted";
+      readonly lookup: string;
+      readonly target: string;
     };
 
 export interface MainCanonicalEntryPlan {

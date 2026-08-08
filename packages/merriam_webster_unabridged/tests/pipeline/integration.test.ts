@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { type BuildRequest, runBuild } from "../../src/pipeline/runBuild";
 import { collectRequestedWords } from "../../src/pipeline/selection";
+import { definition, mean } from "../helpers/mwuHtml";
 import {
   createTestBuildRequest,
   representativeRows,
@@ -100,5 +101,61 @@ describe("selected-word build", () => {
     expect(terms).toContain("o'");
     expect(terms).toContain("oh");
     expect(attempt.report.errors).toEqual([]);
+  });
+
+  test("full mode drops soft links whose target emits no entry", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("first letter")) +
+            mean("aleph", definition("a letter")),
+        },
+        // Dedicated row for aleph exists but is definition-free, so the
+        // embedded aleph mean defers and no canonical aleph term is emitted.
+        { id: 2, encodedKey: "aleph", html: mean("aleph", "") },
+      ],
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.errors).toEqual([]);
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "soft-link-target-not-emitted",
+      lookup: "alpha",
+      target: "aleph",
+    });
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("alpha");
+    expect(terms).not.toContain("aleph");
+  });
+
+  test("selected mode still fails on unresolvable soft-link targets", async () => {
+    const request = await createTestBuildRequest({
+      words: ["alpha"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("first letter")) +
+            mean("aleph", definition("a letter")),
+        },
+        { id: 2, encodedKey: "aleph", html: mean("aleph", "") },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(false);
+    if (attempt.ok) return;
+    expect(attempt.report.errors).toEqual([
+      { kind: "missing-dependency", target: "aleph" },
+    ]);
   });
 });

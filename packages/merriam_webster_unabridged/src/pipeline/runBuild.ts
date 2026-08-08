@@ -486,6 +486,7 @@ const createReport = (
   recordCount = 0,
   conversionFindings = 0,
   softLinkCount = 0,
+  extraFindings: readonly Level1Finding[] = [],
 ): BuildReport =>
   createBuildReport({
     requestedWords: request.requestedWords,
@@ -505,7 +506,7 @@ const createReport = (
       ),
     ),
     conversions,
-    planningFindings: state.findings,
+    planningFindings: [...state.findings, ...extraFindings],
     linkRejections: state.rejections,
     errors,
     archivePath,
@@ -569,16 +570,31 @@ const buildSelectedDictionary = async (
     if (!fullDatabase) conversions.push(converted);
   }
 
+  const softLinkTargetFindings: Level1Finding[] = [];
+  const resolvedSoftLinkEntries: SoftLinkEntryPlan[] = [];
   for (const link of softLinkEntries) {
-    if (!canonicalTermSet.has(link.target)) {
-      errors.push({
-        kind: "missing-dependency",
+    if (canonicalTermSet.has(link.target)) {
+      resolvedSoftLinkEntries.push(link);
+      continue;
+    }
+    if (fullDatabase) {
+      // The target spelling exists in the source but its dedicated row
+      // emits no canonical entry (for example a definition-free variant
+      // row). The link cannot resolve; drop it and stay auditable.
+      softLinkTargetFindings.push({
+        kind: "soft-link-target-not-emitted",
+        lookup: link.lookup,
         target: link.target,
       });
+      continue;
     }
+    errors.push({
+      kind: "missing-dependency",
+      target: link.target,
+    });
   }
 
-  const softLinkRecords = softLinkEntries.map(
+  const softLinkRecords = resolvedSoftLinkEntries.map(
     (link: SoftLinkEntryPlan, index: number): TermInformation =>
       assembleSoftLinkRecord(link, canonicalRecords.length + index + 1),
   );
@@ -603,7 +619,8 @@ const buildSelectedDictionary = async (
     fullDatabase,
     records.length,
     conversionFindings,
-    softLinkEntries.length,
+    resolvedSoftLinkEntries.length,
+    softLinkTargetFindings,
   );
   try {
     await writeReport(request.buildPaths.reportPath, report);
