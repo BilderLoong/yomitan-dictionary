@@ -34,6 +34,18 @@ test("phrase summary lists every alternate spelling of what's what", () => {
   expect(summaryText).toBe("what's what or what is what or what was what");
 });
 
+test("every phrase section is a collapsed details with a non-empty body", () => {
+  const phrases = $('details[data-sc-content="phrase"]');
+  expect(phrases.length).toBeGreaterThan(0);
+  phrases.each((_, element) => {
+    const details = $(element);
+    expect(details.attr("open")).toBeUndefined();
+    const body = details.clone();
+    body.children("summary").remove();
+    expect(body.text().trim().length).toBeGreaterThan(0);
+  });
+});
+
 test("example source flows on the same line as the example", () => {
   const sources = $(
     '[data-sc-content="example-source"], [data-sc-content="example-source-inline"]',

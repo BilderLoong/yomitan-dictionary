@@ -2,26 +2,19 @@ import { expect } from "storybook/test";
 
 import { renderToHtml } from "../helpers/renderToHtml";
 import { whatConverted } from "./fixtures";
-import {
-  assertCollapsedExamples,
-  assertRenderedEntry,
-  findPhraseSection,
-} from "./storyHelpers";
+import { findPhraseSection } from "./storyHelpers";
 
 export default { title: "Entries/what" };
 
 export const What = {
   render: (): string => renderToHtml(whatConverted.content),
-  play: async ({
-    canvasElement,
-  }: {
-    readonly canvasElement: HTMLElement;
-  }): Promise<void> => {
-    assertRenderedEntry(canvasElement);
-    assertCollapsedExamples(canvasElement);
-  },
 };
 
+/**
+ * The only interaction story: proves the native details/summary toggle works
+ * in a real browser. The closed-state and summary-text contract behind it is
+ * asserted by the bun tests.
+ */
 export const WhatPhraseExpands = {
   render: (): string => renderToHtml(whatConverted.content),
   play: async ({

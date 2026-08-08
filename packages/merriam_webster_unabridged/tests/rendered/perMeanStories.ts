@@ -4,17 +4,14 @@ import type { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan
 import type { ConvertedCanonical } from "../../src/conversion/types";
 import { renderToHtml } from "../helpers/renderToHtml";
 import { meanFragments } from "./meanFragments";
-import { assertCollapsedExamples, assertMeanRendered } from "./storyHelpers";
 
 /**
  * One story per numbered mean of a converted entry. Each story renders only
- * that mean's subtree and asserts the render contract scoped to it, so every
- * sense is displayed and tested individually.
+ * that mean's subtree so every sense can be inspected visually. The render
+ * contract for each subtree is asserted by the bun tests
+ * (tests/rendered/meanRender.test.ts); the play functions that duplicated
+ * those asserts were removed.
  */
-
-interface PlayArgs {
-  readonly canvasElement: HTMLElement;
-}
 
 const storyName = (label: string): string => `Mean ${label}`;
 
@@ -26,25 +23,15 @@ const exportName = (label: string): string => {
   return `Mean${words.join("")}`;
 };
 
-const meanStory = (
-  node: StructuredContent,
-  label: string,
-): StoryObj<PlayArgs> => ({
+const meanStory = (node: StructuredContent, label: string): StoryObj => ({
   storyName: storyName(label),
   render: (): string => renderToHtml(node),
-  play: async ({ canvasElement }: PlayArgs): Promise<void> => {
-    assertMeanRendered(canvasElement);
-    const hasExamples =
-      canvasElement.querySelector('[data-sc-content="example-sentence"]') !==
-      null;
-    assertCollapsedExamples(canvasElement, hasExamples);
-  },
 });
 
 export const perMeanStories = (
   converted: ConvertedCanonical,
-): Record<string, StoryObj<PlayArgs>> => {
-  const stories: Record<string, StoryObj<PlayArgs>> = {};
+): Record<string, StoryObj> => {
+  const stories: Record<string, StoryObj> = {};
   for (const fragment of meanFragments(converted.content)) {
     stories[exportName(fragment.label)] = meanStory(
       fragment.node,
