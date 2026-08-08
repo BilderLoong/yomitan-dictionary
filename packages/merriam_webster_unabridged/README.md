@@ -80,8 +80,8 @@ bun run build:full
 plans and converts all 470k source rows — expect it to take a long time and
 to produce a large archive. The build report keeps the full-database shape
 (roots, decisions, findings, errors, totals) but omits the per-entry detail
-arrays (plans, conversions, soft-link entries, coverage) that would multiply
-the file size; the terminal prints the final statistics (rows planned,
+arrays (plans, conversions, soft-link entries) that would multiply the file
+size; the terminal prints the final statistics (rows planned,
 canonical entries, soft links, records, findings, errors, elapsed time,
 archive size).
 
@@ -124,6 +124,20 @@ structured header, with `¦` normalized to `ˈ`; the canonical tuple's definitio
 tag carries the compact POS mapping (`pron`, `v`, `n`, `phrase`, and related
 aliases), while sense-local labels remain inside structured content.
 
+## Tests
+
+```bash
+bun test                       # full suite (root-safe: bunfig.toml prunes tests/fixture/**)
+bunx biome check src tests
+bun run update:render-fixtures # re-extract tests/rendered/fixtures/ from assets/MWU.db
+bun run storybook              # visual review
+bun run test-storybook         # the one interaction story, in headless Chromium
+```
+
+The render contract (per-entry, per-mean, collapsing, phrase, origin) is
+asserted by the bun tests; storybook is visuals plus the native
+details/summary toggle interaction.
+
 ## Verification
 
 Focused planner, conversion, assembly, report, integration, archive-schema,
@@ -147,9 +161,12 @@ newline-delimited `--query-file`. The two options are mutually exclusive. If
 neither is supplied, it uses `tests/testWords.txt`. It uses bundled Chromium
 and checks that import progress completes, no import error is shown, the
 installed dictionary count increases, and each query produces a rendered
-result. Use `--extension-path` when the ignored Yomitan fixture lives in a
-different checkout, and `--screenshot /tmp/mwu.png` to capture the rendered
-search page for visual inspection.
+rendered result. Use `--extension-path` when the ignored Yomitan fixture
+lives in a different checkout, `--user-data-dir /path/to/profile` to point
+the bundled Chromium at a specific profile (defaults to a fresh
+`/tmp/test-user-data-dir` so your real Chrome profile is never touched), and
+`--screenshot /tmp/mwu.png` to capture the rendered search page for visual
+inspection.
 
 ## Origin data
 
