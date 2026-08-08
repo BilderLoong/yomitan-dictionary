@@ -36,6 +36,11 @@ export type Level1Finding =
       readonly target: string | null;
       readonly reason: "unapproved-relation" | "missing-target" | "self-link";
       readonly preview: string;
+    }
+  | {
+      readonly kind: "soft-link-target-not-emitted";
+      readonly lookup: string;
+      readonly target: string;
     };
 
 export type SoftLinkEntryRelationship =

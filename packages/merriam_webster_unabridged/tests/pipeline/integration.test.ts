@@ -6,6 +6,7 @@ import {
   createTestBuildRequest,
   representativeRows,
 } from "../helpers/createTestDatabase";
+import { definition, mean } from "../helpers/mwuHtml";
 
 const createSelectedRequest = async (input: {
   readonly flagWords: readonly string[];
@@ -118,5 +119,123 @@ describe("selected-word build", () => {
       { kind: "missing-root", word: "missing" },
     ]);
     expect(attempt.report.archivePath).toBeNull();
+  });
+
+  test("full mode plans every row of the database", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: representativeRows,
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.totals.roots).toBe(3);
+    expect(attempt.report.totals.records).toBe(attempt.records.length);
+    expect(attempt.report.canonicalEntryPlans).toEqual([]);
+    expect(attempt.report.conversions).toEqual([]);
+    expect(attempt.report.coverage).toEqual([]);
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("o");
+    expect(terms).toContain("o'");
+    expect(terms).toContain("oh");
+    expect(attempt.report.errors).toEqual([]);
+  });
+
+  test("full mode excludes collegiate, medical, and thesaurus rows", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: [
+        ...representativeRows,
+        {
+          id: 10,
+          encodedKey: "collegiate_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 11,
+          encodedKey: "medical_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 12,
+          encodedKey: "thesaurus_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+      ],
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.totals.roots).toBe(3);
+    expect(attempt.report.errors).toEqual([]);
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("o");
+    expect(terms).toContain("o'");
+    expect(terms).toContain("oh");
+    expect(terms).not.toContain("collegiate_oh");
+    expect(terms).not.toContain("medical_oh");
+    expect(terms).not.toContain("thesaurus_oh");
+  });
+
+  test("full mode drops soft links whose target emits no entry", async () => {
+    const request = await createTestBuildRequest({
+      words: [],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("first letter")) +
+            mean("aleph", definition("a letter")),
+        },
+        // Dedicated row for aleph exists but is definition-free, so the
+        // embedded aleph mean defers and no canonical aleph term is emitted.
+        { id: 2, encodedKey: "aleph", html: mean("aleph", "") },
+      ],
+      fullDatabase: true,
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.errors).toEqual([]);
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "soft-link-target-not-emitted",
+      lookup: "alpha",
+      target: "aleph",
+    });
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("alpha");
+    expect(terms).not.toContain("aleph");
+  });
+
+  test("selected mode still fails on unresolvable soft-link targets", async () => {
+    const request = await createTestBuildRequest({
+      words: ["alpha"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("first letter")) +
+            mean("aleph", definition("a letter")),
+        },
+        { id: 2, encodedKey: "aleph", html: mean("aleph", "") },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(false);
+    if (attempt.ok) return;
+    expect(attempt.report.errors).toEqual([
+      { kind: "missing-dependency", target: "aleph" },
+    ]);
   });
 });

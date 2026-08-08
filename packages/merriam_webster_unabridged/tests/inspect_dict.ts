@@ -30,9 +30,11 @@ const importDictionary = async (
 ): Promise<void> => {
   const beforeCount = await readDictionaryCount(page);
   await page.setInputFiles("#dictionary-import-file-input", dictionaryPath);
+  // A full-database build (~354k records, 60 MB) imports in well over a
+  // minute on a loaded machine; give it ten.
   await page.waitForSelector(".dictionary-import-progress", {
     state: "hidden",
-    timeout: 60000,
+    timeout: 600000,
   });
 
   const importError = (

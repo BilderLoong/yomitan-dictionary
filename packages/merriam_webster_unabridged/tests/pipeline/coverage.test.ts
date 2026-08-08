@@ -1,63 +1,50 @@
 import { expect, test } from "bun:test";
-import type { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
-import {
-  computeTextCoverage,
-  renderedText,
-  textTokens,
-} from "../../src/pipeline/coverage";
+import { convertCanonical } from "../../src/conversion/convertCanonical";
+import { analyzeConversionCoverage } from "../../src/conversion/coverage";
+import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
 
-test("tokenizes lowercase words and apostrophes", () => {
-  expect(textTokens("Take the word — what's in it? O'Reilly, 2nd")).toEqual([
-    "take",
-    "the",
-    "word",
-    "what's",
-    "in",
-    "it",
-    "o'reilly",
-    "2nd",
-  ]);
-});
-
-test("extracts text from nested structured content", () => {
-  const content: StructuredContent = {
-    tag: "div",
-    content: [
-      "visible ",
-      { tag: "span", content: "text" },
-      {
-        tag: "details",
-        content: [{ tag: "summary", content: "more" }, "hidden"],
-      },
-      { tag: "br" },
-    ],
-  };
-
-  expect(renderedText(content).replace(/\s+/gu, " ").trim()).toBe(
-    "visible text more hidden",
-  );
-});
-
-test("computes coverage from unique source tokens", () => {
-  const content: StructuredContent = {
-    tag: "div",
-    content: ["to cause movement around an axis, as a wheel"],
-  };
-  const metrics = computeTextCoverage(
-    "to cause movement around an axis, as a wheel does",
-    content,
+test("reports a covered conversion when source words survive rendering", () => {
+  const result = convertCanonical(
+    mainCanonicalEntryPlan({
+      term: "sample",
+      ownerHtml:
+        '<mean><div class="entry-header"><h1 class="hword">sample</h1>' +
+        '<span class="fl">noun</span></div>' +
+        '<div class="section" data-id="definition"><span class="dt">a sample definition</span></div>' +
+        "</mean>",
+    }),
   );
 
-  expect(metrics.coverage).toBeCloseTo(0.9);
-  expect(metrics.missingTokens).toEqual(["does"]);
-  expect(metrics.sourceTokenCount).toBe(10);
-  expect(metrics.renderedTokenCount).toBe(9);
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(analyzeConversionCoverage(result.value)).toMatchObject({
+    term: "sample",
+    findingCount: 0,
+    status: "covered",
+    missingSourceTokens: [],
+  });
 });
 
-test("reports full coverage for empty source", () => {
-  const metrics = computeTextCoverage("", { tag: "div", content: [] });
+test("flags a conversion that preserved text through an unclassified subtree", () => {
+  const result = convertCanonical(
+    mainCanonicalEntryPlan({
+      term: "sample",
+      ownerHtml:
+        '<mean><div class="entry-header"><h1 class="hword">sample</h1>' +
+        '<span class="fl">noun</span></div>' +
+        '<div class="section" data-id="definition"><span class="dt">a sample definition</span>' +
+        '<section class="mystery">unclassified note</section></div></mean>',
+    }),
+  );
 
-  expect(metrics.coverage).toBe(1);
-  expect(metrics.missingTokens).toEqual([]);
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(analyzeConversionCoverage(result.value)).toMatchObject({
+    findingCount: 1,
+    status: "unclassified-content",
+    missingSourceTokens: [],
+  });
 });

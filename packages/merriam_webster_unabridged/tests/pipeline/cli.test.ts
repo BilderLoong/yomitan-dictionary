@@ -18,6 +18,7 @@ describe("parseCliArgs", () => {
       value: {
         flagWords: ["give", "in", "take the word"],
         wordsFilePath: "/tmp/words.txt",
+        fullDatabase: false,
       },
     });
   });
@@ -47,11 +48,41 @@ describe("parseCliArgs", () => {
   test("uses a fresh command for each parse", () => {
     expect(parseCliArgs(["--words", "give"])).toEqual({
       ok: true,
-      value: { flagWords: ["give"], wordsFilePath: null },
+      value: {
+        flagWords: ["give"],
+        wordsFilePath: null,
+        fullDatabase: false,
+      },
     });
     expect(parseCliArgs([])).toEqual({
       ok: true,
-      value: { flagWords: [], wordsFilePath: null },
+      value: { flagWords: [], wordsFilePath: null, fullDatabase: false },
     });
+  });
+
+  test("parses --full as a full-database build", () => {
+    const result = parseCliArgs(["--full"]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.fullDatabase).toBe(true);
+    expect(result.value.flagWords).toEqual([]);
+    expect(result.value.wordsFilePath).toBeNull();
+  });
+
+  test("rejects --full combined with --words", () => {
+    const result = parseCliArgs(["--full", "--words", "o"]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("--full");
+  });
+
+  test("rejects --full combined with --words-file", () => {
+    const result = parseCliArgs(["--full", "--words-file", "words.txt"]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("--full");
   });
 });

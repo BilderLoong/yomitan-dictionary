@@ -67,6 +67,24 @@ trimmed, blank file lines are ignored, and exact Unicode spellings are
 deduplicated. The command does not read stdin or perform an implicit
 full-database build.
 
+## Build the whole database
+
+`--full` builds every row of the source database instead of selected words:
+
+```bash
+bun run src/index.ts --full
+bun run build:full
+```
+
+`--full` cannot be combined with `--words` or `--words-file`. A full build
+plans and converts all 470k source rows — expect it to take a long time and
+to produce a large archive. The build report keeps the full-database shape
+(roots, decisions, findings, errors, totals) but omits the per-entry detail
+arrays (plans, conversions, soft-link entries, coverage) that would multiply
+the file size; the terminal prints the final statistics (rows planned,
+canonical entries, soft links, records, findings, errors, elapsed time,
+archive size).
+
 Successful builds write:
 
 - `build/Merriam Webster Unabridged.zip`
@@ -86,8 +104,8 @@ Yomitan archives. Canonical entries now use MWU-shaped structured content:
 semantic headers, WTY-style POS tags, native nested sense lists, scoped labels,
 highlighted targets, collapsed examples/origin/phrases, and visible
 cross-reference text without MWU navigation URLs. Broader uncommon markup
-coverage, full-database mode, pronunciation audio, and richer media rendering
-remain future work.
+coverage, pronunciation audio, and richer media rendering remain future
+work.
 
 ## Production structured-content renderer
 

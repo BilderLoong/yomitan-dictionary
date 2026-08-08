@@ -5,6 +5,7 @@ import type { Result } from "../shared/result";
 export interface ParsedCliArgs {
   readonly flagWords: readonly string[];
   readonly wordsFilePath: string | null;
+  readonly fullDatabase: boolean;
 }
 
 export type CliParseError = {
@@ -15,6 +16,7 @@ export type CliParseError = {
 interface CommanderOptions {
   readonly words?: readonly string[];
   readonly wordsFile?: string;
+  readonly full?: boolean;
 }
 
 const ignoreCommanderOutput = (_message: string): void => undefined;
@@ -27,7 +29,11 @@ const createProgram = (): Command =>
       writeErr: ignoreCommanderOutput,
     })
     .option("--words <words...>", "Target words to build")
-    .option("--words-file <path>", "Newline-delimited target words file");
+    .option("--words-file <path>", "Newline-delimited target words file")
+    .option(
+      "--full",
+      "Build every Unabridged entry (excludes collegiate_, medical_, and thesaurus_ twin rows)",
+    );
 
 export const parseCliArgs = (
   argv: readonly string[],
@@ -37,12 +43,28 @@ export const parseCliArgs = (
   try {
     program.parse(argv, { from: "user" });
     const options = program.opts<CommanderOptions>();
+    const fullDatabase = options.full === true;
+
+    if (
+      fullDatabase &&
+      ((options.words?.length ?? 0) > 0 || options.wordsFile !== undefined)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message:
+            "The --full flag cannot be combined with --words or --words-file.",
+        },
+      };
+    }
 
     return {
       ok: true,
       value: {
         flagWords: [...(options.words ?? [])],
         wordsFilePath: options.wordsFile ?? null,
+        fullDatabase,
       },
     };
   } catch (error: unknown) {
