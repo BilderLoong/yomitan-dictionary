@@ -53,6 +53,24 @@ test("forwards chrome flags verbatim in order", () => {
   });
 });
 
+test("opens an MCP port with the required Chrome flags", () => {
+  expect(
+    parseImportArguments(["dictionary.zip", "--mcp-port", "9222"]),
+  ).toEqual({
+    ok: true,
+    value: {
+      dictionaryPath: "dictionary.zip",
+      query: null,
+      queryFilePath: null,
+      close: false,
+      chromeFlags: ["--remote-debugging-port=9222", "--remote-allow-origins=*"],
+      screenshotPath: null,
+      extensionPath: null,
+      userDataDirectory: null,
+    },
+  });
+});
+
 test("rejects an empty chrome flag", () => {
   expect(parseImportArguments(["dictionary.zip", "--chrome-flag", ""])).toEqual(
     {

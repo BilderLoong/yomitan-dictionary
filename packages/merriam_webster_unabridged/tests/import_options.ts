@@ -27,7 +27,7 @@ interface ParsedOptions {
 }
 
 const usage =
-  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--user-data-dir <path>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
+  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--user-data-dir <path>] [--mcp-port <port>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
 
 const parseOptions = (
   argumentsList: readonly string[],
@@ -41,6 +41,34 @@ const parseOptions = (
     return parseOptions(argumentsList, index + 1, {
       ...options,
       close: true,
+    });
+  }
+
+  if (argument === "--mcp-port") {
+    const value = argumentsList[index + 1];
+    const port = Number(value);
+    if (
+      value === undefined ||
+      value.length === 0 ||
+      !Number.isInteger(port) ||
+      port < 1 ||
+      port > 65535
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "--mcp-port requires an integer from 1 to 65535",
+        },
+      };
+    }
+    return parseOptions(argumentsList, index + 2, {
+      ...options,
+      chromeFlags: [
+        ...options.chromeFlags,
+        `--remote-debugging-port=${port}`,
+        "--remote-allow-origins=*",
+      ],
     });
   }
 
