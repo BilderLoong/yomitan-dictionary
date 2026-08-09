@@ -23,6 +23,26 @@ test("collapses extra example sentences behind exactly one inline example", () =
   expect(inline.length).toBeGreaterThan(0);
 });
 
+test("usage note text is wrapped in a span, separated from its examples", () => {
+  const notes = $('[data-sc-content="usage-note"]');
+  expect(notes.length).toBeGreaterThan(0);
+  notes.each((_, element) => {
+    const note = $(element);
+    // The note text lives in its own inline container, not as bare text —
+    // even when the note has no example sentence (e.g. "— often used by
+    // itself…").
+    const text = note.children('[data-sc-content="usage-note-text"]');
+    expect(text.length).toBe(1);
+    expect(text.prop("tagName")?.toLowerCase()).toBe("span");
+    expect(text.text()).toMatch(/^— /);
+    const hasExamples =
+      note.children('[data-sc-content="example-sentence"]').length > 0;
+    if (!hasExamples) return;
+    // The span is a sibling before the examples, never merged into them.
+    expect(text.next('[data-sc-content="example-sentence"]').length).toBe(1);
+  });
+});
+
 test("phrase summary lists every alternate spelling of what's what", () => {
   const phrases = $('details[data-sc-content="phrase"]');
   expect(phrases.length).toBeGreaterThan(0);

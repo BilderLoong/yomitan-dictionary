@@ -46,8 +46,11 @@
 }
 
 /* Definition body */
-span[data-sc-content="verb-subtype"] {
-  font-weight: bold;
+
+[data-sc-content="emphasis"] {
+  /* font-style: italic; */
+  color: red;
+  /* font-weight: 500; */
 }
 ol[data-sc-content="mwu-level"] {
   list-style-type: decimal;
@@ -56,32 +59,42 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   list-style-type: lower-alpha;
 }
 [data-sc-content="usage-note"] {
-  font-style: italic;
   margin-left: 1em;
 }
-[data-sc-content="example-sentence"] {
+
+[data-sc-content="usage-note-text"] {
   margin-left: 1em;
-  color: gray;
+}
+
+[data-sc-content="example-sentence"] {
+  margin: 0.4em 0 0.15em 0.8em;
+  padding-left: 0.8em;
+
+  border-left: 2px solid #e3e3e3;
+
+  color: #666;
+  line-height: 1.55;
 }
 [data-sc-content="example-source"] {
-  font-style: italic;
-  font-size: 0.9em;
   margin-left: 1em;
+  color: #999;
+  font-size: 0.72em;
 }
 [data-sc-content="example-source-inline"] {
   font-style: italic;
 }
+[data-sc-content="example-sentence"] > [data-sc-content="emphasis"],
 [data-sc-content="target-highlight"] {
   /* background-color: orange; */
-  /* font-weight: bold; */
-  font-style: italic;
-  color: #5f95c9;
+  font-weight: bold;
+  /* font-style: italic; */
+  color: #222;
 }
 [data-sc-content="cross-reference"],
 [data-sc-content="synonym-term"] {
   /* text-decoration-line: underline; */
-  color: #0066cc;
-  font-weight: bold;
+  color: #416b91;
+  font-weight: 500;
 }
 [data-sc-content="superscript-reference"] {
   vertical-align: super;
@@ -90,26 +103,20 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
 [data-sc-content="superscript-reference"][data-sc-source-unit="text-lowercase"] {
   vertical-align: sub;
 }
-[data-sc-content="emphasis"] {
-  font-style: italic;
-  color: #d04449;
-}
 [data-sc-content="strong"] {
   font-weight: bold;
 }
-[data-sc-content="tag"] {
-  font-style: italic;
-  color: #c53cc0;
-  margin-right: 0.35em;
-  /* font-weight: bold;
-  padding: 0.2em 0.3em;
+[data-sc-content="tag"],
+span[data-sc-content="verb-subtype"] {
+  font-size: 1em;
+  font-weight: bold;
+  padding: 0.3em 0.3em;
   word-break: keep-all;
   border-radius: 0.3em;
-  vertical-align: text-bottom;
   background-color: #565656;
   color: white;
   cursor: help;
-  margin-right: 0.25em; */
+  margin-right: 0.25em;
 }
 [data-sc-content="grammar-label"] {
   font-style: italic;
@@ -186,4 +193,28 @@ details[data-sc-content="related-item"] > summary {
 details[data-sc-content="phrase"] > summary span {
   font-style: italic;
   font-weight: bold;
+}
+
+[data-sc-content="mwu-entry"] {
+  color: #242424;
+  line-height: 1.6;
+}
+
+[data-sc-content="definition"] {
+  color: #242424;
+}
+
+ol[data-sc-content="mwu-level"] {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+ol[data-sc-content="mwu-level"][data-sc-level="3"] > li {
+  margin-top: 0.85em;
+  margin-bottom: 0.85em;
+}
+
+ol[data-sc-content="mwu-level"][data-sc-level="4"] > li {
+  margin-top: 0.45em;
+  margin-bottom: 0.45em;
 }

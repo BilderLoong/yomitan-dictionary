@@ -1041,9 +1041,17 @@ const renderUsageNotes = (
         (content: StructuredContent): StructuredContent =>
           content === "—" ? "— " : content,
       );
+      const textSpan: readonly StructuredContent[] =
+        spacedText.length === 0
+          ? []
+          : [
+              container("span", spacedText, {
+                data: unitData("usage-note-text", { level: 6 }),
+              }),
+            ];
       return renderResult(
         [
-          container("div", [...spacedText, ...exampleResults.nodes], {
+          container("div", [...textSpan, ...exampleResults.nodes], {
             data: unitData("usage-note", { level: 6 }),
           }),
         ],

@@ -19,3 +19,33 @@ The `som` rank higher than `sum` in the result of `sum`
 
 ## why when i search `down`
 there is a alternative showing with the "down" entry
+
+## Style
+The head is mess and does distuish with the defintion body. inflect label could be style.
+
+
+/ˈ(h)wät/ , /ˈ(h)wət/
+inflected form(s): plural -s
+
+
+ˈpu̇t chiefly dialectal ˈpət
+put /ˈpu̇t chiefly dialectal ˈpət/ or dialectal put·ten /ˈpu̇-tᵊn/ ; put or dialectal putten; put·ting; puts
+
+---
+The tag: current is not well writen, i want it look like the wty tag.
+---
+
+Stlye of, have same text with definition, need to distinguish with the definition body.:
+2 more examples
+
+---
+data-sc-content="emphasis" need to restyle, current use red, too catching.
+
+---
+: to express gratitude
+specifically : to say grace
+
+should be in one line.
+
+
+<details class="gloss-sc-details" data-sc-content="phrase" data-sc-level="1" open=""><summary class="gloss-sc-summary"><span class="gloss-sc-span">give thanks</span></summary><div class="gloss-sc-div" data-sc-content="definition-flow" data-sc-level="3">   <div class="gloss-sc-div" data-sc-content="definition" data-sc-level="5">: to express gratitude</div> <div class="gloss-sc-div" data-sc-content="definition" data-sc-level="3"> specifically : to say grace <div class="gloss-sc-div" data-sc-content="example-sentence" data-sc-level="6">and he took bread, and when he had <span class="gloss-sc-span" data-sc-content="emphasis">given thanks</span> he broke it and gave it to them </div><span class="gloss-sc-span" data-sc-content="example-source-inline"> — Luke 22:19 (Revised Standard Version)</span> </div> </div></details>

@@ -89,6 +89,7 @@ structured-content generator drops unknown tags.
 | `.sn` with `.num`/`.letter`/`.sub-num` | `sense-number`, `subsense-letter`, `definition-number` | `ol`/`li` |
 | `.dt` | `definition` | `span` or `div` |
 | `.uns` / `.un` / `.mdash` / `.unText` | `usage-note` | `div` |
+| text part of `.un` (`.mdash` / `.unText` content) | `usage-note-text` | `span` |
 | `.vis` / `.vi` / `.ex-sent-group` / `.ex-sent` | `example-sentence`, `extra-examples` | `div`/`details` |
 | `.mw_t_wi` | `target-highlight` | `span` |
 | `.aq` / `.auth` / `.aqdate` | `example-source` | `div` |
