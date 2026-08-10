@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
-import { chromium, type Page } from "playwright";
+import { type BrowserContext, chromium, type Page } from "playwright";
 import { parseImportArguments, queriesFromText } from "./import_options";
 
 const readDictionaryCount = async (page: Page): Promise<number> => {
@@ -74,6 +74,237 @@ const _assertSearchResult = async (
   const entryCount = await page.locator("#dictionary-entries .entry").count();
   if (entryCount === 0) {
     throw new Error(`Search returned no dictionary entry for: ${query}`);
+  }
+};
+
+const waitForSearchPopupPage = async (
+  browserContext: BrowserContext,
+  searchPage: Page,
+  searchPageUrl: string,
+): Promise<Page> => {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    const popupPage = browserContext.pages().find((candidate): boolean => {
+      if (candidate === searchPage) return false;
+      if (!candidate.url().startsWith(`${searchPageUrl}?`)) return false;
+      return true;
+    });
+    if (popupPage !== undefined) return popupPage;
+    await new Promise<void>((resolve): void => {
+      setTimeout(resolve, 100);
+    });
+  }
+  throw new Error("Yomitan search popup did not open");
+};
+
+const openSearchPopup = async (
+  browserContext: BrowserContext,
+  searchPage: Page,
+  searchPageUrl: string,
+  query: string,
+): Promise<Page> => {
+  const response = await searchPage.evaluate(
+    (text: string): Promise<unknown> =>
+      new Promise<unknown>((resolve, reject): void => {
+        const chromeApi = (
+          globalThis as unknown as {
+            chrome: {
+              runtime: {
+                lastError?: { message?: string };
+                sendMessage: (
+                  message: unknown,
+                  callback: (response: unknown) => void,
+                ) => void;
+              };
+            };
+          }
+        ).chrome;
+        chromeApi.runtime.sendMessage(
+          {
+            action: "getOrCreateSearchPopup",
+            params: { focus: true, text },
+          },
+          (result: unknown): void => {
+            const error = chromeApi.runtime.lastError;
+            if (error !== undefined) {
+              reject(new Error(error.message ?? "Could not open popup"));
+              return;
+            }
+            resolve(result);
+          },
+        );
+      }),
+    query,
+  );
+  if (typeof response !== "object" || response === null) {
+    throw new Error("Yomitan popup API returned an invalid response");
+  }
+  const responseResult = (response as { result?: unknown }).result;
+  if (typeof responseResult !== "object" || responseResult === null) {
+    throw new Error("Yomitan popup API did not return a tab");
+  }
+
+  const popupPage = await waitForSearchPopupPage(
+    browserContext,
+    searchPage,
+    searchPageUrl,
+  );
+  await popupPage.setViewportSize({ width: 360, height: 720 });
+  await popupPage.waitForFunction(
+    (): boolean =>
+      document.documentElement.dataset.searchMode === "popup" &&
+      document.documentElement.dataset.loaded === "true",
+    undefined,
+    { timeout: 30000 },
+  );
+  await popupPage.waitForFunction(
+    (): boolean => {
+      const entries = document.querySelectorAll("#dictionary-entries .entry");
+      const noDictionaries = document.querySelector("#no-dictionaries");
+      return (
+        entries.length > 0 ||
+        (noDictionaries !== null && !noDictionaries.hasAttribute("hidden"))
+      );
+    },
+    undefined,
+    { timeout: 30000 },
+  );
+  const entryCount = await popupPage
+    .locator("#dictionary-entries .entry")
+    .count();
+  if (entryCount === 0) {
+    throw new Error(`Popup returned no dictionary entry for: ${query}`);
+  }
+  return popupPage;
+};
+
+const assertSearchPopupPresentation = async (
+  popupPage: Page,
+  query: string,
+): Promise<void> => {
+  const failures = await popupPage.evaluate((): string[] => {
+    const body = document.body;
+    const content = document.querySelector("#content-scroll");
+    const forms = [
+      ...document.querySelectorAll(
+        '[data-sc-content="mwu-header-inflections"]',
+      ),
+    ];
+    const compactForm = forms.find(
+      (node): boolean =>
+        node.querySelector('[data-sc-content="emphasis"]') !== null,
+    );
+    const localTags = [
+      ...document.querySelectorAll(
+        '[data-sc-content="tag"], span[data-sc-content="verb-subtype"]',
+      ),
+    ];
+    const headerTags = localTags.filter(
+      (node): boolean =>
+        node.closest('[data-sc-content="mwu-header"]') !== null,
+    );
+    const badgeTags = localTags.filter(
+      (node): boolean =>
+        node.closest('[data-sc-content="mwu-header"]') === null,
+    );
+    const examples = [
+      ...document.querySelectorAll('[data-sc-content="example-sentence"]'),
+    ];
+    const disclosures = [
+      ...document.querySelectorAll('[data-sc-content="disclosure-summary"]'),
+    ];
+    const nativeDictionaryTag = [
+      ...document.querySelectorAll(".tag-label"),
+    ].find(
+      (node): boolean => node.textContent?.includes("Merriam Webster") ?? false,
+    );
+    const failures: string[] = [];
+    if (
+      body.scrollWidth > body.clientWidth ||
+      (content !== null && content.scrollWidth > content.clientWidth)
+    ) {
+      failures.push("horizontal overflow");
+    }
+    if (forms.length === 0) failures.push("missing inflection group");
+    if (forms.some((node): boolean => node.scrollWidth > node.clientWidth)) {
+      failures.push("inflection group overflow");
+    }
+    if (
+      forms[0] !== undefined &&
+      forms[0].getBoundingClientRect().height <= 40
+    ) {
+      failures.push("long inflection group did not wrap");
+    }
+    const compactFormLabel = compactForm?.querySelector(
+      '[data-sc-content="emphasis"]',
+    );
+    if (
+      compactFormLabel !== null &&
+      compactFormLabel !== undefined &&
+      getComputedStyle(compactFormLabel).display !== "inline"
+    ) {
+      failures.push("short inflection metadata is not compact");
+    }
+    if (badgeTags.length === 0) failures.push("missing sense-level local tag");
+    if (
+      badgeTags.some((node): boolean => {
+        const style = getComputedStyle(node);
+        return (
+          style.display !== "inline-flex" ||
+          style.cursor !== "default" ||
+          style.borderRadius === "0px"
+        );
+      })
+    ) {
+      failures.push("invalid sense-level local tag treatment");
+    }
+    if (
+      headerTags.some((node): boolean => {
+        const style = getComputedStyle(node);
+        return (
+          style.display !== "inline" ||
+          style.borderRadius !== "0px" ||
+          style.padding !== "0px"
+        );
+      })
+    ) {
+      failures.push("invalid header qualifier treatment");
+    }
+    if (nativeDictionaryTag !== undefined && badgeTags[0] !== undefined) {
+      const localStyle = getComputedStyle(badgeTags[0]);
+      const nativeStyle = getComputedStyle(nativeDictionaryTag);
+      if (
+        Math.abs(
+          Number.parseFloat(localStyle.height) -
+            Number.parseFloat(nativeStyle.height),
+        ) > 2 ||
+        localStyle.backgroundColor === nativeStyle.backgroundColor
+      ) {
+        failures.push("local tag does not match host badge scale");
+      }
+    }
+    if (
+      examples.length === 0 ||
+      !examples.some(
+        (node): boolean => getComputedStyle(node).listStyleType === "disc",
+      )
+    ) {
+      failures.push("examples are not list items");
+    }
+    if (
+      disclosures.length === 0 ||
+      disclosures.some(
+        (node): boolean => node.parentElement?.hasAttribute("open") ?? false,
+      )
+    ) {
+      failures.push("disclosures are not collapsed");
+    }
+    return failures;
+  });
+  if (failures.length > 0) {
+    throw new Error(
+      `Popup presentation failed for ${query}: ${failures.join(", ")}`,
+    );
   }
 };
 
@@ -271,6 +502,25 @@ const main = async (): Promise<void> => {
 
     await searchPage.goto(
       `${searchPageUrl}?query=${encodeURIComponent(searchQueries.join(". "))}`,
+    );
+    const popupQuery = searchQueries[searchQueries.length - 1];
+    if (popupQuery === undefined) {
+      throw new Error("No popup query was selected");
+    }
+    const popupPage = await openSearchPopup(
+      browserContext,
+      searchPage,
+      searchPageUrl,
+      popupQuery,
+    );
+    for (const theme of ["light", "dark"] as const) {
+      await popupPage.evaluate((value: string): void => {
+        document.documentElement.dataset.theme = value;
+      }, theme);
+      await assertSearchPopupPresentation(popupPage, popupQuery);
+    }
+    console.log(
+      `Popup ready for ${popupQuery} at ${popupPage.url()} (360px viewport)`,
     );
   } finally {
     if (options.close) await browserContext.close();

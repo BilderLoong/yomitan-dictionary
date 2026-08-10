@@ -2,11 +2,14 @@ import { convertCanonical } from "../../src/conversion/convertCanonical";
 import type { ConvertedCanonical } from "../../src/conversion/types";
 import type { Result } from "../../src/shared/result";
 import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
-
+import downHtml from "./fixtures/down.html?raw";
+import giveHtml from "./fixtures/give.html?raw";
 import inHtml from "./fixtures/in.html?raw";
 import oHtml from "./fixtures/o.html?raw";
 import ohHtml from "./fixtures/oh.html?raw";
+import putHtml from "./fixtures/put.html?raw";
 import runHtml from "./fixtures/run.html?raw";
+import sumHtml from "./fixtures/sum.html?raw";
 import turnHtml from "./fixtures/turn.html?raw";
 import whatHtml from "./fixtures/what.html?raw";
 
@@ -40,12 +43,28 @@ export const inConverted = unwrap(
   convertCanonical(mainCanonicalEntryPlan({ term: "in", ownerHtml: inHtml })),
 );
 
+export const downConverted = unwrap(
+  convertCanonical(
+    mainCanonicalEntryPlan({ term: "down", ownerHtml: downHtml }),
+  ),
+);
+
+export const giveConverted = unwrap(
+  convertCanonical(
+    mainCanonicalEntryPlan({ term: "give", ownerHtml: giveHtml }),
+  ),
+);
+
 export const oConverted = unwrap(
   convertCanonical(mainCanonicalEntryPlan({ term: "o", ownerHtml: oHtml })),
 );
 
 export const ohConverted = unwrap(
   convertCanonical(mainCanonicalEntryPlan({ term: "oh", ownerHtml: ohHtml })),
+);
+
+export const putConverted = unwrap(
+  convertCanonical(mainCanonicalEntryPlan({ term: "put", ownerHtml: putHtml })),
 );
 
 export const turnConverted = unwrap(
@@ -58,11 +77,19 @@ export const runConverted = unwrap(
   convertCanonical(mainCanonicalEntryPlan({ term: "run", ownerHtml: runHtml })),
 );
 
+export const sumConverted = unwrap(
+  convertCanonical(mainCanonicalEntryPlan({ term: "sum", ownerHtml: sumHtml })),
+);
+
 export const allConverted: readonly ConvertedCanonical[] = [
   whatConverted,
   inConverted,
+  downConverted,
+  giveConverted,
   oConverted,
   ohConverted,
+  putConverted,
   turnConverted,
   runConverted,
+  sumConverted,
 ];

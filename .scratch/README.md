@@ -24,6 +24,15 @@ ticket whose blockers are done can be grabbed.
 | 02 | tag-generation-rules | None | resolved 2026-08-07 (ADR 0005) |
 | 03 | survey-inspector-design | None | resolved 2026-08-07 |
 
+## mwu-ui-optimization — structured-content presentation
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | make-local-tags-match-host-ui | None | completed |
+| 02 | clarify-structured-entry-header | 01 | completed |
+| 03 | improve-definition-reading-path | 01 | completed |
+| 04 | unify-phrase-flow-and-disclosure-hierarchy | 03 | completed |
+
 ## Resolved during migration
 
 - "Is there any way to test the final render result?" — answered in TODO.md

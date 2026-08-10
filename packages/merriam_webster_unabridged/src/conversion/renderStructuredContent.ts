@@ -45,6 +45,7 @@ interface NodeOptions {
 interface DataOptions {
   readonly level?: number;
   readonly sourceMarker?: string;
+  readonly sourceMarkerPath?: string;
   readonly unit?: string;
   readonly relation?: string;
   readonly category?: string;
@@ -55,6 +56,19 @@ interface InlineOptions {
   readonly stripLeadingArrow?: boolean;
   readonly skipClasses?: readonly string[];
   readonly plainLinks?: boolean;
+}
+
+interface PronunciationRows {
+  readonly readings: readonly StructuredContent[];
+  readonly notes: readonly StructuredContent[];
+}
+
+type InflectionLabelCategory = "connector" | "form-label" | "qualifier";
+
+interface InterleavedPronunciationQualifier {
+  readonly qualifier: Element;
+  readonly before: string;
+  readonly after: string;
 }
 
 const knownTags = [
@@ -128,6 +142,9 @@ const unitData = (
   ...(options.sourceMarker === undefined
     ? {}
     : { sourceMarker: options.sourceMarker }),
+  ...(options.sourceMarkerPath === undefined
+    ? {}
+    : { sourceMarkerPath: options.sourceMarkerPath }),
   ...(options.unit === undefined ? {} : { unit: options.unit }),
   ...(options.relation === undefined ? {} : { relation: options.relation }),
   ...(options.category === undefined ? {} : { category: options.category }),
@@ -153,6 +170,43 @@ const container = (
   };
 };
 
+const dataContent = (node: StructuredContent): string | null => {
+  if (typeof node === "string" || Array.isArray(node) || !("data" in node)) {
+    return null;
+  }
+  return node.data?.content ?? null;
+};
+
+const pronunciationRows = (
+  nodes: readonly StructuredContent[],
+): PronunciationRows => ({
+  readings: nodes.filter(
+    (node: StructuredContent): boolean =>
+      dataContent(node) !== "pronunciation-note",
+  ),
+  notes: nodes.filter(
+    (node: StructuredContent): boolean =>
+      dataContent(node) === "pronunciation-note",
+  ),
+});
+
+const hasDataContent = (
+  nodes: readonly StructuredContent[],
+  content: string,
+): boolean =>
+  nodes.some(
+    (node: StructuredContent): boolean => dataContent(node) === content,
+  );
+
+const disclosureSummary = (
+  content: StructuredContent | readonly StructuredContent[],
+  category: string,
+  level: number,
+): StructuredContent =>
+  container("summary", content, {
+    data: unitData("disclosure-summary", { category, level }),
+  });
+
 const emptyResult = (): RenderResult => ({
   nodes: [],
   findings: [],
@@ -164,6 +218,22 @@ const normalizeWhitespace = (text: string): string =>
 
 const normalizeBlockText = (text: string): string =>
   normalizeWhitespace(text).trim();
+
+const inflectionFormLabels: readonly string[] = [
+  "plural",
+  "singular",
+  "past",
+  "past participle",
+  "present participle",
+  "comparative",
+  "superlative",
+];
+
+const inflectionLabelCategory = (text: string): InflectionLabelCategory => {
+  const normalized = normalizeBlockText(text).toLowerCase();
+  if (normalized === "or" || normalized === "also") return "connector";
+  return inflectionFormLabels.includes(normalized) ? "form-label" : "qualifier";
+};
 
 const nodeVisibleText = (node: StructuredContent): string => {
   if (typeof node === "string") return node;
@@ -266,6 +336,29 @@ const formatFormPronunciation = (raw: string): string => {
     .replaceAll("\u200b", "")
     .replaceAll("¦", "ˈ");
   return cleaned.length === 0 ? "" : `/${cleaned}/`;
+};
+
+const interleavedPronunciationQualifier = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): InterleavedPronunciationQualifier | null => {
+  const qualifiers = root(element).children(".mw_t_it").toArray();
+  if (qualifiers.length !== 1) return null;
+  const qualifier = qualifiers[0];
+  if (qualifier === undefined) return null;
+
+  const siblings = root(element).contents().toArray();
+  const qualifierIndex = siblings.indexOf(qualifier);
+  if (qualifierIndex < 0) return null;
+  const textOf = (nodes: readonly AnyNode[]): string =>
+    nodes
+      .map((node: AnyNode): string => textWithoutElements(root, node, []))
+      .join("");
+  const before = textOf(siblings.slice(0, qualifierIndex));
+  const after = textOf(siblings.slice(qualifierIndex + 1));
+  return !isVisible(before) || !isVisible(after)
+    ? null
+    : { qualifier, before, after };
 };
 
 const POS_SPECIAL: Readonly<Record<string, string>> = {
@@ -557,7 +650,6 @@ const renderInlineNode = (
             sourceUnit: "sense-label",
             level: 5,
           }),
-          title: elementText(root, element),
         }),
       ],
       child.findings,
@@ -573,7 +665,6 @@ const renderInlineNode = (
             sourceUnit: "definition-label",
             level: 5,
           }),
-          title: elementText(root, element),
         }),
       ],
       child.findings,
@@ -584,12 +675,11 @@ const renderInlineNode = (
     return renderResult(
       [
         container("span", child.nodes, {
-          data: unitData("tag", {
-            category: "grammar",
-            sourceUnit: "grammar-label",
+          data: unitData("inflection-label", {
+            category: inflectionLabelCategory(elementText(root, element)),
+            sourceUnit: "spl",
             level: 5,
           }),
-          title: elementText(root, element),
         }),
       ],
       child.findings,
@@ -775,16 +865,74 @@ const renderFormPronunciation = (
           return emptyResult();
         }
         if (hasClass(root, node, "mw")) {
-          const reading = formatFormPronunciation(elementText(root, node));
-          return reading.length === 0
-            ? emptyResult()
-            : renderResult([
-                container("span", reading, {
+          const qualifierParts = interleavedPronunciationQualifier(root, node);
+          if (qualifierParts !== null) {
+            const beforeReading = formatFormPronunciation(
+              qualifierParts.before,
+            );
+            const afterReading = formatFormPronunciation(qualifierParts.after);
+            if (beforeReading.length === 0 || afterReading.length === 0) {
+              return emptyResult();
+            }
+            const tag = container(
+              "span",
+              elementText(root, qualifierParts.qualifier),
+              {
+                data: unitData("tag", {
+                  category: "pronunciation",
+                  level,
+                  sourceUnit: "form-pronunciation-qualifier",
+                }),
+              },
+            );
+            return renderResult([
+              container("span", [
+                container("span", beforeReading, {
                   data: unitData("pronunciation-reading", {
                     level,
                     sourceUnit: "mw",
                   }),
                 }),
+                " ",
+                tag,
+                " ",
+                container("span", afterReading, {
+                  data: unitData("pronunciation-reading", {
+                    level,
+                    sourceUnit: "mw",
+                  }),
+                }),
+              ]),
+            ]);
+          }
+          const reading = formatFormPronunciation(
+            textWithoutElements(root, node, ["em"]),
+          );
+          const qualifiers = root(node).find(".mw_t_it").toArray();
+          const qualifierNodes = qualifiers.flatMap(
+            (qualifier: Element): readonly StructuredContent[] => [
+              " ",
+              container("span", elementText(root, qualifier), {
+                data: unitData("tag", {
+                  category: "pronunciation",
+                  level,
+                  sourceUnit: "form-pronunciation-qualifier",
+                }),
+              }),
+            ],
+          );
+          return reading.length === 0
+            ? emptyResult()
+            : renderResult([
+                container("span", [
+                  container("span", reading, {
+                    data: unitData("pronunciation-reading", {
+                      level,
+                      sourceUnit: "mw",
+                    }),
+                  }),
+                  ...qualifierNodes,
+                ]),
               ]);
         }
         return renderInlineNode(root, node, [...path, index], plan);
@@ -872,9 +1020,10 @@ const collapseExampleResults = (
           container(
             "details",
             [
-              container(
-                "summary",
+              disclosureSummary(
                 `${remaining.length} more ${remaining.length === 1 ? "example" : "examples"}`,
+                "extra-examples",
+                6,
               ),
               ...remaining.flatMap(
                 ({ nodes }: RenderResult): readonly StructuredContent[] =>
@@ -1088,7 +1237,7 @@ const renderScopedDefinition = (
   const content = renderInlineChildren(root, element, path, plan);
   return renderResult(
     [
-      container("div", content.nodes, {
+      container("span", content.nodes, {
         data: unitData("definition", { level: 3 }),
       }),
     ],
@@ -1103,8 +1252,13 @@ const renderDefinitionFlow = (
   plan: CanonicalEntryPlan,
   level = 5,
   leadingNodes: readonly AnyNode[] = [],
+  trailingNodes: readonly AnyNode[] = [],
 ): RenderResult => {
-  const sourceNodes = [...leadingNodes, ...root(element).contents().toArray()];
+  const sourceNodes = [
+    ...leadingNodes,
+    ...root(element).contents().toArray(),
+    ...trailingNodes,
+  ];
   const results = renderNodeRuns(
     root,
     sourceNodes,
@@ -1155,12 +1309,29 @@ const renderSense = (
           .slice(0, definitionIndex)
           .filter(
             (child: AnyNode): boolean =>
-              child.type === "tag" && hasAnyClass(root, child, ["if", "spl"]),
+              child.type === "tag" &&
+              hasAnyClass(root, child, ["if", "il", "spl"]),
           );
+  const afterDefinition =
+    definitionIndex < 0 ? [] : children.slice(definitionIndex + 1);
+  const continuationLength = afterDefinition.findIndex(
+    (child: AnyNode): boolean => {
+      const isWhitespace = child.type === "text" && child.data.trim() === "";
+      const isScopedDefinition =
+        child.type === "tag" && hasClass(root, child, "sdsense");
+      return !isWhitespace && !isScopedDefinition;
+    },
+  );
+  const trailingScopedDefinitions =
+    continuationLength < 0
+      ? afterDefinition
+      : afterDefinition.slice(0, continuationLength);
   const results = renderNodeRuns(
     root,
     children.filter(
-      (child: AnyNode): boolean => !leadingFormNodes.includes(child),
+      (child: AnyNode): boolean =>
+        !leadingFormNodes.includes(child) &&
+        !trailingScopedDefinitions.includes(child),
     ),
     path,
     plan,
@@ -1173,6 +1344,7 @@ const renderSense = (
           plan,
           5,
           leadingFormNodes,
+          trailingScopedDefinitions,
         );
       }
       if (child.type === "tag" && hasClass(root, child, "uns")) {
@@ -1301,6 +1473,9 @@ const markerUnit = (level: 3 | 4 | 5): string => {
   return "definition-number";
 };
 
+const markerPathLabel = (path: readonly MarkerSegment[]): string =>
+  path.map(({ marker }: MarkerSegment): string => marker).join("");
+
 const renderSenseList = (
   records: readonly SenseRecord[],
   parentPath: readonly MarkerSegment[],
@@ -1337,6 +1512,9 @@ const renderSenseList = (
         data: unitData(markerUnit(last.level), {
           level: last.level,
           sourceMarker: last.marker,
+          ...(ownContent.length === 0
+            ? {}
+            : { sourceMarkerPath: markerPathLabel(path) }),
         }),
       });
     },
@@ -1564,9 +1742,7 @@ const renderOrigin = (
       container(
         "details",
         [
-          container("summary", summaryText, {
-            data: unitData("origin-section-title", { level: 1 }),
-          }),
+          disclosureSummary(summaryText, "origin", 1),
           container("div", renderedBody.nodes, {
             data: unitData("origin-text", { level: 1 }),
           }),
@@ -2067,7 +2243,7 @@ const renderRelated = (
       container(
         "details",
         [
-          container("summary", summaryText),
+          disclosureSummary(summaryText, "synonym", 1),
           container("div", renderedBody.nodes, {
             data: unitData("synonym-discussion", { level: 1 }),
           }),
@@ -2128,6 +2304,7 @@ const renderUndefinedRunOnNode = (
       [
         container("span", content.nodes, {
           data: unitData("inflection-label", {
+            category: inflectionLabelCategory(elementText(root, element)),
             level: 1,
             sourceUnit: "il",
           }),
@@ -2260,10 +2437,11 @@ const renderPhraseSection = (
       container(
         "details",
         [
-          container("summary", [
-            container("span", elementText(root, title)),
-            ...alternates,
-          ]),
+          disclosureSummary(
+            [container("span", elementText(root, title)), ...alternates],
+            "phrase",
+            1,
+          ),
           container("div", body.nodes, {
             data: unitData("definition-flow", { level: 3 }),
           }),
@@ -2347,11 +2525,25 @@ const renderPhrases = (
       .toArray()
       .filter((phrase: Element): boolean => phrase !== owner),
   ].filter((phrase: Element): boolean => root(phrase).find(".drp").length > 0);
-  return combineResults(
+  const phraseResults = combineResults(
     phrases.map(
       (phrase: Element, index: number): RenderResult =>
         renderDroPhrases(root, phrase, [...path, index], plan, embedded),
     ),
+  );
+  if (phraseResults.nodes.length === 0) return phraseResults;
+  return renderResult(
+    [
+      container(
+        "details",
+        [
+          disclosureSummary("Phrases", "phrase-group", 1),
+          ...phraseResults.nodes,
+        ],
+        { data: unitData("phrase-group", { level: 1 }), open: false },
+      ),
+    ],
+    phraseResults.findings,
   );
 };
 
@@ -2381,7 +2573,11 @@ const renderInflectionNode = (
     return renderResult(
       [
         container("span", child.nodes, {
-          data: unitData("inflection-label", { level: 1 }),
+          data: unitData("inflection-label", {
+            category: inflectionLabelCategory(elementText(root, element)),
+            level: 1,
+            sourceUnit: "il",
+          }),
         }),
       ],
       child.findings,
@@ -2479,6 +2675,27 @@ const renderPronunciationChildren = (
       ),
   );
 
+const renderPronunciationNoteChildren = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  combineResults(
+    root(element)
+      .contents()
+      .toArray()
+      .map(
+        (child: AnyNode, index: number): RenderResult =>
+          child.type === "tag" &&
+          (hasClass(root, child, "addPunct") ||
+            hasClass(root, child, "pun") ||
+            hasClass(root, child, "pr"))
+            ? renderInlineChildren(root, child, [...path, index], plan)
+            : renderInlineNode(root, child, [...path, index], plan),
+      ),
+  );
+
 const renderPronunciationNode = (
   root: cheerio.CheerioAPI,
   node: AnyNode,
@@ -2508,12 +2725,46 @@ const renderPronunciationNode = (
   if (hasClass(root, element, "prs")) {
     return renderPronunciationChildren(root, element, path, plan);
   }
+  if (hasClass(root, element, "mw_t_it")) {
+    const note = renderPronunciationNoteChildren(root, element, path, plan);
+    return renderResult(
+      [
+        container("span", note.nodes, {
+          data: unitData("pronunciation-note", { level: 1 }),
+        }),
+      ],
+      note.findings,
+    );
+  }
   if (hasClass(root, element, "pr")) {
-    const isNote =
-      root(element).find(".mw_t_it").length > 0 ||
-      root(element).parents(".mw_t_it").length > 0;
+    const qualifierParts = interleavedPronunciationQualifier(root, element);
+    if (qualifierParts !== null) {
+      const beforeReading = formatPronunciation(qualifierParts.before);
+      const afterReading = formatPronunciation(qualifierParts.after);
+      if (beforeReading.length === 0 || afterReading.length === 0) {
+        return emptyResult();
+      }
+      return renderResult([
+        container("span", beforeReading, {
+          data: unitData("pronunciation-reading", { level: 1 }),
+        }),
+        " ",
+        container("span", elementText(root, qualifierParts.qualifier), {
+          data: unitData("tag", {
+            category: "pronunciation",
+            level: 1,
+            sourceUnit: "pronunciation-qualifier",
+          }),
+        }),
+        " ",
+        container("span", afterReading, {
+          data: unitData("pronunciation-reading", { level: 1 }),
+        }),
+      ]);
+    }
+    const isNote = root(element).find(".mw_t_it").length > 0;
     if (isNote) {
-      const note = renderPronunciationChildren(root, element, path, plan);
+      const note = renderPronunciationNoteChildren(root, element, path, plan);
       return renderResult(
         [
           container("span", note.nodes, {
@@ -2535,6 +2786,58 @@ const renderPronunciationNode = (
   return renderInlineNode(root, element, path, plan);
 };
 
+const isPronunciationNoteSource = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  (hasClass(root, node, "mw_t_it") ||
+    (hasClass(root, node, "pr") &&
+      root(node).find(".mw_t_it").length > 0 &&
+      interleavedPronunciationQualifier(root, node) === null));
+
+const pronunciationPunctuation = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): string | null => {
+  if (node.type !== "tag" || !hasAnyClass(root, node, ["addPunct", "pun"])) {
+    return null;
+  }
+  const punctuation = elementText(root, node).trim();
+  return punctuation.includes(",") || punctuation.includes(";") ? ", " : "";
+};
+
+const isPronunciationReadingSource = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): boolean =>
+  node.type === "tag" &&
+  hasClass(root, node, "pr") &&
+  !isPronunciationNoteSource(root, node);
+
+const renderPronunciationSourceNode = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const rendered = renderPronunciationNode(root, node, path, plan);
+  if (
+    !isPronunciationNoteSource(root, node) ||
+    hasDataContent(rendered.nodes, "pronunciation-note")
+  ) {
+    return rendered;
+  }
+  return renderResult(
+    [
+      container("span", rendered.nodes, {
+        data: unitData("pronunciation-note", { level: 1 }),
+      }),
+    ],
+    rendered.findings,
+  );
+};
+
 const renderPronunciation = (
   root: cheerio.CheerioAPI,
   prs: Element,
@@ -2552,17 +2855,88 @@ const renderPronunciation = (
           const start = siblings.indexOf(prs);
           return start < 0 ? contents : siblings.slice(start);
         })();
-  const end = scope.findIndex(
+  const flattenedScope = scope.flatMap((node: AnyNode): readonly AnyNode[] =>
+    node.type === "tag" && hasClass(root, node, "prs")
+      ? root(node).contents().toArray()
+      : [node],
+  );
+  const end = flattenedScope.findIndex(
     (node: AnyNode): boolean =>
       node.type === "tag" && hasClass(root, node, "last-slash"),
   );
-  const boundedScope = end < 0 ? scope : scope.slice(0, end + 1);
-  return combineResults(
-    boundedScope.map(
-      (node: AnyNode, index: number): RenderResult =>
-        renderPronunciationNode(root, node, [...path, index], plan),
-    ),
+  const boundedScope =
+    end < 0 ? flattenedScope : flattenedScope.slice(0, end + 1);
+  const initial = { result: emptyResult(), trailingNote: false };
+  const rendered = boundedScope.reduce(
+    (
+      state: {
+        readonly result: RenderResult;
+        readonly trailingNote: boolean;
+      },
+      node: AnyNode,
+      index: number,
+    ): {
+      readonly result: RenderResult;
+      readonly trailingNote: boolean;
+    } => {
+      const isWhitespace =
+        node.type === "text" && node.data.trim().length === 0;
+      if (isWhitespace) return state;
+      const punctuation = pronunciationPunctuation(root, node);
+      const nextSignificant = boundedScope
+        .slice(index + 1)
+        .find(
+          (candidate: AnyNode): boolean =>
+            !(candidate.type === "text" && candidate.data.trim().length === 0),
+        );
+      const isPunctuationBeforeNote =
+        punctuation !== null &&
+        nextSignificant !== undefined &&
+        isPronunciationNoteSource(root, nextSignificant);
+      const hasReadingAfterNote = boundedScope
+        .slice(index + 1)
+        .some((candidate: AnyNode): boolean =>
+          isPronunciationReadingSource(root, candidate),
+        );
+      if (
+        punctuation !== null &&
+        (state.trailingNote ||
+          (isPunctuationBeforeNote && !hasReadingAfterNote))
+      ) {
+        return state;
+      }
+      const renderedNode =
+        punctuation !== null
+          ? renderResult([punctuation])
+          : renderPronunciationSourceNode(root, node, [...path, index], plan);
+      const isPronunciation = node.type === "tag" && hasClass(root, node, "pr");
+      const isPronunciationNote = isPronunciationNoteSource(root, node);
+      const nodes =
+        state.trailingNote &&
+        !isPronunciation &&
+        !hasDataContent(renderedNode.nodes, "pronunciation-note") &&
+        renderedNode.nodes.length > 0
+          ? [
+              container("span", renderedNode.nodes, {
+                data: unitData("pronunciation-note", { level: 1 }),
+              }),
+            ]
+          : renderedNode.nodes;
+      const nextResult = combineResults([
+        state.result,
+        renderResult(nodes, renderedNode.findings),
+      ]);
+      return {
+        result: nextResult,
+        trailingNote:
+          isPronunciation || isPronunciationNote
+            ? isPronunciationNote
+            : state.trailingNote,
+      };
+    },
+    initial,
   );
+  return rendered.result;
 };
 
 const renderHeader = (
@@ -2621,6 +2995,41 @@ const renderHeader = (
       (vr: Element): readonly StructuredContent[] =>
         renderAlternateForm(root, vr).nodes,
     );
+  const pronunciationParts = pronunciationRows(pronunciation.nodes);
+  const pronunciationRow = !hasDataContent(
+    pronunciationParts.readings,
+    "pronunciation-reading",
+  )
+    ? []
+    : [
+        container(
+          "div",
+          [
+            container("span", pronunciationParts.readings, {
+              data: unitData("pronunciation", { level: 1 }),
+            }),
+          ],
+          { data: unitData("mwu-header-pronunciation", { level: 1 }) },
+        ),
+      ];
+  const pronunciationNotesRow =
+    pronunciationParts.notes.length === 0
+      ? []
+      : [
+          container("div", pronunciationParts.notes, {
+            data: unitData("mwu-header-pronunciation-notes", { level: 1 }),
+          }),
+        ];
+  const inflectionRow =
+    inflection === undefined
+      ? []
+      : [
+          container(
+            "div",
+            renderInflectionGroup(root, inflection, [1], plan).nodes,
+            { data: unitData("mwu-header-inflections", { level: 1 }) },
+          ),
+        ];
   const headerNodes: readonly StructuredContent[] = [
     ...(homograph.length === 0
       ? []
@@ -2648,16 +3057,9 @@ const renderHeader = (
             },
           ),
         ]),
-    ...(pronunciation.nodes.length === 0
-      ? []
-      : [
-          container("span", pronunciation.nodes, {
-            data: unitData("pronunciation", { level: 1 }),
-          }),
-        ]),
-    ...(inflection === undefined
-      ? []
-      : renderInflectionGroup(root, inflection, [1], plan).nodes),
+    ...pronunciationRow,
+    ...pronunciationNotesRow,
+    ...inflectionRow,
     ...alternates,
   ];
   return {
@@ -2784,7 +3186,6 @@ const renderLooseNode = (
             sourceUnit: "sense-label",
             level: 5,
           }),
-          title: elementText(root, element),
         }),
       ],
       child.findings,

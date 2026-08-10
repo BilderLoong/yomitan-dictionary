@@ -153,17 +153,24 @@ line; the definition stays in the collapsed body.
 
 ### Structured-content vocabulary
 
+**MWU structured entry header**:
+The Level 1 structured-content region before the definition tree that contains
+source-owned pronunciation, pronunciation notes, and inflection groups. It
+excludes Yomitan-owned headword and tag metadata.
+_Avoid_: head, header
+
 **Structured-content unit**:
 A named piece of dictionary content, marker, relationship, or presentation
 metadata that remains attached to its nearest source owner and source order,
 even when it renders inline.
 _Avoid_: anonymous wrapper, flattened text
 
-**Local label**:
-A usage, grammar, or definition qualifier owned by a nearby sense, form, or
-definition. It is visible structured content, not global Yomitan tag-bank
-metadata.
-_Avoid_: global tag, term tag (when the scope is local)
+**Local tag**:
+A short usage, register, subject, applicability, grammar, or definition
+qualifier inside structured content. Examples such as `archaic`, `cricket`,
+`of a ship`, and `transitive verb` are dictionary-owned by a nearby verb
+subgroup, sense, form, or definition, not Yomitan tag-bank metadata.
+_Avoid_: local label, global tag, term tag (when the scope is local)
 
 **Pronunciation reading**:
 A source-marked phonetic reading that may be styled as IPA-like display text.

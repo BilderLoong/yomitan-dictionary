@@ -161,8 +161,11 @@ newline-delimited `--query-file`. The two options are mutually exclusive. If
 neither is supplied, it uses `tests/testWords.txt`. It uses bundled Chromium
 and checks that import progress completes, no import error is shown, the
 installed dictionary count increases, and each query produces a rendered
-rendered result. Use `--extension-path` when the ignored Yomitan fixture
-lives in a different checkout, `--user-data-dir /path/to/profile` to point
+result. It also opens Yomitan's real search popup with the final query at a
+360px viewport and checks the light and dark presentation for wrapping,
+overflow, local-tag geometry, example list markers, and collapsed disclosures.
+Use `--extension-path` when the ignored Yomitan fixture lives in a different
+checkout, `--user-data-dir /path/to/profile` to point
 the bundled Chromium at a specific profile (defaults to a fresh
 `/tmp/test-user-data-dir` so your real Chrome profile is never touched), and
 `--screenshot /tmp/mwu.png` to capture the rendered search page for visual
