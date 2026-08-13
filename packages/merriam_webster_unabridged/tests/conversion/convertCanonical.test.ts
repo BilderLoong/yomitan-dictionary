@@ -753,32 +753,79 @@ test("marks comparison references with compare relations", () => {
   const comparisons = unitsOf(result.value.content, "comparison-reference");
   expect(comparisons).toHaveLength(1);
   expect(textOf(comparisons[0])).toContain("compare");
+  expect(textOf(comparisons[0])).toContain("that");
   expect(
     unitsOf(result.value.content, "cross-reference")[0]?.data?.relation,
   ).toBe("compare");
-  const superscripts = unitsOf(result.value.content, "superscript-reference");
-  expect(superscripts).toHaveLength(1);
-  expect(textOf(superscripts[0])).toBe("4");
+  expect(unitsOf(result.value.content, "superscript-reference")).toHaveLength(
+    0,
+  );
 });
 
-test("marks variant references with variant relations", () => {
+test("marks relation references with the exact source phrase", () => {
   const result = convert(
     "<mean>" +
       header("O", "noun", "¦ō") +
       '<div class="section" data-id="definition">' +
-      '<p class="cxl-ref"> <span class="cxl">variant spelling of</span> ' +
-      '<a href="bword://oh" class="cxt">oh</a> </p></div></mean>',
+      '<p class="cxl-ref"> <span class="cxl">plural of</span> ' +
+      '<a href="bword://zero" class="cxt">zero</a> </p></div></mean>',
     "O",
   );
 
   expect(result.ok).toBe(true);
   if (!result.ok) return;
 
-  const variants = unitsOf(result.value.content, "variant-reference");
-  expect(variants).toHaveLength(1);
-  expect(
-    unitsOf(result.value.content, "cross-reference")[0]?.data?.relation,
-  ).toBe("variant");
+  const references = unitsOf(result.value.content, "relation-reference");
+  expect(references).toHaveLength(1);
+  expect(references[0]?.data?.relation).toBe("plural of");
+  const targets = unitsOf(result.value.content, "cross-reference");
+  expect(targets).toHaveLength(1);
+  expect(targets[0]?.data?.relation).toBeUndefined();
+  expect(textOf(targets[0])).toBe("zero");
+});
+
+test("removes a leading homograph number from a reference target label", () => {
+  const result = convert(
+    "<mean>" +
+      header("booty", "noun", "¦bü-tē") +
+      '<div class="section" data-id="definition">' +
+      '<p class="cxl-ref"> <span class="cxl">variant of</span> ' +
+      '<a href="bword://booty[2]" class="cxt"><sup>2</sup>booty</a> </p></div></mean>',
+    "booty",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const targets = unitsOf(result.value.content, "cross-reference");
+  expect(targets).toHaveLength(1);
+  expect(textOf(targets[0])).toBe("booty");
+  expect(unitsOf(result.value.content, "superscript-reference")).toHaveLength(
+    0,
+  );
+});
+
+test("preserves superscripts outside reference anchors", () => {
+  const result = convert(
+    "<mean>" +
+      header("iron", "noun", "¦ī(-ə)rn") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">a metal with the symbol Fe<sup>3+</sup></span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "iron",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const superscripts = unitsOf(result.value.content, "superscript-reference");
+  expect(superscripts).toHaveLength(1);
+  expect(textOf(superscripts[0])).toBe("3+");
 });
 
 test("tags cross-reference relations from source classes", () => {

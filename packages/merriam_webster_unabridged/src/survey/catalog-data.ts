@@ -596,13 +596,14 @@ export const CATALOG_UNITS: readonly CatalogUnit[] = [
     todo: null,
   },
   {
-    unit: "variant-reference",
+    unit: "relation-reference",
     explanation:
-      "A source statement identifying the local headword as a spelling variant of another entry.",
-    example: "variant spelling of oh under O",
+      "A source statement relating the local headword to another entry through a relation phrase such as plural of, variant spelling of, or taxonomic synonym of.",
+    example:
+      "plural of zero under zero's entry; variant spelling of oh under O",
     classes: ".cxl-ref; .cxl; .cxt",
     binding:
-      "Level 1, bound to the local <mean> headword. Preserve the visible relation; the source navigation target is not preserved as an internal link. A cross-reference-only <mean> emits a cxl-ref-variant-reference-soft-link to the referenced spelling.",
+      "Level 1, bound to the local <mean> headword. Preserve the visible relation phrase; the source navigation target is not preserved as an internal link. A cross-reference-only <mean> emits a cxl-ref-soft-link to the referenced spelling with the exact relation phrase as the rule.",
     ignore: false,
     rows: null,
     state: null,
@@ -1071,9 +1072,9 @@ export const CLASS_TO_UNIT: Readonly<Record<string, UnitMapping>> = {
   mw_t_a_link: { unit: "cross-reference", level: 6 },
   mw_t_i_link: { unit: "cross-reference", level: 6 },
   iw: { unit: "cross-reference", level: 1 },
-  "cxl-ref": { unit: "variant-reference", level: 1 },
-  cxl: { unit: "variant-reference", level: 1 },
-  cxt: { unit: "variant-reference", level: 1 },
+  "cxl-ref": { unit: "relation-reference", level: 1 },
+  cxl: { unit: "relation-reference", level: 1 },
+  cxt: { unit: "relation-reference", level: 1 },
   dro: { unit: "phrase", level: 1 },
   drp: { unit: "phrase", level: 1 },
   vr: { unit: "alternate-form", level: 1 },

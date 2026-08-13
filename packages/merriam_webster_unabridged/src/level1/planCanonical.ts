@@ -7,10 +7,7 @@ import {
   type SourceIndex,
   type SourceRow,
 } from "../source/rows";
-import {
-  type CxlRefPlanningResult,
-  planCxlRefVariantSoftLinks,
-} from "./planLinks";
+import { type CxlRefPlanningResult, planCxlRefSoftLinks } from "./planLinks";
 import type {
   AlternativeSpellingCanonicalEntryPlan,
   CanonicalEntryPlan,
@@ -351,7 +348,7 @@ const planMean = (
   }
 
   if (!hasMeanDefinition) {
-    const cxlRefResult: CxlRefPlanningResult = planCxlRefVariantSoftLinks({
+    const cxlRefResult: CxlRefPlanningResult = planCxlRefSoftLinks({
       root,
       mean,
       meanIndex,

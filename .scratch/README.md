@@ -24,6 +24,22 @@ ticket whose blockers are done can be grabbed.
 | 01 | cxl-ref-variant-reference-soft-link | User decision — un-deferred 2026-08-07 by blanket overnight delegation (review when back) | resolved 2026-08-07 |
 | 02 | tag-generation-rules | None | resolved 2026-08-07 (ADR 0005) |
 | 03 | survey-inspector-design | None | resolved 2026-08-07 |
+| 05 | accept-all-cxl-ref-relations | None | implemented 2026-08-13 (8 tracer bullets; ADR 0006) |
+
+## cxl-ref-soft-links — implementation tracer bullets
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | emit-complete-cxl-relations | None | resolved 2026-08-13 |
+| 02 | render-clean-relation-references | None | resolved 2026-08-13 |
+| 03 | process-every-cxl-target | 01 | resolved 2026-08-13 |
+| 04 | inherit-continuation-relations | 03 | resolved 2026-08-13 |
+| 05 | resolve-alternate-collisions | 01 | resolved 2026-08-13 |
+| 06 | report-cxl-outcomes | 03, 04 | resolved 2026-08-13 |
+| 07 | record-accepted-cxl-policy | 02, 04, 05, 06 | resolved 2026-08-13 |
+| 08 | prove-complete-cxl-policy | 07 | resolved 2026-08-13 |
+
+All eight tracer bullets resolved 2026-08-13 (implementation complete; smoke-tested in Yomitan).
 
 ## Resolved during migration
 

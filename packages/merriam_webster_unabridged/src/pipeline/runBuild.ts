@@ -282,7 +282,7 @@ const cxlRefDependencyLink = (
 ): SoftLinkEntryPlan | undefined =>
   planned.softLinkEntries.find(
     (link: SoftLinkEntryPlan): boolean =>
-      link.relationship === "cxl-ref-variant-reference-soft-link" &&
+      link.relationship === "cxl-ref-soft-link" &&
       findSourceRows(index, link.target).some(
         ({ id }: IndexedSourceRow): boolean => id === dependencyId,
       ),
@@ -304,7 +304,7 @@ const dependencyReason = (
   const cxlRefLink = cxlRefDependencyLink(planned, dependencyId, index);
   return cxlRefLink === undefined
     ? "canonical-dependency"
-    : `cxl-ref-variant-reference-soft-link:${cxlRefLink.target}`;
+    : `cxl-ref-soft-link:${cxlRefLink.target}`;
 };
 
 const dependencyTarget = (

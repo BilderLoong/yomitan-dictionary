@@ -42,6 +42,12 @@ searchable headword, kept in the display.
 The small `<sup>` number distinguishing same-spelling means; identity
 metadata, not part of the searchable term.
 
+**Target homograph number**:
+Identity metadata attached to a reference target (for example the
+`<sup>2</sup>` in `²booty`). It distinguishes same-spelling target means but
+is not part of the target spelling or visible target label. It remains in
+build-report evidence only.
+
 **Alt index row**:
 An `alt(id, w)` lookup-index row whose semantic relationship is
 unclassified; the build skips it.
@@ -51,6 +57,11 @@ _Avoid_: alternate form, variant row
 One recognizable kind of dictionary information — content, marker,
 relationship, presentation, or derived observation — recognized through
 `DOM node → unit → nearest owner → level → status`.
+
+**Relation reference**:
+A visible `.cxl-ref` information unit that states one exact relation phrase
+and owns one or more cross-reference targets. It is not limited to spelling
+variants.
 
 **Level**:
 The source semantic depth position: 1 lexical entry, 2 verb subgroup,
@@ -83,6 +94,38 @@ A Level 1 entry that owns a searchable relationship instead of a definition:
 a lookup spelling and a canonical target spelling. It serializes to a
 dictionary-deinflection tuple and never copies the target's definition.
 
+**Soft-link route**:
+The identity of one soft-link relationship: exact lookup spelling, canonical
+target spelling, and relation phrase. Routes with the same lookup and target
+but different relation phrases remain distinct.
+
+**Cross-reference-only mean**:
+An independent mean that has one or more `.cxl-ref` relationships and no
+local definition tree. It owns soft-link relationships instead of a
+canonical definition.
+
+**Relation phrase**:
+The complete relationship text in `.cxl` (for example `plural of`,
+`variant spelling of`, or `taxonomic synonym of`). Its source spelling,
+capitalization, and abbreviations stay unchanged. It becomes the
+dictionary-deinflection rule for a valid `.cxl-ref` soft link.
+
+**Spelling/variant relation**:
+A relation phrase whose case-insensitive, whitespace-normalized words include
+`variant`, `variants`, `spelling`, or `spellings`. This classification only
+decides precedence during an alternate collision; it never decides whether
+a `.cxl-ref` is valid.
+
+**Continuation reference**:
+A `.cxl-ref` whose `.cxl` text is only a connective (`or of`, `and of`,
+`or`, or `and`). It inherits the complete relation phrase from the nearest
+preceding sibling reference in the same mean. Without a preceding complete
+relation phrase, it does not own a soft-link route.
+
+**Multi-target reference**:
+A `.cxl-ref` with more than one `.cxt` target. Each target owns a separate
+soft-link relationship under the same relation phrase.
+
 **Ownership decision**:
 The per-mean ruling on who emits the entry: `emit-current`,
 `emit-embedded`, or `defer-to-dedicated-row`.
@@ -106,13 +149,19 @@ canonical spelling.
 The extra lookup route made by removing only the boundary hyphen of a marked
 affix or marked alternate (for example `il` → `in-`).
 
-**cxl-ref-variant-reference-soft-link**:
-The lookup route from a definition-free mean's `.cxl-ref` variant reference
-to its referenced spelling (for example `O` → `oh` with the relation phrase
-`variant spelling of` as the rule). The target comes from the `.cxt`
-`bword://` href, never the visible anchor text; only confirmed variant
-family phrases emit a link, and the referenced row joins the build
-dependencies.
+**cxl-ref-soft-link**:
+The lookup route from a cross-reference-only mean's `.cxl-ref` relationship
+to one referenced spelling (for example `abas` → `aba` with the relation
+phrase `plural of` as the rule). Every non-empty relation phrase is valid.
+The target comes from one `.cxt` `bword://` href, never the visible anchor
+text; each valid target emits independently, and the referenced row joins
+the build dependencies. Target homograph identity remains evidence only.
+
+**Alternate collision**:
+One `(lookup spelling, target spelling)` pair supported by both a
+`cxl-ref-soft-link` and a generic `.va` alternate. A spelling/variant
+relation replaces the generic route and merges its evidence; a non-spelling
+relation remains distinct from the generic `alternative` route.
 
 **Variant qualifier**:
 Text describing how an alternate relates to its canonical form (`or`,

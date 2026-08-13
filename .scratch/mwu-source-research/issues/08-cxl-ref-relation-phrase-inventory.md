@@ -2,6 +2,32 @@
 
 Status: resolved 2026-08-13 (research only; the approval decision is open).
 
+## Resolution (2026-08-13)
+
+Approved as ADR 0006 — accept every complete cxl-ref relation phrase.
+Headline scope is the **Unabridged-only** corpus (the `collegiate_`,
+`medical_`, and `thesaurus_` twin rows are excluded, matching the build).
+
+| Measure | Unabridged |
+|---|---|
+| Source `.cxl-ref` references | 17,402 |
+| Planner-reached references (after ownership decisions) | 17,297 |
+| Distinct relation phrases | 145 |
+| Raw valid links (all target anchors) | 15,058 |
+| Distinct routes (lookup, target, rule) | 15,017 |
+| Resolved cxl records | 14,822 |
+| Continuation references (`or of` 68, `or` 1) | 69 |
+| Orphan continuations | 0 |
+| Secondary targets | 50 (43 valid, 6 absent rows, 1 self-link) |
+| Collision pairs with generic `.va` alternates | 1,127 (1,121 spelling/variant shadowings) |
+| cxl + generic `.va` family records | 45,324 (was 36,427; net +8,897) |
+
+The audit drives the real Level 1 planner over the Unabridged rows:
+`packages/merriam_webster_unabridged/scripts/audit-cxl-policy.ts`
+(`bun run` it; ~3 minutes). The raw all-product figures below (20,495
+references, 191 phrases) remain as provenance for the mixed source bundle and
+do not define build policy.
+
 ## Question
 
 The `.cxl-ref` cross-reference can carry relation phrases other than `plural of`.

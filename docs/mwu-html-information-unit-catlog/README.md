@@ -113,7 +113,7 @@ These units have evidence for their meaning and nearest-level ownership:
 - sense-label, definition-label, definition, and sub-definition;
 - usage-note, example-sentence, extra-examples, example-source, and
   example-date;
-- comparison-reference, cross-reference, and variant-reference;
+- comparison-reference, cross-reference, and relation-reference;
 - phrase, `drp-phrase-canonical-entry`, and `phrase-alternate-soft-link`;
 - undefined-run-on and run-on-form;
 - variant-qualifier, grammar-label, related-item, see-in-addition,
@@ -140,12 +140,12 @@ demand, and adds dedicated rows required by canonical soft-link targets. It
 emits `main-canonical-entry`, `alternative-spelling-canonical-entry`, and
 `drp-phrase-canonical-entry` records plus
 `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
-`phrase-alternate-soft-link`, `cxl-ref-variant-reference-soft-link`, and
+`phrase-alternate-soft-link`, `cxl-ref-soft-link`, and
 source-confirmed `bare-affix-soft-link`
 records. Each soft link keeps its target and rules without copying the
 canonical definition. A cross-reference-only `<mean>` (for example `O` in
-the `o` row) emits its variant-reference soft link from the `.cxt`
-`bword://` target with the confirmed relation phrase as the rule. Defined
+the `o` row) emits its relation-reference soft link from the `.cxt`
+`bword://` target with the exact relation phrase as the rule. Defined
 `.drp` phrases whose examples show the interposed-object pattern serialize
 the `v_phr` rule in the term-bank rules field.
 

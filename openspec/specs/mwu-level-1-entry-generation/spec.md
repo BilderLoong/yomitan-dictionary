@@ -169,10 +169,11 @@ Approved relationship sources SHALL be
 `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link` from
 a `.va` attached directly to a mean, `phrase-alternate-soft-link` from a `.va`
 attached to a defined `.drp`, derived `bare-affix-soft-link`, and
-`cxl-ref-variant-reference-soft-link` from a `.cxl-ref` variant reference in a
-cross-reference-only `<mean>` block. Raw `alt` rows, inflections, undefined
-`.uro` run-ons, examples, and `.cxl-ref` references outside the confirmed
-variant family SHALL NOT create soft-link entries.
+`cxl-ref-soft-link` from a `.cxl-ref` relation reference in a
+cross-reference-only `<mean>` block. Raw `alt` rows, inflections, examples,
+and undefined `.uro` run-ons SHALL NOT create soft-link entries. Every
+non-empty complete relation phrase is valid for a `.cxl-ref`; there is no
+phrase allowlist.
 
 #### Scenario: Main-to-alternative-spelling soft link with an embedded target
 
@@ -209,32 +210,52 @@ variant family SHALL NOT create soft-link entries.
 - **WHEN** a spelling occurs only in `alt(id, w)`
 - **THEN** it emits neither a canonical entry nor a soft link in this change
 
-#### Scenario: Cross-reference-only mean variant reference
+#### Scenario: Cross-reference-only mean relation reference
 
 - **WHEN** the `o` row hosts a definition-free `O` `<mean>` whose `.cxl-ref`
   reads `variant spelling of oh`
-- **THEN** generation emits a `cxl-ref-variant-reference-soft-link` from
+- **THEN** generation emits a `cxl-ref-soft-link` from
   `O → oh` whose deinflection rule chain is the relation phrase
   `variant spelling of`, whose target row joins the canonical dependencies,
   and which replaces any same-route `.va` link while merging its evidence
 
-### Requirement: Extract cxl-ref targets and rules conservatively
+#### Scenario: Inflection relation reference
 
-For a cross-reference-only `<mean>`, the generator SHALL derive the soft-link
-target from the `.cxt` anchor's `bword://` href — stripping the scheme and any
-trailing `[homograph]` suffix — and SHALL NOT use the visible anchor text,
-which may carry a homograph prefix such as `1ibadite`. The `.cxn` reference
-qualifier SHALL remain relationship evidence, not part of the target spelling.
-The generator SHALL emit `cxl-ref-variant-reference-soft-link` rules only for
-`.cxl` relation text that case-insensitively matches `variant` or `spelling`;
-confirmed phrases include `variant spelling of`, `variant of`, `archaic
-variant of`, `obsolete variant of`, `dialectal variant of`, `Scottish variant
-of`, `chiefly Scottish variant of`, and `chiefly British spelling of`.
-Inflection references (`plural of`, `past tense of`, and similar),
-`taxonomic synonym of`, `synonym of`, and `and of` continuations SHALL remain
-reported findings without soft-link rules until their own rules are approved.
-The generator SHALL skip the link when the extracted target equals the lookup
-spelling or when no decoded source row exists for the target.
+- **WHEN** the `p` row hosts a definition-free `P` `<mean>` whose `.cxl-ref`
+  reads `plural of ps`
+- **THEN** generation emits a `cxl-ref-soft-link` from `P → ps` with the
+  rule chain `plural of`, and the route coexists with any same-route generic
+  `.va` alternate because the relationships differ
+
+#### Scenario: Continuation relation reference
+
+- **WHEN** a definition-free `<mean>` carries `plural of arsis` followed by
+  `or of arse`
+- **THEN** the continuation inherits the preceding complete relation phrase
+  and generation emits `cxl-ref-soft-link` routes `arses → arsis` and
+  `arses → arse`, both with the rule chain `plural of`
+
+### Requirement: Extract cxl-ref targets and rules faithfully
+
+For a cross-reference-only `<mean>`, the generator SHALL process every `.cxt`
+target anchor of every `.cxl-ref` independently and in source order. The
+soft-link target SHALL derive from the anchor's `bword://` href — stripping
+the scheme and any trailing `[homograph]` suffix — and SHALL NOT use the
+visible anchor text, which may carry a homograph prefix such as `1ibadite`.
+A missing or unsupported href is a per-target finding and never falls back to
+visible text. The generator SHALL preserve the exact raw relation phrase as
+the rule without normalizing capitalization, abbreviations, or legacy
+spelling.
+
+A relation phrase that is only a connective (`or`, `and`, `or of`, `and of`)
+SHALL inherit the exact raw phrase of the nearest preceding complete relation
+in the same mean; without one it SHALL record an `orphan-continuation`
+finding and emit no route. A failing target SHALL NOT remove valid sibling
+targets. The generator SHALL skip the link when the extracted target equals
+the lookup spelling or when no decoded source row exists for the target, and
+SHALL record each outcome with its reference and target index, raw and
+effective relation, parsed target, target homograph number, and source
+preview.
 
 #### Scenario: Target from the bword href, not visible text
 
@@ -260,8 +281,8 @@ spelling or when no decoded source row exists for the target.
 The generator SHALL serialize every soft-link entry with a non-empty
 dictionary-deinflection rule chain: `alternative` for spelling-alternative
 links (`main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
-`phrase-alternate-soft-link`, `bare-affix-soft-link`) and the confirmed
-relation phrase for `cxl-ref-variant-reference-soft-link`. A SHALL NOT
+`phrase-alternate-soft-link`, `bare-affix-soft-link`) and the exact
+relation phrase for `cxl-ref-soft-link`. A SHALL NOT
 serialize a soft link with an empty rule chain. The chain is the only
 dictionary-side lever that keeps Yomitan's shortest-inflection-chain sort key
 from tying the link's pulled target with the queried spelling; an empty chain
@@ -362,9 +383,10 @@ Canonical entries SHALL retain their source row and `<mean>` identities.
 Serialized soft links SHALL be deduplicated only when their exact Unicode
 lookup spelling, target spelling, and effective deinflection rule chain are
 equal. Case, punctuation, spacing, and diacritics SHALL NOT be normalized for
-deduplication. A `cxl-ref-variant-reference-soft-link` whose lookup and target
-match an existing route SHALL replace that route's relationship and rule chain
-and merge the existing evidence.
+deduplication. A `cxl-ref-soft-link` whose lookup and target match an existing
+spelling/variant route SHALL replace that route's relationship and rule chain
+and merge the existing evidence; a non-spelling route SHALL coexist with the
+generic `alternative` route.
 
 For every independent `<mean>`, the generator SHALL report source row ID and
 key, `<mean>` position, searchable headword, ownership decision, decision rule,

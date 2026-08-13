@@ -6,7 +6,13 @@ import {
   createTestBuildRequest,
   representativeRows,
 } from "../helpers/createTestDatabase";
-import { definition, mean } from "../helpers/mwuHtml";
+import {
+  alternate,
+  cxlRef,
+  cxlRefs,
+  definition,
+  mean,
+} from "../helpers/mwuHtml";
 
 const createSelectedRequest = async (input: {
   readonly flagWords: readonly string[];
@@ -75,7 +81,7 @@ describe("selected-word build", () => {
     if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
 
     const cxlRefLink = attempt.report.softLinkEntries.find(
-      (link) => link.relationship === "cxl-ref-variant-reference-soft-link",
+      (link) => link.relationship === "cxl-ref-soft-link",
     );
     expect(cxlRefLink).toMatchObject({
       lookup: "O",
@@ -103,6 +109,158 @@ describe("selected-word build", () => {
         (finding) => finding.kind === "definition-free-mean",
       ),
     ).toBe(false);
+  });
+
+  test("emits every valid target of a multi-target relation", async () => {
+    const request = await createTestBuildRequest({
+      words: ["p"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "p",
+          html:
+            mean("p", definition("letter")) +
+            mean("P", cxlRefs("plural of", ["ps", "pees"])),
+        },
+        { id: 2, encodedKey: "ps", html: mean("ps", definition("letters")) },
+        {
+          id: 3,
+          encodedKey: "pees",
+          html: mean("pees", definition("letters")),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    const cxlRefLinks = attempt.report.softLinkEntries.filter(
+      (link) => link.relationship === "cxl-ref-soft-link",
+    );
+    expect(cxlRefLinks.map(({ target }) => target)).toEqual(["ps", "pees"]);
+    expect(
+      attempt.records
+        .filter(([term]) => term === "P")
+        .map(([, , , , , definitions]) => definitions),
+    ).toEqual([[["ps", ["plural of"]]], [["pees", ["plural of"]]]]);
+    expect(
+      attempt.report.dependencyRows.map(({ row }) => row.decodedKey).toSorted(),
+    ).toEqual(["pees", "ps"]);
+  });
+
+  test("emits continuation routes with the inherited rule", async () => {
+    const request = await createTestBuildRequest({
+      words: ["arses"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "arses",
+          html: mean(
+            "arses",
+            cxlRef("plural of", "arsis") + cxlRef("or of", "arse"),
+          ),
+        },
+        {
+          id: 2,
+          encodedKey: "arsis",
+          html: mean("arsis", definition("a foot")),
+        },
+        {
+          id: 3,
+          encodedKey: "arse",
+          html: mean("arse", definition("a buttock")),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    const cxlRefLinks = attempt.report.softLinkEntries.filter(
+      (link) => link.relationship === "cxl-ref-soft-link",
+    );
+    expect(cxlRefLinks.map(({ target, rules }) => [target, rules])).toEqual([
+      ["arsis", ["plural of"]],
+      ["arse", ["plural of"]],
+    ]);
+    expect(attempt.report.planningFindings).toEqual([]);
+  });
+
+  test("keeps a non-spelling cxl route beside the generic alternate", async () => {
+    const request = await createTestBuildRequest({
+      words: ["o"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "o",
+          html:
+            mean("o", definition("letter")) +
+            mean("O", cxlRef("plural of", "oh")),
+        },
+        {
+          id: 3,
+          encodedKey: "oh",
+          html: mean(
+            "oh",
+            definition("exclamation") + alternate("O", "or", ""),
+          ),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    const oToOh = attempt.report.softLinkEntries.filter(
+      (link) => link.lookup === "O" && link.target === "oh",
+    );
+    expect(oToOh.map(({ relationship }) => relationship).toSorted()).toEqual([
+      "cxl-ref-soft-link",
+      "vr-mean-alternate-soft-link",
+    ]);
+    expect(
+      attempt.records
+        .filter(([term]) => term === "O")
+        .map(([, , , , , definitions]) => JSON.stringify(definitions))
+        .toSorted(),
+    ).toEqual([
+      JSON.stringify([["oh", ["alternative"]]]),
+      JSON.stringify([["oh", ["plural of"]]]),
+    ]);
+  });
+
+  test("reports precise per-target cxl findings", async () => {
+    const request = await createTestBuildRequest({
+      words: ["q"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "q",
+          html:
+            mean("q", definition("letter")) +
+            mean("Q", cxlRef("plural of", "missingword")),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.planningFindings[0]).toMatchObject({
+      kind: "cxl-ref-not-emitted",
+      meanIndex: 1,
+      referenceIndex: 0,
+      targetIndex: 0,
+      rawRelation: "plural of",
+      effectiveRelation: "plural of",
+      target: "missingword",
+      homographNumber: null,
+      reason: "target-row-absent",
+    });
   });
 
   test("records missing roots as fatal without an archive", async () => {

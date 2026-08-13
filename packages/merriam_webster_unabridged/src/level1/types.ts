@@ -32,9 +32,19 @@ export type Level1Finding =
       readonly kind: "cxl-ref-not-emitted";
       readonly rowId: number;
       readonly meanIndex: number;
-      readonly relation: string | null;
+      readonly referenceIndex: number;
+      readonly targetIndex: number;
+      readonly rawRelation: string | null;
+      readonly effectiveRelation: string | null;
       readonly target: string | null;
-      readonly reason: "unapproved-relation" | "missing-target" | "self-link";
+      readonly homographNumber: string | null;
+      readonly reason:
+        | "empty-relation"
+        | "orphan-continuation"
+        | "missing-target-href"
+        | "unsupported-target-href"
+        | "self-link"
+        | "target-row-absent";
       readonly preview: string;
     }
   | {
@@ -53,7 +63,7 @@ export type SoftLinkEntryRelationship =
   | "vr-mean-alternate-soft-link"
   | "phrase-alternate-soft-link"
   | "bare-affix-soft-link"
-  | "cxl-ref-variant-reference-soft-link";
+  | "cxl-ref-soft-link";
 
 export interface LinkEvidence {
   readonly rowId: number;
@@ -63,6 +73,8 @@ export interface LinkEvidence {
   readonly selector: string;
   readonly qualifier: string | null;
   readonly localText: string;
+  /** Target homograph identity from the source href; report evidence only. */
+  readonly targetHomographNumber?: string;
 }
 
 export interface SoftLinkEntryPlan {
