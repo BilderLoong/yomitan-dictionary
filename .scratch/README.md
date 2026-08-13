@@ -23,6 +23,20 @@ ticket whose blockers are done can be grabbed.
 | 01 | cxl-ref-variant-reference-soft-link | User decision — un-deferred 2026-08-07 by blanket overnight delegation (review when back) | resolved 2026-08-07 |
 | 02 | tag-generation-rules | None | resolved 2026-08-07 (ADR 0005) |
 | 03 | survey-inspector-design | None | resolved 2026-08-07 |
+| 05 | fixed-dynamic-functional-label-tag-metadata | None | resolved 2026-08-13 |
+
+## mwu-functional-label-tags — fixed and dynamic Yomitan tag metadata
+
+Parent specification: `mwu-implementation` issue 05.
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | enforce-owner-local-functional-label-scope | None | resolved 2026-08-13 |
+| 02 | emit-complete-fixed-functional-label-tag-bank | 01 | resolved 2026-08-13 |
+| 03 | add-current-database-functional-label-inventory-audit | 02 | resolved 2026-08-13 |
+| 04 | preserve-unknown-functional-labels-as-dynamic-tags | 02 | resolved 2026-08-13 |
+| 05 | aggregate-and-stabilize-functional-label-build-output | 03, 04 | resolved 2026-08-13 |
+| 06 | verify-rendered-tags-and-synchronize-project-decisions | 05 | resolved 2026-08-13 |
 
 ## mwu-ui-optimization — structured-content presentation
 

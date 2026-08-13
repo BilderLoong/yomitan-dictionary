@@ -15,8 +15,9 @@ scopes:
 1. **Term tags** (term-bank field 7) describe the complete searchable
    expression and appear near the headword.
 2. **Definition tags** (term-bank field 2) describe the complete definition
-   card / term-bank row: a space-separated string, with an empty string
-   meaning no tags. In the bundled fixture (26.7.29.0) they are display
+   card / term-bank row: a space-separated string when tags exist. This
+   builder uses `null` when a record has no definition tags. In the bundled
+   fixture (26.7.29.0) they are display
    chips only: they flow into `tagAggregator.addTags` and never enter the
    matching path — `_matchEntriesToDeinflections` reads only the rules
    field. (An older claim that tag names matching an English condition act
@@ -31,8 +32,9 @@ Yomitan's English conditions (`ext/js/language/en/english-transforms.js`) are:
 outside this set are display chips only and take part in no inflection.
 
 The tag bank file (`tag_bank_N.json`) holds `[name, category, sortOrder,
-notes, score]` tuples; the category controls the UI color, and the score
-participates in popularity sorting.
+notes, score]` tuples. The category controls the UI color. The tag score is
+metadata for the tag itself; it is independent from the term-bank popularity
+field.
 
 The living survey's label decisions already commit to: local labels stay
 visible structured content beside the unit that owns them; labels become
@@ -41,11 +43,13 @@ reported, never dropped.
 
 ## Decision
 
-1. **Definition tags** are derived from the entry's `.fl` part of speech
-   through the `POS_TOKEN`/`POS_SPECIAL` whitelist in
-   `renderStructuredContent.ts` (for example `noun` → `n`, `transitive verb`
-   → `v`, `abbreviation` → `abbr`). A phrase without a local `.fl` receives
-   the display tag `phrase`.
+1. **Definition tags** are derived from the current owner's `.fl` functional
+   label through the fixed mapping catalog in `conversion/functionalLabels.ts`
+   (for example `noun` → `n`, `transitive verb` → `v transitive`,
+   `abbreviation` → `abbr`). A phrase without a local `.fl` receives the
+   display tag `phrase`.
+   The mapping is explicit. It does not use a broad parser, because a source
+   label can contain several meanings that must become several atomic tags.
 2. **Term tags stay empty.** No MWU source label has been shown to describe
    the whole searchable expression across the dictionary yet.
 3. **The rules field stays empty** except for `v_phr`: a defined `.drp`
@@ -56,13 +60,29 @@ reported, never dropped.
    deinflection (`give you up` → `give up`) for exactly the phrases with
    source evidence. Ordinary emphasis (`.mw_t_it`, `em`) never creates the
    rule. Non-phrase entries never receive it.
-4. **No tag bank file is emitted.** Definition tags are written directly into
-   the term-bank tag field; tag-bank entries would duplicate them and add
-   nothing until a global category/score scheme exists.
-5. **All other labels** (`.sl`, `.il`, `.vl`, `.sgram`, `.lb`, …) remain
-   inline structured content at their nearest semantic owner. Promotion to
-   the tag bank is deferred until a dictionary-wide scope inventory exists;
-   the label inventory tool is a prerequisite, not a manual decision.
+4. **Every build emits a complete fixed tag bank.** The bank contains the
+   reviewed functional tags (`n`, `v`, `adj`, `adv`, and the related atomic
+   tags) with category `partOfSpeech`, readable notes, deterministic order,
+   and score `0`. The same fixed bank is emitted even when a selected build
+   does not use every tag.
+5. **Unknown functional labels remain visible as dynamic tags.** The label
+   is encoded with a leading `?` (for example `future label` becomes
+   `?future_label`), receives category `unmappedPartOfSpeech`, and is written
+   to the bank only when that label occurs in the build. The dictionary styles
+   this category with an amber dashed tag, so source evidence is visibly
+   different from reviewed fixed metadata. Each occurrence creates an
+   `unmapped-functional-label` finding with the raw label, normalized label,
+   dynamic tag, row id, and term.
+6. **All other labels** (`.sl`, `.il`, `.vl`, `.sgram`, `.lb`, …) remain
+   inline structured content at their nearest semantic owner. They are not
+   promoted to term tags or the functional tag bank.
+7. **The functional-label inventory is a separate audit.**
+   `bun run inventory:functional-labels` scans the current database with the
+   same owner rule as conversion and writes
+   `build/functional-label-inventory.json`. It reports every normalized
+   `.fl` value, owner-kind counts, deterministic examples, and any label not
+   in the fixed catalog. The current database inventory has 98 labels and
+   zero unmapped labels.
 
 ## Consequences
 

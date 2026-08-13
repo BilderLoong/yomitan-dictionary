@@ -178,33 +178,85 @@ arrow prefix of a source example SHALL be dropped as presentation metadata.
 - **THEN** the first renders visibly and the other two render behind an
   `N more examples` disclosure
 
-### Requirement: Map part-of-speech labels to definition tags
+### Requirement: Convert owner-local functional labels to reviewed definition tags
 
-The `.fl` label SHALL map to the Yomitan `definitionTags` field: `noun` →
-`n`, `adjective` → `adj`, `verb` → `v`, `adverb` → `adv`, `pronoun` →
-`pron`, `conjunction` → `conj`, `preposition` → `prep`, `interjection` →
-`interj`, `abbreviation` → `abbr`, `symbol` → `symbol`, `prefix` →
-`prefix`, `suffix` → `suffix`, `combining form` → `comb`. Verb subtypes SHALL
-collapse to `v`. Special forms: `geographical name` → `geo`, `biographical
-name` → `bio`, `proper noun` → `prop n`,
-`trademark`/`service mark`/`certification mark` → `trademark`,
-idioms/phrases → `phrase`, `auxiliary verb` → `aux`, articles → `art`,
-`contraction` → `contraction`, `affix` → `affix`. Compounds SHALL join
-mapped parts with ` or `; parenthesized alternates SHALL drop the
-parenthetical; `noun … in construction` forms SHALL collapse to `n`, `plural
-noun` to `n pl`; unknown labels SHALL keep their cleaned source text as a
-tag.
+The converter SHALL read a functional label only from the header owned by the
+current `main-canonical-entry`, `alternative-spelling-canonical-entry`, or
+`drp-phrase-canonical-entry`. It SHALL resolve a known normalized `.fl` value
+through the explicit reviewed functional-label mapping. It SHALL NOT use a
+general English parser, a broad descendant selector, or a compatibility POS
+mapping.
 
-#### Scenario: Verb subtype collapse
+The resolver SHALL return atomic tag names. It SHALL deduplicate and sort
+those names by the fixed functional-tag catalog order before it serializes
+them as the ASCII-space-separated Yomitan `definitionTags` value. For example,
+`transitive verb` resolves to `v transitive`; `adjective or noun` resolves to
+`n adj`; and `verb, transitive + intransitive` resolves to
+`v transitive intransitive`. The converter SHALL NOT emit prose tokens such
+as `or` as tags.
 
-- **WHEN** the label is `transitive verb` or `verb, transitive +
-  intransitive`
-- **THEN** the definition tag is `v`
+The converter SHALL emit no functional tag when the current canonical owner
+has no owned `.fl` label. It SHALL set `definitionTags` to `null` in that
+case. It SHALL leave `termTags` empty for every canonical and soft-link record.
+Sense-local labels, such as `archaic`, SHALL remain local structured content;
+they SHALL NOT become definition tags or term tags.
 
-#### Scenario: Compound part of speech
+#### Scenario: Owner-local main entry label
 
-- **WHEN** the label is `adjective or noun`
-- **THEN** the definition tag is `adj or n`
+- **WHEN** a main canonical entry owns `<span class="fl">transitive verb</span>`
+- **THEN** its `definitionTags` value is `v transitive`
+
+#### Scenario: Nested run-on label
+
+- **WHEN** a parent canonical entry has no owned `.fl` label and a nested
+  undefined run-on contains `<span class="fl">noun</span>`
+- **THEN** the parent emits no functional tag and the nested label remains
+  structured content owned by the run-on
+
+#### Scenario: Alternative-spelling canonical entry label
+
+- **WHEN** an alternative-spelling canonical entry owns a `.fl` label
+- **THEN** it uses that label only and does not inherit a label from its parent
+  or canonical target
+
+#### Scenario: Defined phrase label
+
+- **WHEN** a `drp-phrase-canonical-entry` owns the functional label `noun`
+- **THEN** its `definitionTags` value is `n phrase`
+
+#### Scenario: Canonical owner without a label
+
+- **WHEN** a canonical owner has no owned `.fl` label
+- **THEN** its `definitionTags` value is `null` and no dynamic missing-label
+  tag is created
+
+### Requirement: Preserve an unknown owner-local functional label
+
+The converter SHALL preserve an owned normalized `.fl` value that is not in
+the fixed functional-label mapping as one dynamic definition tag. The tag name
+SHALL begin with `?` and use readable reversible encoding: spaces
+become `_`, literal underscores and reserved punctuation are percent-encoded,
+and case remains significant. For example, `future label` becomes
+`?future_label`.
+
+The converter SHALL add one `unmapped-functional-label` finding for each
+unknown-label occurrence. The finding SHALL include the source row ID,
+canonical term, raw label, normalized label, and generated tag. Unknown labels
+SHALL not make ordinary conversion fail. Dynamic tags SHALL sort after all
+fixed functional tags; a defined phrase with `future label`, for example,
+serializes as `phrase ?future_label`.
+
+#### Scenario: Unknown functional label
+
+- **WHEN** a canonical owner has the label `future label`
+- **THEN** conversion succeeds with `definitionTags = ?future_label` and one
+  `unmapped-functional-label` finding
+
+#### Scenario: Dynamic label does not collide with an underscore
+
+- **WHEN** the source labels are `future label` and `future_label`
+- **THEN** their dynamic tag names are different and each decodes to its
+  original normalized label
 
 ### Requirement: Render undefined run-ons and local form flow without block breaks
 

@@ -3,6 +3,7 @@ import type { AnyNode, Element } from "domhandler";
 
 import type { CanonicalEntryPlan } from "../level1/types";
 import type { Result } from "../shared/result";
+import { sortFunctionalTagNames } from "./functionalLabels";
 import { renderCanonicalContent } from "./renderStructuredContent";
 import type { ConversionError, ConvertedCanonical } from "./types";
 
@@ -86,14 +87,18 @@ export const convertCanonical = (
         )
       : 0;
   const isPhrase = plan.kind === "drp-phrase-canonical-entry";
+  const definitionTagNames = sortFunctionalTagNames([
+    ...(rendered.value.definitionTags?.split(" ") ?? []),
+    ...(isPhrase ? ["phrase"] : []),
+  ]);
+  const definitionTags = definitionTagNames.join(" ");
 
   return {
     ok: true,
     value: {
       plan,
       content: rendered.value.content,
-      definitionTags:
-        rendered.value.definitionTags ?? (isPhrase ? "phrase" : null),
+      definitionTags: definitionTags.length === 0 ? null : definitionTags,
       rules: interposedCount > 0 ? "v_phr" : null,
       findings: [
         ...rendered.value.findings,

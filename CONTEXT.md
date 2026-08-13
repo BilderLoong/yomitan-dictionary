@@ -172,6 +172,43 @@ qualifier inside structured content. Examples such as `archaic`, `cricket`,
 subgroup, sense, form, or definition, not Yomitan tag-bank metadata.
 _Avoid_: local label, global tag, term tag (when the scope is local)
 
+**Functional label**:
+The entry-level `.fl` label that describes the lexical function of the current
+entry, such as `noun`, `transitive verb`, or `abbreviation`. Conversion reads
+only the label owned by that entry. For example, a parent entry does not take
+the `.fl` from a nested run-on or phrase.
+
+**Fixed functional tag**:
+A reviewed Yomitan tag produced by the explicit functional-label mapping. For
+example, `noun` becomes `n`, and `transitive verb` becomes `v` plus
+`transitive`. Fixed tags are defined in the complete `tag_bank_1.json` output
+with category `partOfSpeech`, readable notes, stable order, and score `0`.
+
+**Fixed functional-tag catalog**:
+The complete reviewed set of atomic tag definitions emitted in every
+archive. It includes metadata for tags that a selected build does not use, so
+the bank does not change when the selected word list changes.
+
+**Functional-label mapping**:
+The explicit table from one normalized source `.fl` label to one or more
+atomic fixed tag names. For example, `transitive verb` maps to `v` and
+`transitive`; the mapping does not split unseen English text with a general
+parser.
+
+**Dynamic functional tag**:
+A Yomitan definition tag produced when a source `.fl` value is not in the
+fixed mapping. It starts with `?` so it cannot look like a reviewed tag. For
+example, `future label` becomes `?future_label`. It uses category
+`unmappedPartOfSpeech`, appears in the bank only when encountered, and creates
+an `unmapped-functional-label` conversion finding.
+
+**Functional-label inventory**:
+A read-only audit of every current database `.fl` value using the same
+owner-local rule as conversion. The command writes
+`build/functional-label-inventory.json`; it is used to review coverage before
+changing the fixed mapping. The current database contains 98 normalized
+labels, all mapped to the fixed catalog.
+
 **Pronunciation reading**:
 A source-marked phonetic reading that may be styled as IPA-like display text.
 Only source-supported readings receive reading delimiters; ambiguous text is

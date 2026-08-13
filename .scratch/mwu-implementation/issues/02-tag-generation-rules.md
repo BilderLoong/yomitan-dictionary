@@ -7,9 +7,10 @@ tags live in the tag bank.
 
 **Blocked by:** None — can start immediately
 
-**Status:** resolved — 2026-08-07 on `worktree-1`; decision recorded in
+**Status:** resolved — 2026-08-11 on `worktree-2`; decision recorded in
 `docs/adr/0005-tag-generation-rules.md`, mechanics verified against the
-bundled Yomitan fixture source (v25.x), survey README updated.
+bundled Yomitan fixture source, functional-label inventory audited, and
+selected/full archive output verified.
 
 - [x] Yomitan tag mechanics understood and documented (tag bank, how the
       term-bank tag field references it)
@@ -29,11 +30,12 @@ bundled Yomitan fixture source (v25.x), survey README updated.
   — Yomitan derives inflection conditions from THIS field via
   `getConditionFlagsFromPartsOfSpeech`), and termTags. English conditions:
   `v`, `v_phr`, `n`, `np`, `ns`, `adj`, `adv`.
-- Boundary decided: definition tags = `.fl` POS whitelist
-  (`POS_TOKEN`/`POS_SPECIAL` in the renderer); term tags empty; no tag bank
-  emitted; all `.sl`/`.il`/`.vl`/`.sgram`/`.lb` labels stay inline
-  structured content; tag-bank promotion deferred until the label inventory
-  exists.
+- Boundary decided: definition tags come from the current owner's `.fl`
+  functional label through the explicit fixed mapping in
+  `src/conversion/functionalLabels.ts`; term tags stay empty; every archive
+  emits the complete fixed tag bank; unknown owned `.fl` values remain visible
+  as dynamic `?` tags with findings; all `.sl`/`.il`/`.vl`/`.sgram`/`.lb`
+  labels stay inline structured content.
 - Implemented: `v_phr` in the rules field for `.drp` phrases with
   interposed-object evidence (paired `.mw_t_wi` highlights), reported as an
   `interposed-object-v-phr` conversion finding.

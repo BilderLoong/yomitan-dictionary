@@ -7,7 +7,11 @@
   "scripts": {
     "build:selected": "bun run src/index.ts",
     "build:full": "bun run src/index.ts --full",
+    "inventory:functional-labels": "bun run src/index.ts --inventory:functional-labels",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
+    "design:survey": "bun run design-fixtures/survey-html.ts",
+    "design:what:zip": "bun run design-fixtures/what/write-zip.ts",
+    "design:what": "bun run design:what:zip && bun run tests/verify_styles.ts \"build/design-what/MWU-what-design.zip\" --close",
     "inspect:dict": "bun run scripts/dictionary-inspection/package-entry.ts visible",
     "inspect:dict:headless": "bun run scripts/dictionary-inspection/package-entry.ts headless",
     "coverage:audit": "bun run tests/coverage_audit.ts",
@@ -18,6 +22,7 @@
     "build-storybook": "storybook build",
     "test-storybook": "vitest run --project storybook",
     "debug:unittest": "bun test --inspect-wait=/vscode",
+    "unzip": "7z x \"build/Merriam Webster Unabridged.zip\" -o\"build/Merriam Webster Unabridged\" && biome format --write \"build/Merriam Webster Unabridged\" *.json"
   },
   "keywords": [],
   "author": "",

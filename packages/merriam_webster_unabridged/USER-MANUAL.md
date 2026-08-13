@@ -24,6 +24,23 @@ An entry shows, in order:
 7. phrases and the origin section, each in a collapsed block that opens when
    you click it.
 
+## Tags
+
+The gray tags beside the dictionary source describe the current definition
+record. For example, `n` means that the record is a noun, and `v transitive`
+means that it is a verb that normally takes a direct object. The tag bank
+provides the full explanation when you hover over a tag.
+
+The dictionary always includes its reviewed fixed functional tags. If the
+source contains a functional label that is not yet reviewed, the tag starts
+with `?` and has an amber dashed outline. For example, `?future_label` means
+that the source label was `future label`, but the label is not in the fixed
+catalog yet. This tag is source evidence, not a final classification.
+
+Labels such as `archaic`, `slang`, or `chiefly British` are local labels. They
+stay inside the definition content because they apply only to the nearby
+sense, not to the whole headword.
+
 ## The colon — why definitions start with `:`
 
 In the printed Merriam-Webster dictionary, every run-in definition starts

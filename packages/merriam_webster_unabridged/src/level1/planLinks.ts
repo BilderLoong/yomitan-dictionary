@@ -3,6 +3,7 @@ import type { AnyNode, Element } from "domhandler";
 import type { Result } from "../shared/result";
 import {
   findSourceRows,
+  type IndexedSourceRow,
   type SourceIndex,
   type SourceRow,
 } from "../source/rows";
