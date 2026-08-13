@@ -2,8 +2,6 @@
   "name": "yomitan-dictionary",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "e2e": "bun run --cwd packages/merriam_webster_unabridged dev:build && bun run --cwd packages/merriam_webster_unabridged inspect:dict",
@@ -13,7 +11,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.6.1",
   "dependencies": {
     "archiver": "^7.0.1",
     "cheerio": "^1.0.0",

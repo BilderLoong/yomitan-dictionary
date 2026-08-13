@@ -49,9 +49,9 @@
 }
 [data-sc-content="mwu-header-pronunciation-notes"]::before,
 [data-sc-content="mwu-header-inflections"]:has(
-  > [data-sc-content="inflection-group"]
-    > [data-sc-content="inflection-marker"]:first-child
-)::before {
+    > [data-sc-content="inflection-group"]
+      > [data-sc-content="inflection-marker"]:first-child
+  )::before {
   color: var(--text-color-light2, #666666);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -66,9 +66,9 @@
   content: "note";
 }
 [data-sc-content="mwu-header-inflections"]:has(
-  > [data-sc-content="inflection-group"]
-    > [data-sc-content="inflection-marker"]:first-child
-)::before {
+    > [data-sc-content="inflection-group"]
+      > [data-sc-content="inflection-marker"]:first-child
+  )::before {
   display: block;
   margin-block-end: 0.35em;
   font-size: 0.82em;
@@ -189,7 +189,7 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
 }
 /* A definition-only run of usage notes is primary meaning text, not metadata. */
 [data-sc-content="definition"]:not(:has(> :not([data-sc-content="usage-note"])))
-> [data-sc-content="usage-note"] {
+  > [data-sc-content="usage-note"] {
   margin-inline: 0;
   padding-inline: 0;
   border-inline-start: 0;
@@ -300,26 +300,22 @@ span[data-sc-content="verb-subtype"] {
   min-width: 0;
   max-width: 100%;
   font-size: calc(
-    1em *
-    var(--mwu-tag-font-size-no-units) /
-    var(--mwu-host-font-size-no-units)
+    1em * var(--mwu-tag-font-size-no-units) / var(--mwu-host-font-size-no-units)
   );
   line-height: 1.5;
   font-weight: var(--tag-font-weight, 700);
   font-style: normal;
   padding-block: calc(2.5em / var(--mwu-tag-font-size-no-units));
   padding-inline: calc(
-    0.375em *
-    var(--mwu-host-font-size-no-units) /
-    var(--mwu-tag-font-size-no-units)
+    0.375em * var(--mwu-host-font-size-no-units) /
+      var(--mwu-tag-font-size-no-units)
   );
   word-break: normal;
   overflow-wrap: anywhere;
   border: 0;
   border-radius: calc(
-    0.25em *
-    var(--mwu-host-font-size-no-units) /
-    var(--mwu-tag-font-size-no-units)
+    0.25em * var(--mwu-host-font-size-no-units) /
+      var(--mwu-tag-font-size-no-units)
   );
   background-color: var(
     --tag-part-of-speech-background-color,
@@ -331,9 +327,8 @@ span[data-sc-content="verb-subtype"] {
   margin-block: calc(1em / var(--mwu-tag-font-size-no-units));
   margin-inline: 0
     calc(
-      0.375em *
-      var(--mwu-host-font-size-no-units) /
-      var(--mwu-tag-font-size-no-units)
+      0.375em * var(--mwu-host-font-size-no-units) /
+        var(--mwu-tag-font-size-no-units)
     );
 }
 [data-sc-content="entry-qualifier"],
@@ -527,13 +522,7 @@ details[data-sc-content="phrase-group"] > summary {
   font-weight: 600;
   margin-top: 0.55em;
 }
-details[data-sc-content="phrase-group"] > summary {
-  color: var(--text-color, #242424);
-  font-weight: 650;
-}
-/* details[data-sc-content="related-item"] > summary[data-sc-category="synonym"] {
-  color: var(--text-color-light2, #666666);
-} */
+
 details[data-sc-content="extra-examples"] {
   margin-top: 0.15em;
   padding-inline-start: 0;
@@ -549,12 +538,10 @@ details[data-sc-content="extra-examples"] > summary {
 details[data-sc-content="extra-examples"]
   > [data-sc-content="disclosure-summary"] {
   margin-inline-start: calc(
-    var(--mwu-example-marker-inset) /
-    var(--mwu-disclosure-font-scale)
+    var(--mwu-example-marker-inset) / var(--mwu-disclosure-font-scale)
   );
   padding-inline-start: calc(
-    var(--mwu-example-text-gap) /
-    var(--mwu-disclosure-font-scale)
+    var(--mwu-example-text-gap) / var(--mwu-disclosure-font-scale)
   );
 }
 details[data-sc-content="extra-examples"] > summary,
@@ -740,8 +727,9 @@ ol[data-sc-content="mwu-level"][data-sc-level="5"]
 }
 
 li[data-sc-source-marker-path]:has(
-  > [data-sc-content="definition"] > [data-sc-content="usage-note"]:first-child
-) {
+    > [data-sc-content="definition"]
+      > [data-sc-content="usage-note"]:first-child
+  ) {
   --mwu-marker-block-offset: 0.4em;
 }
 
@@ -811,12 +799,10 @@ ol[data-sc-content="mwu-level"][data-sc-level="2"]
   > details[data-sc-content="extra-examples"]
   > [data-sc-content="disclosure-summary"] {
   margin-inline-start: calc(
-    var(--mwu-example-marker-inset) /
-    var(--mwu-disclosure-font-scale)
+    var(--mwu-example-marker-inset) / var(--mwu-disclosure-font-scale)
   );
   padding-inline-start: calc(
-    var(--mwu-example-text-gap) /
-    var(--mwu-disclosure-font-scale)
+    var(--mwu-example-text-gap) / var(--mwu-disclosure-font-scale)
   );
 }
 
