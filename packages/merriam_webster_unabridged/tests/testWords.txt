@@ -1,3 +1,7 @@
+abstract
+
+down
+sum
 give
 take
 what
@@ -7,3 +11,7 @@ oh
 turn
 give up
 put
+'avas
+arses
+aquicultural
+abaya
