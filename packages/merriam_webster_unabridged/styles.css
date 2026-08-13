@@ -321,7 +321,10 @@ span[data-sc-content="verb-subtype"] {
     var(--mwu-host-font-size-no-units) /
     var(--mwu-tag-font-size-no-units)
   );
-  background-color: var(--tag-default-background-color, #8a8a91);
+  background-color: var(
+    --tag-part-of-speech-background-color,
+    var(--tag-default-background-color, #8a8a91)
+  );
   color: var(--tag-text-color, #ffffff);
   cursor: default;
   vertical-align: baseline;
@@ -498,7 +501,7 @@ details[data-sc-content="phrase"] {
   font-style: italic;
 }
 
-/* details[data-sc-content="related-item"] {
+details[data-sc-content="related-item"] {
   margin-inline-start: 0;
   padding-inline-start: 0;
   border-inline-start: 0;
@@ -512,7 +515,7 @@ details[data-sc-content="origin"] {
   margin-inline-start: 0;
   padding-inline-start: 0;
   border-inline-start: 0;
-} */
+}
 
 details[data-sc-content="origin"] > summary,
 details[data-sc-content="related-item"] > summary,
@@ -524,8 +527,10 @@ details[data-sc-content="phrase-group"] > summary {
   font-weight: 600;
   margin-top: 0.55em;
 }
-/* details[data-sc-content="phrase-group"] > summary {
-} */
+details[data-sc-content="phrase-group"] > summary {
+  color: var(--text-color, #242424);
+  font-weight: 650;
+}
 /* details[data-sc-content="related-item"] > summary[data-sc-category="synonym"] {
   color: var(--text-color-light2, #666666);
 } */
