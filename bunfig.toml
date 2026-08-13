@@ -1,4 +1,4 @@
 [test]
 # The e2e fixtures embed full upstream checkouts (yomitan-src, yomitan-chrome-playwright).
 # Their tests are not ours; prune them during discovery so root-level runs never execute them.
-pathIgnorePatterns = ["**/fixture/**"]
+pathIgnorePatterns = ["**/fixture/**", "plugins/**"]

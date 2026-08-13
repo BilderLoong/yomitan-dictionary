@@ -39,7 +39,9 @@ test("transitive verb sense 1a collapses its five example sentences", () => {
   expect(inline.length).toBe(1);
   expect(inline.first().text()).toContain("turn a wheel");
 
-  const extras = definition.children(
+  const exampleGroup = definition.children('[data-sc-content="example-group"]');
+  expect(exampleGroup.length).toBe(1);
+  const extras = exampleGroup.children(
     'details[data-sc-content="extra-examples"]',
   );
   expect(extras.length).toBe(1);

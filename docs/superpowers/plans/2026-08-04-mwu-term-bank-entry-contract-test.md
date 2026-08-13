@@ -72,7 +72,7 @@
 - [ ] Run formatting and lint checks for the changed test:
   `bunx biome check packages/merriam_webster_unabridged/tests/archive/termBankContent.test.ts`
 - [ ] Run the focused suite serially to avoid competing real-database/archive resources:
-  `bun test --max-concurrency 1 packages/merriam_webster_unabridged/tests/import_options.test.ts packages/merriam_webster_unabridged/tests/build packages/merriam_webster_unabridged/tests/source packages/merriam_webster_unabridged/tests/level1 packages/merriam_webster_unabridged/tests/conversion packages/merriam_webster_unabridged/tests/yomitan packages/merriam_webster_unabridged/tests/archive`
+  `bun test --max-concurrency 1 packages/merriam_webster_unabridged/tests/dictionary_inspection_options.test.ts packages/merriam_webster_unabridged/tests/build packages/merriam_webster_unabridged/tests/source packages/merriam_webster_unabridged/tests/level1 packages/merriam_webster_unabridged/tests/conversion packages/merriam_webster_unabridged/tests/yomitan packages/merriam_webster_unabridged/tests/archive`
 - [ ] Run `git diff --check`.
 - [ ] Review the final diff to confirm only the requested test contract changed and no absolute sequence value or synthetic database fixture was introduced.
 

@@ -10,6 +10,35 @@ export const What = {
   render: (): string => renderToHtml(whatConverted.content),
 };
 
+export const WhatReferenceStyle = {
+  render: (): string => renderToHtml(whatConverted.content),
+  play: async ({
+    canvasElement,
+  }: {
+    readonly canvasElement: HTMLElement;
+  }): Promise<void> => {
+    const references = canvasElement.querySelectorAll(
+      '[data-sc-content="cross-reference"]',
+    );
+    expect(references.length).toBeGreaterThan(0);
+
+    for (const colorScheme of ["light", "dark"] as const) {
+      canvasElement.style.colorScheme = colorScheme;
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+      references.forEach((element) => {
+        const computed = getComputedStyle(element);
+        expect(element.closest("a")).toBeNull();
+        expect(computed.cursor).toBe("default");
+        expect(computed.textDecorationLine).toContain("underline");
+        expect(computed.textDecorationStyle).toBe("dotted");
+        expect(computed.fontWeight).toBe("600");
+      });
+    }
+  },
+};
+
 /**
  * The only interaction story: proves the native details/summary toggle works
  * in a real browser. The closed-state and summary-text contract behind it is

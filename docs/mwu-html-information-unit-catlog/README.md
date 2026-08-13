@@ -164,9 +164,11 @@ inheritance), definitions, usage notes, example groups with one visible
 example and an `N more examples` collapse, example attributions, orange
 target highlighting, called-also, comparison and cross references, collapsed
 origin and synonym-discussion sections, and collapsed phrase sections.
-Definition tags are Yomitan-rendered chips derived from `.fl` (`noun` → `n`,
-`transitive verb` → `v`, …) with Yomitan's default styling; the dictionary
-stylesheet does not restyle Yomitan's own UI. The full unit contract is
+Definition tags are Yomitan-rendered chips derived from the owner-local `.fl`
+label through the fixed functional-label mapping (`noun` → `n`, `transitive
+verb` → `v transitive`). Unknown owned labels become dynamic `?` tags, such as
+`future label` → `?future_label`; their dictionary-owned style is amber and
+dashed. Sense-local labels remain structured content. The full unit contract is
 documented in
 [MWU Level 1 entry generation](../../openspec/specs/mwu-level-1-entry-generation/spec.md). Audio,
 full-database coverage, and richer media remain future work.
@@ -332,8 +334,8 @@ table_collegiate_alphabet) and inspecting the resulting ZIP records.
   `.usage` placements (`because`, `finalize`, `he`, `one`, `they`) are
   confirmed but not yet wired through the renderer's usage-notes traversal
   (implementation follow-up).
-- **`.sgram`**: stays scoped inline `grammar-label` content; tag-bank
-  promotion remains deferred.
+- **`.sgram`**: stays scoped inline `grammar-label` content; it is not part of
+  the entry-owned `.fl` functional tag bank because its scope is local.
 
 #### v_phr acceptance
 
@@ -457,14 +459,14 @@ that a source block boundary can require a line break even without a literal
   recorded when one is encountered;
 - raw `alt` table rows: treated as lookup metadata only and never used alone
   to create an entry; their source role is not an information unit we export;
-- tag-bank eligibility: labels are preserved and inventoried first; no final
-  tag bank is generated yet (see
-  [ADR 0005](../../adr/0005-tag-generation-rules.md) for the decided
-  boundary);
-- `.sgram` tag promotion: the fixture renders it as scoped inline grammar text,
-  but the complete inventory and WTY/Yomitan tag mapping are deferred. The
-  inventory is now measurable with the all-row survey and names the concrete
-  source words above;
+- tag-bank eligibility: entry-owned `.fl` labels use the fixed functional tag
+  catalog, and every build emits that complete fixed bank. An unknown `.fl`
+  value remains visible as a dynamic `?` tag with a conversion finding. Other
+  labels are still preserved as local structured content (see
+  [ADR 0005](../../adr/0005-tag-generation-rules.md));
+- `.sgram` tag promotion: the fixture renders it as scoped inline grammar text.
+  It is not part of the functional `.fl` tag bank because its scope is local;
+  the functional-label inventory audits only entry-owned `.fl` values;
 - the renderer traversal for Level 6 `.see-in-addition` lines in
   `#usage-notes` and `.usage` (ownership confirmed; the 
   `def-accordion-sections`/`.usages > .usage` paths are not yet collected)
@@ -786,19 +788,20 @@ The local Yomitan source and WTY reference establish three different scopes:
 
 WTY puts tags common to all glosses into its definition-tag field and keeps
 sense-specific labels in the structured glossary; its main entries commonly
-leave term tags empty. We adopt the same initial workflow for MWU: maintain a
-known-label whitelist and aliases, promote a label to the tag bank only when
-its scope is stable, keep local or unknown labels inline, and report
-unrecognized labels instead of dropping them. Rules such as `v` and `v_phr`
-are lookup behavior, not visual labels.
+leave term tags empty. MWU now uses an explicit reviewed mapping for all 98
+current owned `.fl` labels, emits the complete fixed tag bank in every
+archive, and preserves an unexpected owned label as a dynamic `?` tag with a
+conversion finding. Local labels stay structured content, and rules such as
+`v` and `v_phr` are lookup behavior, not visual labels.
 
 The term-bank rules field carries the lookup behavior: Yomitan derives a
 term's inflection conditions from that field, not from the tag fields. Since
 2026-08-07 the builder writes `v_phr` there for `.drp` phrases with
 interposed-object evidence (see
 [ADR 0005](../../adr/0005-tag-generation-rules.md)). The tag bank file
-(`tag_bank_N.json`) is deliberately not emitted yet; definition tags are
-written directly into the term-bank tag field.
+(`tag_bank_1.json`) is emitted by every successful build; it contains fixed
+metadata and only the dynamic labels encountered by that build. Definition
+tags still reference those names from the term-bank tag field.
 
 All MWU `.pr` readings are display-only structured content for this project.
 The Yomitan term-bank `reading` field remains empty, including when a word has

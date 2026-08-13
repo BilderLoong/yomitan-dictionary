@@ -36,10 +36,10 @@ test("usage note text is wrapped in a span, separated from its examples", () => 
     expect(text.prop("tagName")?.toLowerCase()).toBe("span");
     expect(text.text()).toMatch(/^— /);
     const hasExamples =
-      note.children('[data-sc-content="example-sentence"]').length > 0;
+      note.children('[data-sc-content="example-group"]').length > 0;
     if (!hasExamples) return;
-    // The span is a sibling before the examples, never merged into them.
-    expect(text.next('[data-sc-content="example-sentence"]').length).toBe(1);
+    // The span is a sibling before the example group, never merged into it.
+    expect(text.next('[data-sc-content="example-group"]').length).toBe(1);
   });
 });
 

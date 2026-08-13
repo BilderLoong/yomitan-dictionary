@@ -202,17 +202,61 @@ line; the definition stays in the collapsed body.
 
 ### Structured-content vocabulary
 
+**MWU structured entry header**:
+The Level 1 structured-content region before the definition tree that contains
+source-owned pronunciation, pronunciation notes, and inflection groups. It
+excludes Yomitan-owned headword and tag metadata.
+_Avoid_: head, header
+
 **Structured-content unit**:
 A named piece of dictionary content, marker, relationship, or presentation
 metadata that remains attached to its nearest source owner and source order,
 even when it renders inline.
 _Avoid_: anonymous wrapper, flattened text
 
-**Local label**:
-A usage, grammar, or definition qualifier owned by a nearby sense, form, or
-definition. It is visible structured content, not global Yomitan tag-bank
-metadata.
-_Avoid_: global tag, term tag (when the scope is local)
+**Local tag**:
+A short usage, register, subject, applicability, grammar, or definition
+qualifier inside structured content. Examples such as `archaic`, `cricket`,
+`of a ship`, and `transitive verb` are dictionary-owned by a nearby verb
+subgroup, sense, form, or definition, not Yomitan tag-bank metadata.
+_Avoid_: local label, global tag, term tag (when the scope is local)
+
+**Functional label**:
+The entry-level `.fl` label that describes the lexical function of the current
+entry, such as `noun`, `transitive verb`, or `abbreviation`. Conversion reads
+only the label owned by that entry. For example, a parent entry does not take
+the `.fl` from a nested run-on or phrase.
+
+**Fixed functional tag**:
+A reviewed Yomitan tag produced by the explicit functional-label mapping. For
+example, `noun` becomes `n`, and `transitive verb` becomes `v` plus
+`transitive`. Fixed tags are defined in the complete `tag_bank_1.json` output
+with category `partOfSpeech`, readable notes, stable order, and score `0`.
+
+**Fixed functional-tag catalog**:
+The complete reviewed set of atomic tag definitions emitted in every
+archive. It includes metadata for tags that a selected build does not use, so
+the bank does not change when the selected word list changes.
+
+**Functional-label mapping**:
+The explicit table from one normalized source `.fl` label to one or more
+atomic fixed tag names. For example, `transitive verb` maps to `v` and
+`transitive`; the mapping does not split unseen English text with a general
+parser.
+
+**Dynamic functional tag**:
+A Yomitan definition tag produced when a source `.fl` value is not in the
+fixed mapping. It starts with `?` so it cannot look like a reviewed tag. For
+example, `future label` becomes `?future_label`. It uses category
+`unmappedPartOfSpeech`, appears in the bank only when encountered, and creates
+an `unmapped-functional-label` conversion finding.
+
+**Functional-label inventory**:
+A read-only audit of every current database `.fl` value using the same
+owner-local rule as conversion. The command writes
+`build/functional-label-inventory.json`; it is used to review coverage before
+changing the fixed mapping. The current database contains 98 normalized
+labels, all mapped to the fixed catalog.
 
 **Pronunciation reading**:
 A source-marked phonetic reading that may be styled as IPA-like display text.
@@ -277,11 +321,24 @@ row deferral), recorded with its reason.
 **Yomitan fixture**:
 The unpacked Yomitan extension under
 `packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright`
-used by the e2e loop (`inspect:dict`) and by the archive schema tests
-(its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
+used by the dictionary inspection commands (`inspect:dict` for visible human
+review and `inspect:dict:headless` for headless E2E/MCP) and by the archive
+schema tests (its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
 `bun run update:fixture` (defaults to the newest upstream release tag;
 `--ref master` for the latest development build, `--ref <tag>` to pin an
 older release); provenance is recorded in
 `tests/fixture/UPSTREAM.json`, and the source cache lives in
 `tests/fixture/yomitan-src` (excluded from `bun test` discovery via
 `bunfig.toml`).
+
+The bounded E2E command is
+`bun run inspect:dict:headless -- --close`; live MCP uses
+`bun run inspect:dict:headless -- --mcp-port 9222`. The inspection runner
+extracts `styles.css` from the current dictionary ZIP and injects that exact
+text into a temporary copy of the repository-owned settings backup before the
+real settings import. Each run gets a unique temporary browser profile by
+default. An explicit profile must be absent or empty and is never deleted.
+The package commands use one shared launcher and handle `--help` or `-h` before
+`dev:build`, browser launch, profile creation, or build-artifact mutation. The
+direct adapters under `scripts/dictionary-inspection/` require an existing
+dictionary ZIP as their first argument and do not build it.

@@ -2,12 +2,13 @@ import { readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { parseCliArgs } from "./pipeline/cli";
+import { writeFunctionalLabelInventory } from "./pipeline/inventory";
 import type { BuildReport } from "./pipeline/report";
 import { runBuild } from "./pipeline/runBuild";
 import { collectRequestedWords } from "./pipeline/selection";
 
 const usage =
-  "Usage: bun run src/index.ts [--full | --words <word...> [--words-file <path>]]";
+  "Usage: bun run src/index.ts [--full | --inventory:functional-labels | --words <word...> [--words-file <path>]]";
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -59,6 +60,31 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  const packageDirectory = dirname(import.meta.dirname);
+  if (parsed.value.inventoryFunctionalLabels) {
+    const outputPath = join(
+      packageDirectory,
+      "build",
+      "functional-label-inventory.json",
+    );
+    const attempt = await writeFunctionalLabelInventory({
+      databasePath: join(packageDirectory, "assets", "MWU.db"),
+      outputPath,
+    });
+    if (!attempt.ok) {
+      console.error(`Functional-label inventory failed: ${attempt.error}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(
+      `Functional-label inventory: ${attempt.outputPath} (${attempt.report.labelCount} labels, ${attempt.report.unmappedLabels.length} unmapped)`,
+    );
+    if (attempt.report.errors.length > 0) {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   const requestedWords = parsed.value.fullDatabase
     ? []
     : await (async (): Promise<readonly string[] | null> => {
@@ -85,7 +111,6 @@ const main = async (): Promise<void> => {
       })();
   if (requestedWords === null) return;
 
-  const packageDirectory = dirname(import.meta.dirname);
   const startedAt = performance.now();
   const attempt = await runBuild({
     requestedWords,

@@ -1,0 +1,38 @@
+{
+  "skill_name": "mwu-dictionary-inspection",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run an end-to-end check of the built Merriam Webster Unabridged dictionary. It must be headless, use the real Yomitan fixture, check the eight representative words and keyboard disclosure behavior, and exit without leaving Chrome running.",
+      "expected_output": "The agent uses inspect:dict:headless with --close, preserves the real dictionary import and settings-import workflow, and reports the focused E2E result.",
+      "files": [],
+      "expectations": [
+        "Uses the headless inspect:dict:headless command.",
+        "Includes --close for deterministic cleanup.",
+        "Does not replace the real Yomitan browser with a static HTML fixture."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to see the real rendered turn entry so I can review the MWU UI myself. Open the dictionary inspector in a visible browser and leave the entry available for me.",
+      "expected_output": "The agent uses visible inspect:dict with one query and does not close the browser immediately.",
+      "files": [],
+      "expectations": [
+        "Uses the visible inspect:dict command.",
+        "Passes one query such as --query turn.",
+        "Does not use --close before the human review is complete."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Start the built dictionary for live Chrome DevTools MCP inspection. I need to navigate to a real entry and inspect a disclosure, so keep the browser parked until I finish.",
+      "expected_output": "The agent starts inspect:dict:headless without --close, exposes CDP on port 9222, proves the endpoint, and performs a live page action through the configured MCP.",
+      "files": [],
+      "expectations": [
+        "Uses inspect:dict:headless without --close while MCP control is needed.",
+        "Uses the configured CDP endpoint at http://127.0.0.1:9222.",
+        "Provides evidence of a live page action, not only a curl response."
+      ]
+    }
+  ]
+}

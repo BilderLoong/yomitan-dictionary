@@ -6,6 +6,7 @@ export interface ParsedCliArgs {
   readonly flagWords: readonly string[];
   readonly wordsFilePath: string | null;
   readonly fullDatabase: boolean;
+  readonly inventoryFunctionalLabels: boolean;
 }
 
 export type CliParseError = {
@@ -17,6 +18,7 @@ interface CommanderOptions {
   readonly words?: readonly string[];
   readonly wordsFile?: string;
   readonly full?: boolean;
+  readonly "inventory:functionalLabels"?: boolean;
 }
 
 const ignoreCommanderOutput = (_message: string): void => undefined;
@@ -33,6 +35,10 @@ const createProgram = (): Command =>
     .option(
       "--full",
       "Build every Unabridged entry (excludes collegiate_, medical_, and thesaurus_ twin rows)",
+    )
+    .option(
+      "--inventory:functional-labels",
+      "Audit the owned functional-label inventory without exporting a dictionary",
     );
 
 export const parseCliArgs = (
@@ -44,9 +50,11 @@ export const parseCliArgs = (
     program.parse(argv, { from: "user" });
     const options = program.opts<CommanderOptions>();
     const fullDatabase = options.full === true;
+    const inventoryFunctionalLabels =
+      options["inventory:functionalLabels"] === true;
 
     if (
-      fullDatabase &&
+      (fullDatabase || inventoryFunctionalLabels) &&
       ((options.words?.length ?? 0) > 0 || options.wordsFile !== undefined)
     ) {
       return {
@@ -54,7 +62,18 @@ export const parseCliArgs = (
         error: {
           kind: "usage",
           message:
-            "The --full flag cannot be combined with --words or --words-file.",
+            "The --full and --inventory:functional-labels flags cannot be combined with --words or --words-file.",
+        },
+      };
+    }
+
+    if (fullDatabase && inventoryFunctionalLabels) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message:
+            "The --full flag cannot be combined with --inventory:functional-labels.",
         },
       };
     }
@@ -65,6 +84,7 @@ export const parseCliArgs = (
         flagWords: [...(options.words ?? [])],
         wordsFilePath: options.wordsFile ?? null,
         fullDatabase,
+        inventoryFunctionalLabels,
       },
     };
   } catch (error: unknown) {

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -95,7 +96,97 @@ const softLinkEntry = (
   "",
 ];
 
+const exactCanonicalEntry = (
+  term: string,
+  popularity: number,
+  sequence: number,
+): TermInformation => [
+  term,
+  "",
+  null,
+  "",
+  popularity,
+  expect.any(Array),
+  sequence,
+  "",
+];
+
+const exactSoftLinkEntry = (
+  lookup: string,
+  target: string,
+  rules: readonly string[],
+  sequence: number,
+): TermInformation => [
+  lookup,
+  "",
+  null,
+  "",
+  -100,
+  [[target, [...rules]]],
+  sequence,
+  "",
+];
+
+const definitionHash = (record: TermInformation): string =>
+  createHash("sha256").update(JSON.stringify(record[5])).digest("hex");
+
 describe("term-bank level 1 generation test", () => {
+  test("nested run-on labels stay out of their real selected owner records", async () => {
+    const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-real-"));
+    const attempt = await runBuild({
+      requestedWords: ["Hall of Fame", "homeothermic", "role-play"],
+      databasePath: sourceDatabasePath,
+      sourceIndex,
+      buildPaths: {
+        outputDirectory,
+        reportPath: join(outputDirectory, "build-report.json"),
+        stylesPath,
+      },
+    });
+
+    expect(
+      attempt.ok,
+      attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+    ).toBe(true);
+    if (!attempt.ok) return;
+
+    const termBank = await readTermBank(attempt.archivePath);
+
+    expect(attempt.report.errors).toEqual([]);
+    expect(termBank).toEqual([
+      exactCanonicalEntry("Hall of Fame", 100, 1),
+      exactCanonicalEntry("homeothermic", 100, 2),
+      exactCanonicalEntry("role–play", 0, 3),
+      exactSoftLinkEntry(
+        "ho·moio·ther·mic",
+        "homeothermic",
+        ["alternative"],
+        4,
+      ),
+      exactSoftLinkEntry("role-play", "role–play", ["alternative"], 5),
+    ]);
+    expect(
+      termBank.map(
+        (record: TermInformation): readonly [string, string | null, string] => [
+          record[0],
+          record[2],
+          record[7],
+        ],
+      ),
+    ).toEqual([
+      ["Hall of Fame", null, ""],
+      ["homeothermic", null, ""],
+      ["role–play", null, ""],
+      ["ho·moio·ther·mic", null, ""],
+      ["role-play", null, ""],
+    ]);
+    expect(termBank.slice(0, 3).map(definitionHash)).toEqual([
+      "4c2c787509526f255648d63a7fb08ca12e17405665fead11940c9fee4e29bdfe",
+      "e7690a6ac8c544178ad8dedf0cbf401c85ada6927d631ff6b7b10720c88fe59a",
+      "fdbf0e85ac70812edd1839082a78916009f84a164adf04850cc946baa6e43775",
+    ]);
+  }, 90_000);
+
   test("what", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-real-"));
     const attempt = await runBuild({

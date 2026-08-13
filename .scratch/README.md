@@ -40,6 +40,29 @@ ticket whose blockers are done can be grabbed.
 | 08 | prove-complete-cxl-policy | 07 | resolved 2026-08-13 |
 
 All eight tracer bullets resolved 2026-08-13 (implementation complete; smoke-tested in Yomitan).
+| 05 | fixed-dynamic-functional-label-tag-metadata | None | resolved 2026-08-13 |
+
+## mwu-functional-label-tags — fixed and dynamic Yomitan tag metadata
+
+Parent specification: `mwu-implementation` issue 05.
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | enforce-owner-local-functional-label-scope | None | resolved 2026-08-13 |
+| 02 | emit-complete-fixed-functional-label-tag-bank | 01 | resolved 2026-08-13 |
+| 03 | add-current-database-functional-label-inventory-audit | 02 | resolved 2026-08-13 |
+| 04 | preserve-unknown-functional-labels-as-dynamic-tags | 02 | resolved 2026-08-13 |
+| 05 | aggregate-and-stabilize-functional-label-build-output | 03, 04 | resolved 2026-08-13 |
+| 06 | verify-rendered-tags-and-synchronize-project-decisions | 05 | resolved 2026-08-13 |
+
+## mwu-ui-optimization — structured-content presentation
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | make-local-tags-match-host-ui | None | completed |
+| 02 | clarify-structured-entry-header | 01 | completed |
+| 03 | improve-definition-reading-path | 01 | completed |
+| 04 | unify-phrase-flow-and-disclosure-hierarchy | 03 | completed |
 
 ## Resolved during migration
 

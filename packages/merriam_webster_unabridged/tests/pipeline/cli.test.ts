@@ -19,6 +19,7 @@ describe("parseCliArgs", () => {
         flagWords: ["give", "in", "take the word"],
         wordsFilePath: "/tmp/words.txt",
         fullDatabase: false,
+        inventoryFunctionalLabels: false,
       },
     });
   });
@@ -52,11 +53,17 @@ describe("parseCliArgs", () => {
         flagWords: ["give"],
         wordsFilePath: null,
         fullDatabase: false,
+        inventoryFunctionalLabels: false,
       },
     });
     expect(parseCliArgs([])).toEqual({
       ok: true,
-      value: { flagWords: [], wordsFilePath: null, fullDatabase: false },
+      value: {
+        flagWords: [],
+        wordsFilePath: null,
+        fullDatabase: false,
+        inventoryFunctionalLabels: false,
+      },
     });
   });
 
@@ -68,6 +75,7 @@ describe("parseCliArgs", () => {
     expect(result.value.fullDatabase).toBe(true);
     expect(result.value.flagWords).toEqual([]);
     expect(result.value.wordsFilePath).toBeNull();
+    expect(result.value.inventoryFunctionalLabels).toBe(false);
   });
 
   test("rejects --full combined with --words", () => {
@@ -84,5 +92,25 @@ describe("parseCliArgs", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.message).toContain("--full");
+  });
+
+  test("parses the functional-label inventory command", () => {
+    expect(parseCliArgs(["--inventory:functional-labels"])).toEqual({
+      ok: true,
+      value: {
+        flagWords: [],
+        wordsFilePath: null,
+        fullDatabase: false,
+        inventoryFunctionalLabels: true,
+      },
+    });
+  });
+
+  test("rejects inventory combined with full mode", () => {
+    const result = parseCliArgs(["--inventory:functional-labels", "--full"]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("inventory:functional-labels");
   });
 });

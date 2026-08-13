@@ -83,6 +83,34 @@ test("renders an mwu-entry with header and definition flow", () => {
   expect(textOf(converted.content)).toContain("to transfer possession");
 });
 
+test("spaces slash-separated header inflection markers", () => {
+  const result = convert(
+    "<mean>" +
+      header(
+        "turn",
+        "verb",
+        "¦tərn",
+        '<div class="headword-row"><span class="vg-ins"><span class="ix">-ed/-ing/-s</span></span></div>',
+      ) +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to rotate</span>',
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "turn",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const markers = unitsOf(result.value.content, "inflection-marker");
+  expect(markers).toHaveLength(1);
+  expect(textOf(markers[0])).toBe("-ed / -ing / -s");
+});
+
 test("builds nested ol sense hierarchy from markers", () => {
   const result = convert(
     "<mean>" +
@@ -230,6 +258,10 @@ test("shows one example and collapses the rest", () => {
 
   const examples = unitsOf(result.value.content, "example-sentence");
   expect(examples).toHaveLength(3);
+  const exampleGroups = unitsOf(result.value.content, "example-group");
+  expect(exampleGroups).toHaveLength(1);
+  expect(exampleGroups[0]?.tag).toBe("div");
+  expect(unitsOf(exampleGroups[0], "example-sentence")).toHaveLength(3);
   const extra = unitsOf(result.value.content, "extra-examples");
   expect(extra).toHaveLength(1);
   expect(extra[0]?.open).toBe(false);
@@ -439,6 +471,13 @@ test("renders titled collapsed origin and phrase sections", () => {
   expect(phrases[0]?.open).toBe(false);
   expect(textOf(phrases[0])).toContain("no matter what");
   expect(textOf(phrases[0])).toContain("regardless");
+
+  const phraseGroup = unitsOf(result.value.content, "phrase-group");
+  expect(phraseGroup).toHaveLength(1);
+  expect(phraseGroup[0]?.tag).toBe("details");
+  expect(phraseGroup[0]?.open).toBe(false);
+  expect(textOf(phraseGroup[0])).toContain("Phrases");
+  expect(textOf(phraseGroup[0])).toContain("no matter what");
 });
 
 test("maps part-of-speech labels to WTY-style tags", () => {
@@ -450,12 +489,15 @@ test("maps part-of-speech labels to WTY-style tags", () => {
     ["conjunction", "conj"],
     ["preposition", "prep"],
     ["abbreviation", "abbr"],
-    ["verb, transitive + intransitive", "v"],
-    ["noun combining form", "comb"],
-    ["geographical name", "geo"],
-    ["adverb (or adjective)", "adv"],
-    ["noun, ", "n"],
-    ["noun plural but singular in construction", "n"],
+    ["verb, transitive + intransitive", "v transitive intransitive"],
+    ["noun combining form", "comb noun-forming"],
+    ["geographical name", "geographical-name"],
+    ["adverb (or adjective)", "adj adv"],
+    ["noun, ", "?noun%2C"],
+    [
+      "noun plural but singular in construction",
+      "n plural-form takes-singular-verb",
+    ],
   ];
 
   for (const [pos, expected] of cases) {
@@ -473,6 +515,160 @@ test("maps part-of-speech labels to WTY-style tags", () => {
     if (!result.ok) continue;
     expect(result.value.definitionTags, pos).toBe(expected);
   }
+});
+
+test("reads functional labels only from the owned entry header", () => {
+  const result = convert(
+    "<mean>" +
+      header("homeothermic", "", "¦hōmēəˈthərmik") +
+      '<div class="uro"><span class="ure">homeotherm</span>' +
+      '<span class="fl">noun, </span></div>' +
+      '<div class="section" data-id="definition"><span class="dt">of homeothermy</span></div></mean>',
+    "homeothermic",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe(null);
+  expect(unitsOf(result.value.content, "part-of-speech").map(textOf)).toEqual([
+    "noun, ",
+  ]);
+});
+
+const nestedRunOnRegressionCases: readonly (readonly [string, string])[] = [
+  ["Hall of Fame", "Hall of Famer"],
+  ["role-play", "role-player"],
+];
+
+test.each(nestedRunOnRegressionCases)(
+  "%s does not borrow the noun label from its nested undefined run-on",
+  (term: string, runOnTerm: string) => {
+    const result = convert(
+      "<mean>" +
+        `<div class="entry-header"><h1 class="hword">${term}</h1></div>` +
+        '<div class="section" data-id="definition"><span class="dt">meaning</span></div>' +
+        `<div class="dro"><div class="uro"><span class="ure">${runOnTerm}</span>` +
+        '<span class="fl">noun</span></div></div></mean>',
+      term,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.value.definitionTags).toBe(null);
+    expect(unitsOf(result.value.content, "part-of-speech").map(textOf)).toEqual(
+      ["noun"],
+    );
+  },
+);
+
+test("does not cross into a nested run-on entry header for a functional label", () => {
+  const result = convert(
+    '<mean><div class="section" data-id="definition"><span class="dt">meaning</span></div>' +
+      '<div class="dro"><div class="uro"><div class="entry-header">' +
+      '<h1 class="hword">nested form</h1><span class="fl">noun</span>' +
+      "</div></div></div></mean>",
+    "parent form",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe(null);
+});
+
+test("uses only its owned label for an alternative-spelling canonical entry", () => {
+  const result = convertCanonical({
+    kind: "alternative-spelling-canonical-entry",
+    term: "colour",
+    displayHeadword: "colour",
+    source: {
+      rowId: 12,
+      rowKey: "color",
+      meanIndex: 0,
+      phraseIndex: null,
+      ownerHtml:
+        '<mean><div class="entry-header"><h1 class="hword">colour</h1>' +
+        '<span class="fl">adjective</span></div>' +
+        '<div class="section" data-id="definition"><span class="dt">colored</span></div>' +
+        '<div class="dro"><div class="uro"><span class="ure">colourer</span>' +
+        '<span class="fl">noun</span></div></div></mean>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("adj");
+});
+
+test("adds phrase to a defined phrase with its owned functional label", () => {
+  const result = convertCanonical({
+    kind: "drp-phrase-canonical-entry",
+    term: "what phrase",
+    parentTerm: "what",
+    source: {
+      rowId: 10,
+      rowKey: "what",
+      meanIndex: 0,
+      phraseIndex: 0,
+      ownerHtml:
+        '<div class="dro"><span class="drp">what phrase</span>' +
+        '<div class="entry-header"><span class="fl">noun</span></div>' +
+        '<div class="vg"><div class="sb"><div class="sense"><span class="dt">meaning</span></div></div></div></div>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("n phrase");
+});
+
+test("keeps the fixed phrase tag before a dynamic functional tag", () => {
+  const result = convertCanonical({
+    kind: "drp-phrase-canonical-entry",
+    term: "future phrase",
+    parentTerm: "future",
+    source: {
+      rowId: 11,
+      rowKey: "future",
+      meanIndex: 0,
+      phraseIndex: 0,
+      ownerHtml:
+        '<div class="dro"><span class="drp">future phrase</span>' +
+        '<div class="entry-header"><span class="fl">future label</span></div>' +
+        '<div class="vg"><div class="sb"><div class="sense"><span class="dt">meaning</span></div></div></div></div>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("phrase ?future_label");
+});
+
+test("keeps an unknown owned functional label visible with a finding", () => {
+  const result = convert(
+    "<mean>" +
+      header("future", "future_label, 2%", "¦fyütʃər") +
+      '<div class="section" data-id="definition"><span class="dt">meaning</span></div></mean>',
+    "future",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("?future%5Flabel%2C_2%25");
+  expect(result.value.findings).toContainEqual({
+    kind: "unmapped-functional-label",
+    rowId: 1,
+    term: "future",
+    rawLabel: "future_label, 2%",
+    normalizedLabel: "future_label, 2%",
+    tag: "?future%5Flabel%2C_2%25",
+  });
 });
 
 test("renders one fallback and one finding for an unsupported subtree", () => {
@@ -652,6 +848,7 @@ test("preserves punctuation and annotation in multi-part pronunciations", () => 
       '<span class="pr">ən</span><span class="pun">;</span>' +
       '<span class="pr"> <em class="mw_t_it">usually</em> ᵊn <em class="mw_t_it">after</em> t</span>' +
       '<span class="addPunct">, </span><span class="pr">d</span>' +
+      '<span class="addPunct">, </span><span class="pr">s</span>' +
       '<span class="last-slash">\\</span></span></div>' +
       '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
       sb(sense('<span class="num">1</span>', '<span class="dt ">def</span>')) +
@@ -664,16 +861,39 @@ test("preserves punctuation and annotation in multi-part pronunciations", () => 
 
   const pronunciations = unitsOf(result.value.content, "pronunciation");
   expect(pronunciations).toHaveLength(1);
-  expect(textOf(pronunciations[0])).toBe(
-    "/(ˈ)in/, /ən/; usually ᵊn after t, /d/",
-  );
+  expect(textOf(pronunciations[0])).toBe("/(ˈ)in/, /ən/, /d/, /s/");
   expect(
     unitsOf(result.value.content, "pronunciation-reading").map(textOf),
-  ).toEqual(["/(ˈ)in/", "/ən/", "/d/"]);
+  ).toEqual(["/(ˈ)in/", "/ən/", "/d/", "/s/"]);
   const notes = unitsOf(result.value.content, "pronunciation-note");
-  expect(notes).toHaveLength(1);
-  expect(textOf(notes[0])).toContain("usually ᵊn after t");
-  expect(textOf(notes[0])).not.toContain("/usually");
+  expect(textOf(notes.map(textOf))).toContain("usually ᵊn after t");
+  expect(textOf(notes.map(textOf))).not.toContain("/d/");
+});
+
+test("keeps an embedded pronunciation qualifier in source order", () => {
+  const result = convert(
+    "<mean>" +
+      header(
+        "put",
+        "verb",
+        'ˈpu̇t <em class="mw_t_it">chiefly dialectal</em> ˈpət',
+      ) +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(sense('<span class="num">1</span>', '<span class="dt ">def</span>')) +
+      "</div></div></div></mean>",
+    "put",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(
+    unitsOf(result.value.content, "pronunciation-reading").map(textOf),
+  ).toEqual(["/ˈpu̇t/", "/ˈpət/"]);
+  expect(unitsOf(result.value.content, "pronunciation-note")).toHaveLength(0);
+  expect(unitsOf(result.value.content, "tag").map(textOf)).toEqual([
+    "chiefly dialectal",
+  ]);
 });
 
 test("marks run-in variants as alternate forms", () => {
@@ -926,7 +1146,7 @@ test("renders em and mw_t_it as emphasis units", () => {
   expect(textOf(emphasis[1])).toBe("styled");
 });
 
-test("sets the tag title from the label text", () => {
+test("keeps local tags free of duplicate title affordances", () => {
   const result = convert(
     "<mean>" +
       header("what", "pronoun", "¦(h)wät") +
@@ -945,7 +1165,7 @@ test("sets the tag title from the label text", () => {
 
   const tags = unitsOf(result.value.content, "tag");
   expect(tags).toHaveLength(1);
-  expect(tags[0]?.title).toBe("chiefly dialectal");
+  expect(tags[0]?.title).toBeUndefined();
 });
 
 test("renders an undefined run-on under its parent without making a record", () => {
@@ -982,6 +1202,10 @@ test("renders an undefined run-on under its parent without making a record", () 
   expect(unitsOf(runOns[0], "form-pronunciation")).toHaveLength(1);
   expect(unitsOf(runOns[0], "part-of-speech")).toHaveLength(1);
   expect(unitsOf(runOns[0], "inflection-label")).toHaveLength(1);
+  expect(unitsOf(runOns[0], "inflection-label")[0]?.data).toMatchObject({
+    category: "form-label",
+    sourceUnit: "il",
+  });
   expect(unitsOf(runOns[0], "inflection-marker")).toHaveLength(1);
   expect(result.value.findings).toEqual([]);
 });
@@ -1014,9 +1238,49 @@ test("keeps sense-local forms and labels in one owned definition flow", () => {
   expect(textOf(definition).replace(/\s+/gu, " ").trim()).toBe(
     "turns plural: menses",
   );
-  expect(unitsOf(definition, "tag").map(textOf)).toEqual([" plural"]);
+  expect(unitsOf(definition, "inflection-label").map(textOf)).toEqual([
+    " plural",
+  ]);
+  expect(unitsOf(definition, "inflection-label")[0]?.data).toMatchObject({
+    category: "form-label",
+    sourceUnit: "spl",
+  });
   expect(unitsOf(definition, "cross-reference").map(textOf)).toEqual([
     "menses",
+  ]);
+});
+
+test("keeps separators between consecutive sense-local forms", () => {
+  const result = convert(
+    "<mean>" +
+      header("down", "noun", "¦dau̇n") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span><span class="letter">b</span>',
+          '<span class="if">downs</span><span class="il or"> or </span>' +
+            '<span class="if">Downs</span><span class="spl plural"> plural</span>' +
+            '<span class="dt "><strong class="mw_t_bc">: </strong>' +
+            "treeless chalk uplands</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "down",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const definition = unitsOf(result.value.content, "definition").find(
+    (node: JsonObject): boolean => textOf(node).includes("chalk uplands"),
+  );
+  expect(definition).toBeDefined();
+  if (definition === undefined) return;
+  expect(textOf(definition).replace(/\s+/gu, " ").trim()).toBe(
+    "downs or Downs plural: treeless chalk uplands",
+  );
+  expect(unitsOf(definition, "inflection-label").map(textOf)).toEqual([
+    " plural",
   ]);
 });
 
@@ -1070,7 +1334,7 @@ test("marks an entry-level sls label before the sense block as a tag", () => {
 
   const tags = unitsOf(result.value.content, "tag");
   expect(tags.map(textOf)).toEqual(["substandard"]);
-  expect(tags[0]?.title).toBe("substandard");
+  expect(tags[0]?.title).toBeUndefined();
   expect(tags[0]?.data).toMatchObject({
     category: "usage",
     sourceUnit: "sense-label",

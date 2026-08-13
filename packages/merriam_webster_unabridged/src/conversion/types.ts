@@ -1,6 +1,7 @@
 import type { StructuredContent } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
 import type { CanonicalEntryPlan } from "../level1/types";
+import type { UnmappedFunctionalLabelFinding } from "./functionalLabels";
 
 export type ConversionFinding =
   | {
@@ -17,7 +18,8 @@ export type ConversionFinding =
       readonly rowId: number;
       readonly term: string;
       readonly exampleCount: number;
-    };
+    }
+  | UnmappedFunctionalLabelFinding;
 
 export interface RenderedCanonicalContent {
   readonly content: StructuredContent;

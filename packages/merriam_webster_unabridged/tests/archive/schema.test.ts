@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { runBuild } from "../../src/pipeline/runBuild";
 import {
   dictionaryIndex,
+  dictionaryTagBankV3,
   dictionaryTermBankV3,
 } from "../fixture/yomitan-chrome-playwright/lib/validate-schemas.js";
 import {
@@ -69,6 +70,15 @@ describe("selected archive", () => {
       true,
     );
 
+    const tagBank = await readArchiveJson(
+      attempt.archivePath,
+      "tag_bank_1.json",
+    );
+    expect(
+      dictionaryTagBankV3(tagBank),
+      "tag_bank_1.json must satisfy the Yomitan tag-bank schema",
+    ).toBe(true);
+
     const termBanks = await readTermBanks(attempt.archivePath);
     for (const termBank of termBanks) {
       expect(
@@ -76,6 +86,25 @@ describe("selected archive", () => {
         JSON.stringify(dictionaryTermBankV3.errors),
       ).toBe(true);
     }
+
+    if (!Array.isArray(tagBank)) return;
+    const tagNames = tagBank.flatMap((entry: unknown): readonly string[] =>
+      Array.isArray(entry) && typeof entry[0] === "string" ? [entry[0]] : [],
+    );
+    termBanks.forEach((termBank: unknown): void => {
+      if (!Array.isArray(termBank)) return;
+      termBank.forEach((entry: unknown): void => {
+        if (!Array.isArray(entry) || typeof entry[2] !== "string") return;
+        const definitionTags = entry[2].trim();
+        if (definitionTags.length === 0) return;
+        definitionTags.split(" ").forEach((tag: string): void => {
+          expect(
+            tagNames.filter((candidate: string): boolean => candidate === tag),
+            `${entry[0]} uses ${tag}`,
+          ).toHaveLength(1);
+        });
+      });
+    });
 
     const canonicalTerms = attempt.records
       .filter((record): boolean => record[4] >= 0)
@@ -112,6 +141,9 @@ describe("selected archive", () => {
 
     expect(first.records).toEqual(second.records);
     expect(first.report).toEqual(second.report);
+    expect(await readArchiveJson(first.archivePath, "tag_bank_1.json")).toEqual(
+      await readArchiveJson(second.archivePath, "tag_bank_1.json"),
+    );
     expect(await readTermBanks(first.archivePath)).toEqual(
       await readTermBanks(second.archivePath),
     );

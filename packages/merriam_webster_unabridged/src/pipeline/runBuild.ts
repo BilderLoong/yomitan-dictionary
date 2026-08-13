@@ -9,16 +9,20 @@ import {
   convertCanonical,
 } from "../conversion/convertCanonical";
 import {
+  dynamicFunctionalTagDefinitions,
+  type FunctionalTagDefinition,
+  fixedFunctionalTagDefinitions,
+  isUnmappedFunctionalLabelFinding,
+  type UnmappedFunctionalLabelFinding,
+} from "../conversion/functionalLabels";
+import {
   closeDependencies,
   type DependencyEdge,
 } from "../level1/closeDependencies";
 import { planCanonicalOwners } from "../level1/planCanonical";
 import {
-  type ConfirmedAffixEvidence,
   deriveBareAffixSoftLinks,
   deriveBareLookup,
-  type LinkEvidence,
-  type LinkRejection,
   planMainToAlternativeSpellingSoftLinks,
   planPhraseAlternateSoftLinks,
   planVrMeanAlternateSoftLinks,
@@ -26,7 +30,10 @@ import {
 } from "../level1/planLinks";
 import type {
   CanonicalEntryPlan,
+  ConfirmedAffixEvidence,
   Level1Finding,
+  LinkEvidence,
+  LinkRejection,
   OwnershipDecision,
   SoftLinkEntryPlan,
 } from "../level1/types";
@@ -34,9 +41,9 @@ import {
   buildSourceIndex,
   findSourceRows,
   type IndexedSourceRow,
+  isUnabridgedRow,
   type SourceIndex,
   type SourceRow,
-  type SourceRowSummary,
 } from "../source/rows";
 import {
   listSourceRowSummaries,
@@ -91,11 +98,6 @@ const archiveReportPath = archiveFileName;
  * defer to definition-free dedicated rows, producing unresolvable soft-link
  * targets.
  */
-const isUnabridgedRow = (row: SourceRowSummary): boolean =>
-  !row.encodedKey.startsWith("collegiate_") &&
-  !row.encodedKey.startsWith("medical_") &&
-  !row.encodedKey.startsWith("thesaurus_");
-
 interface PlannedRow {
   readonly row: IndexedSourceRow;
   readonly canonicalEntries: readonly CanonicalEntryPlan[];
@@ -505,6 +507,7 @@ const exportDictionary = async (
   records: readonly TermInformation[],
   outputDirectory: string,
   stylesPath: string,
+  tagDefinitions: readonly FunctionalTagDefinition[],
 ): Promise<void> => {
   const index = new DictionaryIndex()
     .setTitle("Merriam Webster Unabridged")
@@ -517,6 +520,15 @@ const exportDictionary = async (
   const dictionary = new Dictionary({ fileName: archiveFileName });
 
   await dictionary.setIndex(index, "", "");
+  tagDefinitions.forEach((tag: FunctionalTagDefinition): void => {
+    dictionary.addTag({
+      name: tag.name,
+      category: tag.category,
+      sortingOrder: tag.order,
+      notes: tag.note,
+      popularityScore: tag.score,
+    });
+  });
   for (const record of records) {
     await dictionary.addTerm(record);
   }
@@ -543,6 +555,7 @@ const createReport = (
   recordCount = 0,
   conversionFindings = 0,
   softLinkCount = 0,
+  functionalLabelFindings: readonly UnmappedFunctionalLabelFinding[] = [],
   extraFindings: readonly Level1Finding[] = [],
 ): BuildReport =>
   createBuildReport({
@@ -573,6 +586,7 @@ const createReport = (
     recordCount: fullDatabase ? recordCount : undefined,
     conversionFindings: fullDatabase ? conversionFindings : undefined,
     softLinkCount: fullDatabase ? softLinkCount : undefined,
+    functionalLabelFindings,
   });
 
 const buildSelectedDictionary = async (
@@ -607,6 +621,7 @@ const buildSelectedDictionary = async (
   const sequenceByTerm = new Map<string, number>();
   let convertedCount = 0;
   let conversionFindings = 0;
+  const functionalLabelFindings: UnmappedFunctionalLabelFinding[] = [];
 
   for (const plan of canonicalEntryPlans) {
     const result = convertCanonical(plan);
@@ -628,6 +643,11 @@ const buildSelectedDictionary = async (
     }
     canonicalRecords.push(replaceSequence(record, sequence));
     conversionFindings += converted.findings.length;
+    converted.findings
+      .filter(isUnmappedFunctionalLabelFinding)
+      .forEach((finding: UnmappedFunctionalLabelFinding): void => {
+        functionalLabelFindings.push(finding);
+      });
     if (!fullDatabase) conversions.push(converted);
   }
 
@@ -675,6 +695,7 @@ const buildSelectedDictionary = async (
     records.length,
     conversionFindings,
     resolvedSoftLinkEntries.length,
+    functionalLabelFindings,
     softLinkTargetFindings,
   );
   try {
@@ -694,6 +715,7 @@ const buildSelectedDictionary = async (
       records.length,
       conversionFindings,
       softLinkEntries.length,
+      functionalLabelFindings,
     );
     try {
       await writeReport(request.buildPaths.reportPath, report);
@@ -711,6 +733,10 @@ const buildSelectedDictionary = async (
       records,
       request.buildPaths.outputDirectory,
       request.buildPaths.stylesPath,
+      [
+        ...fixedFunctionalTagDefinitions(),
+        ...dynamicFunctionalTagDefinitions(functionalLabelFindings),
+      ],
     );
   } catch (error: unknown) {
     errors.push({
@@ -727,6 +753,7 @@ const buildSelectedDictionary = async (
       records.length,
       conversionFindings,
       softLinkEntries.length,
+      functionalLabelFindings,
     );
     try {
       await writeReport(request.buildPaths.reportPath, report);

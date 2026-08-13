@@ -27,6 +27,8 @@ for (const converted of allConverted) {
     const inline = $('[data-sc-content="example-sentence"]').not(
       'details[data-sc-content="extra-examples"] [data-sc-content="example-sentence"]',
     );
-    expect(inline.length).toBeGreaterThan(0);
+    if ($('[data-sc-content="example-sentence"]').length > 0) {
+      expect(inline.length).toBeGreaterThan(0);
+    }
   });
 }

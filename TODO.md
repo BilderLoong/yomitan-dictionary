@@ -18,6 +18,24 @@ Approved list (8 variant phrases) covers 7,415 refs (36.2%). Decision open: whic
 there is a alternative showing with the "down" entry
 
 ## Style
+
+**Status:** completed. The style work is specified in
+`.scratch/mwu-ui-optimization/spec.md` and tracked by the four completed issue
+files in `.scratch/mwu-ui-optimization/issues/`. The accepted visual feedback
+is recorded in `.scratch/mwu-ui-optimization/review-feedback.md`.
+
+- [x] Structured entry header separates IPA, pronunciation notes, and forms.
+- [x] Local tags use compact Yomitan-like geometry with dictionary-owned
+      neutral styling; header qualifiers remain inline.
+- [x] Definitions, list examples, collapsed extra examples, sources, and
+      cross-references have a clear reading hierarchy.
+- [x] Phrase, origin, and synonym sections use the collapsed disclosure
+      hierarchy; phrase definition flow stays continuous where required.
+- [x] Light and dark themes use relative, calculated layout rules for marker
+      and example alignment.
+
+### Original notes
+
 The head is mess and does distuish with the defintion body. inflect label could be style.
 
 

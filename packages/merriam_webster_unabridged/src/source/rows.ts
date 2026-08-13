@@ -25,6 +25,11 @@ export interface SourceRow extends IndexedSourceRow {
   readonly html: string;
 }
 
+export const isUnabridgedRow = (row: SourceRowSummary): boolean =>
+  !row.encodedKey.startsWith("collegiate_") &&
+  !row.encodedKey.startsWith("medical_") &&
+  !row.encodedKey.startsWith("thesaurus_");
+
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
