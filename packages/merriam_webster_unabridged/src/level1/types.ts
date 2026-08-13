@@ -73,6 +73,14 @@ export interface LinkEvidence {
   readonly selector: string;
   readonly qualifier: string | null;
   readonly localText: string;
+  /** Reference position within the owning mean; set for cxl evidence. */
+  readonly referenceIndex?: number;
+  /** Target position within the reference; set for cxl evidence. */
+  readonly targetIndex?: number;
+  /** Raw source relation phrase (trimmed); set for cxl evidence. */
+  readonly rawRelation?: string | null;
+  /** Effective relation used for the emitted rule; may be inherited. */
+  readonly effectiveRelation?: string | null;
   /** Target homograph identity from the source href; report evidence only. */
   readonly targetHomographNumber?: string;
 }

@@ -549,7 +549,7 @@ const renderInlineNode = (
     const child = renderInlineChildren(root, element, path, plan, options);
     const relationSpan = root(element).find(".cxl").toArray()[0];
     const relation =
-      relationSpan === undefined ? undefined : elementText(root, relationSpan);
+      relationSpan === undefined ? undefined : root(relationSpan).text().trim();
     return renderResult(
       [
         container("span", child.nodes, {
@@ -2793,7 +2793,7 @@ const renderLooseNode = (
     const child = renderInlineChildren(root, element, path, plan);
     const relationSpan = root(element).find(".cxl").toArray()[0];
     const relation =
-      relationSpan === undefined ? undefined : elementText(root, relationSpan);
+      relationSpan === undefined ? undefined : root(relationSpan).text().trim();
     return renderResult(
       [
         container("span", child.nodes, {

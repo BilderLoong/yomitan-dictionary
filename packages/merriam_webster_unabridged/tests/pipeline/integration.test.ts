@@ -426,7 +426,7 @@ describe("selected-word build", () => {
     expect(terms).not.toContain("aleph");
   });
 
-  test("selected mode still fails on unresolvable soft-link targets", async () => {
+  test("selected mode drops soft links whose target emits no entry", async () => {
     const request = await createTestBuildRequest({
       words: ["alpha"],
       rows: [
@@ -442,10 +442,17 @@ describe("selected-word build", () => {
     });
     const attempt = await runBuild(request);
 
-    expect(attempt.ok).toBe(false);
-    if (attempt.ok) return;
-    expect(attempt.report.errors).toEqual([
-      { kind: "missing-dependency", target: "aleph" },
-    ]);
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.errors).toEqual([]);
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "soft-link-target-not-emitted",
+      lookup: "alpha",
+      target: "aleph",
+    });
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("alpha");
+    expect(terms).not.toContain("aleph");
   });
 });

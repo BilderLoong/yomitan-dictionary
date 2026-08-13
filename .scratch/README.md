@@ -15,7 +15,7 @@ ticket whose blockers are done can be grabbed.
 | 05 | investigate-media-and-dynamic-markers | None | resolved 2026-08-07 |
 | 06 | validate-v-phr-acceptance | None | resolved 2026-08-07 |
 | 07 | information-loss-detection | None | resolved 2026-08-07 |
-| 08 | cxl-ref-relation-phrase-inventory | None | resolved 2026-08-13 (research only; approval decision open) |
+| 08 | cxl-ref-relation-phrase-inventory | None | resolved 2026-08-13 (research; policy accepted via ADR 0006) |
 
 ## mwu-implementation — planning, rules, tooling
 

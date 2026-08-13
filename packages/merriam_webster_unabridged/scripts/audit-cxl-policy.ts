@@ -11,6 +11,7 @@
  * HTML pass that mirrors the planner's mean-level traversal.
  */
 import Database from "bun:sqlite";
+import { fileURLToPath } from "node:url";
 import * as cheerio from "cheerio";
 import {
   extractSearchableHeadword,
@@ -28,8 +29,9 @@ import {
   type SourceRowSummary,
 } from "../src/source/rows";
 
-const databasePath =
-  "/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/assets/MWU.db";
+const databasePath = fileURLToPath(
+  new URL("../assets/MWU.db", import.meta.url),
+);
 const database = new Database(databasePath, { readonly: true });
 
 const isUnabridgedKey = (encodedKey: string): boolean =>
@@ -45,7 +47,7 @@ const CONTINUATION_PHRASES: ReadonlySet<string> = new Set([
 ]);
 
 const normalizedRelation = (relation: string): string =>
-  relation.replace(/\s+/gu, " ").trim().toLocaleLowerCase();
+  relation.replace(/\s+/gu, " ").trim().toLowerCase();
 
 const isContinuationRelation = (relation: string): boolean =>
   CONTINUATION_PHRASES.has(normalizedRelation(relation));

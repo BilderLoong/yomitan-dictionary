@@ -345,18 +345,16 @@ const parseCxlRefTarget = (href: string | null): CxlRefTargetParse => {
   if (href === null) return { kind: "missing" };
   if (!href.startsWith("bword://")) return { kind: "unsupported", href };
   const withoutScheme = href.slice("bword://".length);
-  const homographNumber = withoutScheme.match(/\[(\d+)\]$/u)?.[1] ?? null;
-  const target = withoutScheme.replace(/\[\d+\]$/, "");
-  if (target.length === 0) return { kind: "missing" };
+  let decoded: string;
   try {
-    return {
-      kind: "valid",
-      target: decodeURIComponent(target),
-      homographNumber,
-    };
+    decoded = decodeURIComponent(withoutScheme);
   } catch {
-    return { kind: "valid", target, homographNumber };
+    decoded = withoutScheme;
   }
+  const homographNumber = decoded.match(/\[(\d+)\]$/u)?.[1] ?? null;
+  const target = decoded.replace(/\[\d+\]$/, "");
+  if (target.length === 0) return { kind: "missing" };
+  return { kind: "valid", target, homographNumber };
 };
 
 export interface CxlRefPlanningResult {
@@ -437,7 +435,7 @@ const CONTINUATION_PHRASES: ReadonlySet<string> = new Set([
 ]);
 
 const normalizedRelation = (relation: string): string =>
-  relation.replace(/\s+/gu, " ").trim().toLocaleLowerCase();
+  relation.replace(/\s+/gu, " ").trim().toLowerCase();
 
 const isContinuationRelation = (relation: string): boolean =>
   CONTINUATION_PHRASES.has(normalizedRelation(relation));
@@ -534,6 +532,11 @@ const planCxlRefTarget = (
           selector: ".cxl-ref",
           qualifier: null,
           localText: input.root(anchor).text().trim(),
+          referenceIndex,
+          targetIndex,
+          rawRelation:
+            reference.relation.length === 0 ? null : reference.relation,
+          effectiveRelation: effectiveRule,
           ...(parsed.homographNumber === null
             ? {}
             : { targetHomographNumber: parsed.homographNumber }),
@@ -587,6 +590,49 @@ interface CxlRefPlannedReference {
   readonly lastCompleteRelation: string | null;
 }
 
+const planCxlRefBlockedTargets = (
+  input: CxlRefInput,
+  reference: Element,
+  inspected: CxlRefReference,
+  referenceIndex: number,
+  reason: CxlRefFindingReason,
+): readonly CxlRefDecision[] => {
+  const anchors = input.root(reference).find(".cxt").toArray();
+  if (anchors.length === 0) {
+    return [
+      {
+        kind: "finding",
+        finding: cxlRefNotEmittedFinding(
+          input,
+          inspected,
+          referenceIndex,
+          0,
+          reason,
+          null,
+          null,
+          null,
+        ),
+      },
+    ];
+  }
+  return anchors.map((anchor: Element, targetIndex: number): CxlRefDecision => {
+    const parsed = parseCxlRefTarget(input.root(anchor).attr("href") ?? null);
+    return {
+      kind: "finding",
+      finding: cxlRefNotEmittedFinding(
+        input,
+        inspected,
+        referenceIndex,
+        targetIndex,
+        reason,
+        parsed.kind === "valid" ? parsed.target : null,
+        parsed.kind === "valid" ? parsed.homographNumber : null,
+        null,
+      ),
+    };
+  });
+};
+
 const planCxlRefReference = (
   input: CxlRefInput,
   reference: Element,
@@ -597,21 +643,13 @@ const planCxlRefReference = (
 
   if (inspected.relation.length === 0) {
     return {
-      decisions: [
-        {
-          kind: "finding",
-          finding: cxlRefNotEmittedFinding(
-            input,
-            inspected,
-            referenceIndex,
-            0,
-            "empty-relation",
-            null,
-            null,
-            null,
-          ),
-        },
-      ],
+      decisions: planCxlRefBlockedTargets(
+        input,
+        reference,
+        inspected,
+        referenceIndex,
+        "empty-relation",
+      ),
       lastCompleteRelation,
     };
   }
@@ -619,21 +657,13 @@ const planCxlRefReference = (
   if (isContinuationRelation(inspected.relation)) {
     if (lastCompleteRelation === null) {
       return {
-        decisions: [
-          {
-            kind: "finding",
-            finding: cxlRefNotEmittedFinding(
-              input,
-              inspected,
-              referenceIndex,
-              0,
-              "orphan-continuation",
-              null,
-              null,
-              null,
-            ),
-          },
-        ],
+        decisions: planCxlRefBlockedTargets(
+          input,
+          reference,
+          inspected,
+          referenceIndex,
+          "orphan-continuation",
+        ),
         lastCompleteRelation: null,
       };
     }
@@ -756,6 +786,7 @@ export const replaceShadowedAlternateLinks = (
     .map(
       (link: SoftLinkEntryPlan): SoftLinkEntryPlan =>
         link.relationship === "cxl-ref-soft-link" &&
+        isSpellingVariantRelation(link.rules) &&
         shadowedAlternates.some((shadowed: SoftLinkEntryPlan): boolean =>
           sameLookupTarget(link, shadowed),
         )

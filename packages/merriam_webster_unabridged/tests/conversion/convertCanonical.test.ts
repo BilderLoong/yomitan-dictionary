@@ -784,6 +784,24 @@ test("marks relation references with the exact source phrase", () => {
   expect(textOf(targets[0])).toBe("zero");
 });
 
+test("preserves the raw relation wording in relation metadata", () => {
+  const result = convert(
+    "<mean>" +
+      header("wright", "noun", "¦rīt") +
+      '<div class="section" data-id="definition">' +
+      '<p class="cxl-ref"> <span class="cxl">Archaic   Variant Of</span> ' +
+      '<a href="bword://wrought" class="cxt">wrought</a> </p></div></mean>',
+    "wright",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const references = unitsOf(result.value.content, "relation-reference");
+  expect(references).toHaveLength(1);
+  expect(references[0]?.data?.relation).toBe("Archaic   Variant Of");
+});
+
 test("removes a leading homograph number from a reference target label", () => {
   const result = convert(
     "<mean>" +

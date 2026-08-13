@@ -638,19 +638,13 @@ const buildSelectedDictionary = async (
       resolvedSoftLinkEntries.push(link);
       continue;
     }
-    if (fullDatabase) {
-      // The target spelling exists in the source but its dedicated row
-      // emits no canonical entry (for example a definition-free variant
-      // row). The link cannot resolve; drop it and stay auditable.
-      softLinkTargetFindings.push({
-        kind: "soft-link-target-not-emitted",
-        lookup: link.lookup,
-        target: link.target,
-      });
-      continue;
-    }
-    errors.push({
-      kind: "missing-dependency",
+    // The target spelling exists in the source but its dedicated row
+    // emits no canonical entry (for example a definition-free variant
+    // row). The link cannot resolve; drop it and stay auditable. This
+    // applies to selected and full builds alike.
+    softLinkTargetFindings.push({
+      kind: "soft-link-target-not-emitted",
+      lookup: link.lookup,
       target: link.target,
     });
   }

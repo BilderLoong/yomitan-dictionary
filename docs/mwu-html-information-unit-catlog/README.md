@@ -248,7 +248,7 @@ Six distinct shapes exist; only four were hypothesized:
 | --- | --- | --- | --- |
 | headword homograph number | `sup` in `.hword` (76% of sample) | Level 1 identity | `homograph-number` header unit, stripped from the searchable term (implemented) |
 | sense reference | NOT a `sup`: `.text-lowercase` span after a reference anchor (`1a`, `8`, `1a(1)`) | the preceding `cross-reference` | `superscript-reference` unit, lowered presentation (implemented 2026-08-07) |
-| cross-reference number | `sup` inside the anchor — homograph prefix of the `bword://TARGET[N]` target (22% of sample) | the reference anchor | generic `superscript-reference`; `a.mw_t_et_link` now carries the `origin` relation like `.mw_t_mat` (implemented) |
+| cross-reference number | `sup` inside the anchor — homograph prefix of the `bword://TARGET[N]` target (22% of sample) | the reference anchor | dropped from confirmed reference anchors (`.cxt`, `.mw_t_mat`, `.mw_t_et_link`, `.mw_t_sx`, `.mw_t_sc`, `.mw_t_dxt`); identity kept in report evidence only (implemented 2026-08-13) |
 | called-also reference number | does not exist | n/a | nothing to render; leading digits in `.cat` anchors are chemical names |
 | pronunciation superscript | literal `sup` in `.prs`/`.pr` reading content (`'em <sup>21</sup>`) | `pronunciation` | generic `superscript-reference` |
 | chemical-formula superscript | literal `sup` for charge/ion notation in examples/definitions (`Ca2+`) | `example-sentence`/`definition` | generic `superscript-reference` |
@@ -649,11 +649,14 @@ refine, or contradict them.
   and must not gain a hyphen. Literal `<br>` inside Level 6 usage prose is a
   meaningful break; `.sls` is a structural block boundary. Inline labels
   never contain either shape.
-- A `sup` inside a reference anchor is the target's homograph prefix
-  (`bword://crow[1]` renders `<sup>1</sup>crow`); a `.text-lowercase` span
-  directly after a reference anchor carries the target's sense pointer
-  (`1a`, `8`, `1a(1)`). Neither is a sense number of the current entry; both
-  stay bound to the reference.
+- A `sup` inside a confirmed reference anchor is the target's homograph
+  prefix (`bword://crow[1]` renders `<sup>1</sup>crow`); the renderer drops
+  the leading homograph `sup` from the visible label for confirmed reference
+  anchors (`.cxt`, `.mw_t_mat`, `.mw_t_et_link`, `.mw_t_sx`, `.mw_t_sc`,
+  `.mw_t_dxt`) and keeps the identity in report evidence only; a
+  `.text-lowercase` span directly after a reference anchor carries the
+  target's sense pointer (`1a`, `8`, `1a(1)`). Neither is a sense number of
+  the current entry; both stay bound to the reference.
 - `a.mw_t_et_link` is an etymology link and carries the same `origin`
   relation as `a.mw_t_mat`.
 - `.mw_t_a_link` and `.mw_t_i_link` are plain/italic cross-reference anchors

@@ -53,6 +53,10 @@ describe("cxl-ref soft links", () => {
             selector: ".cxl-ref",
             qualifier: null,
             localText: "oh",
+            referenceIndex: 0,
+            targetIndex: 0,
+            rawRelation: "variant spelling of",
+            effectiveRelation: "variant spelling of",
           },
         ],
       },
@@ -129,6 +133,10 @@ describe("cxl-ref soft links", () => {
             selector: ".cxl-ref",
             qualifier: null,
             localText: "ps",
+            referenceIndex: 0,
+            targetIndex: 0,
+            rawRelation: "plural of",
+            effectiveRelation: "plural of",
           },
         ],
       },
@@ -226,6 +234,10 @@ describe("cxl-ref soft links", () => {
             selector: ".cxl-ref",
             qualifier: null,
             localText: "ps",
+            referenceIndex: 0,
+            targetIndex: 0,
+            rawRelation: "plural of",
+            effectiveRelation: "plural of",
           },
         ],
       },
@@ -244,6 +256,10 @@ describe("cxl-ref soft links", () => {
             selector: ".cxl-ref",
             qualifier: null,
             localText: "pees",
+            referenceIndex: 0,
+            targetIndex: 1,
+            rawRelation: "plural of",
+            effectiveRelation: "plural of",
           },
         ],
       },
@@ -312,6 +328,27 @@ describe("cxl-ref soft links", () => {
       { target: "arsis", rules: ["plural of"] },
       { target: "arse", rules: ["plural of"] },
     ]);
+    expect(
+      result.softLinkEntries.map(({ evidence }: SoftLinkEntryPlan) => ({
+        referenceIndex: evidence[0]?.referenceIndex,
+        targetIndex: evidence[0]?.targetIndex,
+        rawRelation: evidence[0]?.rawRelation,
+        effectiveRelation: evidence[0]?.effectiveRelation,
+      })),
+    ).toEqual([
+      {
+        referenceIndex: 0,
+        targetIndex: 0,
+        rawRelation: "plural of",
+        effectiveRelation: "plural of",
+      },
+      {
+        referenceIndex: 1,
+        targetIndex: 0,
+        rawRelation: "Or   Of",
+        effectiveRelation: "plural of",
+      },
+    ]);
     expect(result.requiredDependencyIds).toEqual([102, 103]);
     expect(result.findings).toEqual([]);
   });
@@ -331,6 +368,7 @@ describe("cxl-ref soft links", () => {
     expect(result.findings[0]).toMatchObject({
       kind: "cxl-ref-not-emitted",
       rawRelation: "or of",
+      target: "bar",
       reason: "orphan-continuation",
     });
   });
@@ -404,6 +442,53 @@ describe("cxl-ref soft links", () => {
     ]);
   });
 
+  test("merges shadowed evidence only into spelling or variant routes", () => {
+    const pluralLink = softLinkEntryPlan(
+      "O",
+      "oh",
+      ["plural of"],
+      "cxl-ref-soft-link",
+      [linkEvidence(".cxl-ref")],
+    );
+    const variantLink = softLinkEntryPlan(
+      "O",
+      "oh",
+      ["variant of"],
+      "cxl-ref-soft-link",
+      [linkEvidence(".cxl-ref")],
+    );
+    const alternateLink = softLinkEntryPlan(
+      "O",
+      "oh",
+      ["alternative"],
+      "vr-mean-alternate-soft-link",
+      [linkEvidence(".va")],
+    );
+
+    const resolved = replaceShadowedAlternateLinks([
+      alternateLink,
+      pluralLink,
+      variantLink,
+    ]);
+
+    expect(
+      resolved.map(({ relationship }: SoftLinkEntryPlan) => relationship),
+    ).toEqual(["cxl-ref-soft-link", "cxl-ref-soft-link"]);
+    const pluralOut = resolved.find(
+      (link: SoftLinkEntryPlan) => link.rules[0] === "plural of",
+    );
+    const variantOut = resolved.find(
+      (link: SoftLinkEntryPlan) => link.rules[0] === "variant of",
+    );
+    expect(pluralOut?.evidence.map(({ selector }) => selector)).toEqual([
+      ".cxl-ref",
+    ]);
+    expect(variantOut?.evidence.map(({ selector }) => selector)).toEqual([
+      ".cxl-ref",
+      ".va",
+    ]);
+  });
+
   test("reports an empty relation phrase", () => {
     const html =
       '<mean><h1><span class="hword">q</span></h1>' +
@@ -425,8 +510,41 @@ describe("cxl-ref soft links", () => {
       targetIndex: 0,
       rawRelation: null,
       effectiveRelation: null,
-      target: null,
+      target: "x",
       homographNumber: null,
+      reason: "empty-relation",
+    });
+  });
+
+  test("emits one empty-relation finding per target anchor", () => {
+    const html =
+      '<mean><h1><span class="hword">q</span></h1>' +
+      '<p class="cxl-ref"><span class="cxl"></span>' +
+      '<a href="bword://x" class="cxt">x</a>, ' +
+      '<a href="bword://y[2]" class="cxt">2y</a></p></mean>';
+    const result = planCanonicalOwners(
+      sourceRow(131, "q", html),
+      sourceIndex([
+        { id: 131, encodedKey: "q" },
+        { id: 132, encodedKey: "x" },
+        { id: 133, encodedKey: "y" },
+      ]),
+    );
+
+    expect(result.softLinkEntries).toEqual([]);
+    expect(result.findings).toHaveLength(2);
+    expect(result.findings[0]).toMatchObject({
+      referenceIndex: 0,
+      targetIndex: 0,
+      target: "x",
+      homographNumber: null,
+      reason: "empty-relation",
+    });
+    expect(result.findings[1]).toMatchObject({
+      referenceIndex: 0,
+      targetIndex: 1,
+      target: "y",
+      homographNumber: "2",
       reason: "empty-relation",
     });
   });
@@ -457,6 +575,30 @@ describe("cxl-ref soft links", () => {
 
   test("keeps target homograph identity as report evidence", () => {
     const html = mean("b", cxlRef("variant of", "2booty", "bword://booty[2]"));
+    const result = planCanonicalOwners(
+      sourceRow(151, "b", html),
+      sourceIndex([
+        { id: 151, encodedKey: "b" },
+        { id: 152, encodedKey: "booty" },
+      ]),
+    );
+
+    expect(result.softLinkEntries[0]).toMatchObject({
+      target: "booty",
+      rules: ["variant of"],
+    });
+    expect(result.softLinkEntries[0]?.evidence[0]).toMatchObject({
+      localText: "2booty",
+      targetHomographNumber: "2",
+    });
+    expect(result.findings).toEqual([]);
+  });
+
+  test("decodes the href before stripping the homograph suffix", () => {
+    const html = mean(
+      "b",
+      cxlRef("variant of", "2booty", "bword://booty%5B2%5D"),
+    );
     const result = planCanonicalOwners(
       sourceRow(151, "b", html),
       sourceIndex([

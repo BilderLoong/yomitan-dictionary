@@ -264,11 +264,12 @@ preview.
 - **THEN** the target spelling is `ibadite` and the visible homograph prefix
   does not enter the target
 
-#### Scenario: Non-variant reference phrases
+#### Scenario: Source wording preserved exactly
 
-- **WHEN** the `.cxl` relation text reads `plural of`, `synonym of`,
-  `taxonomic synonym of`, or an `and of` continuation
-- **THEN** generation records a finding and emits no soft-link rule
+- **WHEN** the `.cxl` relation text reads `Archaic   Variant Of` with
+  source spacing, or an abbreviated legacy form such as `past particple of`
+- **THEN** the emitted rule chain is the exact raw phrase, unchanged in
+  capitalization, spacing, and spelling
 
 #### Scenario: Self and missing targets
 
