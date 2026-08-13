@@ -41,6 +41,11 @@ export type Level1Finding =
       readonly kind: "soft-link-target-not-emitted";
       readonly lookup: string;
       readonly target: string;
+    }
+  | {
+      readonly kind: "non-unabridged-row-excluded";
+      readonly rowId: number;
+      readonly rowKey: string;
     };
 
 export type SoftLinkEntryRelationship =

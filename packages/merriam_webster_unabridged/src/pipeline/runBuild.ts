@@ -84,7 +84,7 @@ const archiveFileName = "Merriam Webster Unabridged.zip";
 const archiveReportPath = archiveFileName;
 
 /**
- * Full-database builds cover the Unabridged entries only. Rows prefixed with
+ * Every build covers the Unabridged entries only. Rows prefixed with
  * another Merriam-Webster product key (`collegiate_`, `medical_`,
  * `thesaurus_`) are condensed twin entries of words already present in the
  * Unabridged; planning them doubles the corpus, and their embedded means
@@ -331,10 +331,14 @@ const planSelectedRows = (
     request.fullDatabase === true
       ? { rows: index.rows.filter(isUnabridgedRow), missingWords: [] }
       : resolveRootRows(index, request.requestedWords);
-  const rootIds = new Set(
-    resolvedRoots.rows.map(({ id }: IndexedSourceRow): number => id),
+  const excludedRootRows = resolvedRoots.rows.filter(
+    (row: IndexedSourceRow): boolean => !isUnabridgedRow(row),
   );
-  const pendingRows: PendingRow[] = resolvedRoots.rows.map(
+  const rootRows = resolvedRoots.rows.filter(isUnabridgedRow);
+  const rootIds = new Set(
+    rootRows.map(({ id }: IndexedSourceRow): number => id),
+  );
+  const pendingRows: PendingRow[] = rootRows.map(
     (row: IndexedSourceRow): PendingRow => ({
       row,
       rootWord: row.decodedKey,
@@ -344,7 +348,16 @@ const planSelectedRows = (
   const processedRowIds = new Set<number>();
   const plannedRows: PlannedRow[] = [];
   const dependencyRows: BuildState["dependencyRows"][number][] = [];
-  const findings: Level1Finding[] = [...index.findings];
+  const findings: Level1Finding[] = [
+    ...index.findings,
+    ...excludedRootRows.map(
+      ({ id, decodedKey }: IndexedSourceRow): Level1Finding => ({
+        kind: "non-unabridged-row-excluded",
+        rowId: id,
+        rowKey: decodedKey,
+      }),
+    ),
+  ];
   const rejections: LinkRejection[] = [];
   const errors: BuildFatalError[] = resolvedRoots.missingWords.map(
     (word: string): BuildFatalError => ({ kind: "missing-root", word }),
@@ -404,6 +417,15 @@ const planSelectedRows = (
         continue;
       }
 
+      if (!isUnabridgedRow(dependencyRow)) {
+        findings.push({
+          kind: "non-unabridged-row-excluded",
+          rowId: dependencyId,
+          rowKey: dependencyRow.decodedKey,
+        });
+        continue;
+      }
+
       const reason = dependencyReason(planned, dependencyId, index);
       if (
         !dependencyRows.some(
@@ -440,7 +462,7 @@ const planSelectedRows = (
   }
 
   return {
-    rootRows: resolvedRoots.rows,
+    rootRows,
     dependencyRows,
     plannedRows,
     findings,

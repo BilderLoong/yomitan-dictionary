@@ -182,6 +182,59 @@ describe("selected-word build", () => {
     expect(terms).not.toContain("thesaurus_oh");
   });
 
+  test("selected builds exclude collegiate, medical, and thesaurus rows", async () => {
+    const request = await createTestBuildRequest({
+      words: ["collegiate_oh", "medical_oh", "thesaurus_oh", "oh"],
+      rows: [
+        ...representativeRows,
+        {
+          id: 10,
+          encodedKey: "collegiate_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 11,
+          encodedKey: "medical_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+        {
+          id: 12,
+          encodedKey: "thesaurus_oh",
+          html: mean("oh", definition("exclamation")),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.errors).toEqual([]);
+    expect(attempt.report.rootRows.map(({ decodedKey }) => decodedKey)).toEqual(
+      ["oh"],
+    );
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "non-unabridged-row-excluded",
+      rowId: 10,
+      rowKey: "collegiate_oh",
+    });
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "non-unabridged-row-excluded",
+      rowId: 11,
+      rowKey: "medical_oh",
+    });
+    expect(attempt.report.planningFindings).toContainEqual({
+      kind: "non-unabridged-row-excluded",
+      rowId: 12,
+      rowKey: "thesaurus_oh",
+    });
+    const terms = attempt.records.map(([term]) => term);
+    expect(terms).toContain("oh");
+    expect(terms).not.toContain("collegiate_oh");
+    expect(terms).not.toContain("medical_oh");
+    expect(terms).not.toContain("thesaurus_oh");
+  });
+
   test("full mode drops soft links whose target emits no entry", async () => {
     const request = await createTestBuildRequest({
       words: [],
