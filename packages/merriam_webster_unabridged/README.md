@@ -1,7 +1,9 @@
 # Merriam-Webster Unabridged selected-word dictionary
 
 This package builds a Yomitan-compatible ZIP from the MWU SQLite source at
-`assets/MWU.db`.
+`assets/MWU.db`. The archive includes a complete fixed functional tag bank,
+plus dynamic functional tags for source labels that are not yet in that fixed
+catalog.
 
 End users: see [USER-MANUAL.md](USER-MANUAL.md) for how to read the entries —
 including why definitions start with a colon (`: that which : those which`).
@@ -90,6 +92,27 @@ Successful builds write:
 - `build/Merriam Webster Unabridged.zip`
 - `build/build-report.json`
 
+Every archive also contains `tag_bank_1.json`. It contains all reviewed fixed
+functional tags, even when a selected build does not use every tag. An unknown
+entry-level `.fl` label is kept in the term-bank definition tag field with a
+leading `?` and is added to the tag bank only when encountered. For example,
+`future label` becomes `?future_label`. The dictionary styles dynamic tags as
+amber dashed chips. A selected-build report records each finding with its
+source owner. A full-build report omits per-entry conversion details, but keeps
+each dynamic label's total count and at most five deterministic source samples.
+
+To audit the source vocabulary without exporting a dictionary, run:
+
+```bash
+bun run inventory:functional-labels
+```
+
+This writes `build/functional-label-inventory.json`. It scans the database
+with the same owner-local rule used by conversion. The report contains every
+normalized `.fl` value, owner-kind counts, deterministic sample rows, and any
+unmapped value. The current source inventory contains 98 labels and no
+unmapped values.
+
 The report records selected roots, source rows, dedicated dependencies,
 ownership decisions, canonical entry plans, soft-link entry plans, source
 evidence, findings, rejections, and fatal errors.
@@ -120,9 +143,10 @@ Unsupported visible elements are retained once as readable fallback text and
 recorded as conversion findings.
 
 The Yomitan reading field stays empty. MWU pronunciations remain visible in the
-structured header, with `¦` normalized to `ˈ`; the canonical tuple's definition
-tag carries the compact POS mapping (`pron`, `v`, `n`, `phrase`, and related
-aliases), while sense-local labels remain inside structured content.
+structured header, with `¦` normalized to `ˈ`. The canonical tuple's
+definition tag carries the fixed or dynamic functional-label mapping
+(`pron`, `v`, `n`, `phrase`, and related atomic aliases). `termTags` stays
+empty, and sense-local labels remain inside structured content.
 
 ## Tests
 

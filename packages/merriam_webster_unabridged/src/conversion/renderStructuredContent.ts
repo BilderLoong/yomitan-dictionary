@@ -7,6 +7,10 @@ import type {
 
 import type { CanonicalEntryPlan } from "../level1/types";
 import type { Result } from "../shared/result";
+import {
+  ownedFunctionalLabelFromOwner,
+  resolveFunctionalLabel,
+} from "./functionalLabels";
 import type {
   ConversionError,
   ConversionFinding,
@@ -266,121 +270,6 @@ const formatFormPronunciation = (raw: string): string => {
     .replaceAll("\u200b", "")
     .replaceAll("¦", "ˈ");
   return cleaned.length === 0 ? "" : `/${cleaned}/`;
-};
-
-const POS_SPECIAL: Readonly<Record<string, string>> = {
-  "geographical name": "geo",
-  "biographical name": "bio",
-  "proper noun": "prop n",
-  trademark: "trademark",
-  "service mark": "trademark",
-  "certification mark": "trademark",
-  idiom: "phrase",
-  "phrasal verb": "phrase",
-  "idiomatic phrase": "phrase",
-  contraction: "contraction",
-  "auxiliary verb": "aux",
-  "verbal auxiliary": "aux",
-  "indefinite article": "art",
-  "definite article": "art",
-  article: "art",
-  affix: "affix",
-  "past participle": "v",
-  "honorific title": "title",
-  "script annotation": "annotation",
-  "pronunciation spelling": "pron spelling",
-  "transitive verb": "v",
-  "intransitive verb": "v",
-  "imperative verb": "v",
-  "impersonal verb": "v",
-  "Latin verb": "v",
-  "Greek verb": "v",
-  "Italian and Spanish verb": "v",
-  "intransitive + transitive verb": "v",
-  "noun phrase": "phrase",
-  "adverb phrase": "phrase",
-  "Latin phrase": "phrase",
-  "French phrase": "phrase",
-  "Latin noun phrase": "phrase",
-  "French noun phrase": "phrase",
-  "Italian noun phrase": "phrase",
-  "German noun phrase": "phrase",
-  "Latin quotation from": "phrase",
-  "French quotation from": "phrase",
-  "French quotation attributed to": "phrase",
-  "phrase transliterated from Arabic": "phrase",
-  "communications code word": "abbr",
-  "communications signal": "abbr",
-  "communications code abbreviation": "abbr",
-  "Latin abbreviation": "abbr",
-  "noun suffix": "suffix",
-  "noun combining form": "comb",
-  "verb suffix": "suffix",
-  "adjective suffix": "suffix",
-  "adverb suffix": "suffix",
-  "interjection suffix": "suffix",
-  "plural noun suffix": "suffix",
-  "noun plural suffix": "suffix",
-  "verb suffix or adjective suffix": "suffix",
-  "adjective suffix or adverb suffix": "suffix",
-  "noun suffix or pronoun suffix": "suffix",
-  "noun combining form or adjective combining form": "comb",
-  "adjective combining form or noun combining form": "comb",
-  "noun plural combining form": "comb",
-  "verb combining form": "comb",
-  "adverb combining form": "comb",
-  "adjective combining form": "comb",
-};
-
-const POS_TOKEN: Readonly<Record<string, string>> = {
-  noun: "n",
-  adjective: "adj",
-  verb: "v",
-  adverb: "adv",
-  pronoun: "pron",
-  preposition: "prep",
-  conjunction: "conj",
-  interjection: "interj",
-  abbreviation: "abbr",
-  symbol: "symbol",
-  prefix: "prefix",
-  suffix: "suffix",
-  "combining form": "comb",
-  plural: "pl",
-};
-
-const definitionTag = (raw: string): string | null => {
-  const normalized = normalizeBlockText(raw);
-  if (normalized.length === 0) return null;
-  const special = POS_SPECIAL[normalized];
-  if (special !== undefined) return special;
-  const token = POS_TOKEN[normalized];
-  if (token !== undefined) return token;
-
-  if (
-    /^noun(?:,| plural)/u.test(normalized) &&
-    /in construction/u.test(normalized)
-  ) {
-    return "n";
-  }
-  if (/^plural noun/u.test(normalized)) return "n pl";
-  if (/^plural pronoun/u.test(normalized)) return "pron";
-
-  const stripped = normalized
-    .replace(/\(or [^)]+\)/gu, "")
-    .replace(
-      /\b(?:transitive|intransitive)\s*\+\s*(?:transitive|intransitive)\b/gu,
-      "",
-    )
-    .replace(/,\s*$/u, "")
-    .trim();
-  const parts = stripped
-    .split(/\s+or\s+/u)
-    .map((part: string): string => part.trim());
-  const mapped = parts.map(
-    (part: string): string => POS_SPECIAL[part] ?? POS_TOKEN[part] ?? part,
-  );
-  return mapped.join(" or ");
 };
 
 const renderUnsupported = (
@@ -2575,11 +2464,24 @@ const renderHeader = (
 } => {
   const hword = root(owner).find(".hword").first().get(0);
   const header = root(owner).find(".entry-header").first().get(0);
-  const partOfSpeech = root(owner).find(".fl").first().get(0);
+  const functionalLabel = resolveFunctionalLabel(
+    ownedFunctionalLabelFromOwner(root, owner),
+  );
   const definitionTags =
-    partOfSpeech === undefined
-      ? null
-      : definitionTag(elementText(root, partOfSpeech));
+    functionalLabel.tags.length === 0 ? null : functionalLabel.tags.join(" ");
+  const functionalLabelFindings: readonly ConversionFinding[] =
+    functionalLabel.kind === "dynamic"
+      ? [
+          {
+            kind: "unmapped-functional-label",
+            rowId: plan.source.rowId,
+            term: plan.term,
+            rawLabel: functionalLabel.rawLabel,
+            normalizedLabel: functionalLabel.normalizedLabel,
+            tag: functionalLabel.dynamicTag.name,
+          },
+        ]
+      : [];
   const homograph =
     hword === undefined
       ? ""
@@ -2661,17 +2563,16 @@ const renderHeader = (
     ...alternates,
   ];
   return {
-    result:
+    result: renderResult(
       headerNodes.length === 0
-        ? emptyResult()
-        : renderResult(
-            [
-              container("div", headerNodes, {
-                data: unitData("mwu-header", { level: 1 }),
-              }),
-            ],
-            pronunciation.findings,
-          ),
+        ? []
+        : [
+            container("div", headerNodes, {
+              data: unitData("mwu-header", { level: 1 }),
+            }),
+          ],
+      [...pronunciation.findings, ...functionalLabelFindings],
+    ),
     definitionTags,
   };
 };

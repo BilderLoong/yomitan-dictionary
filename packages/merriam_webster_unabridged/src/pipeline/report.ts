@@ -1,9 +1,17 @@
 import type { ConvertedCanonical } from "../conversion/convertCanonical";
-import type { LinkRejection, SoftLinkEntryPlan } from "../level1/planLinks";
+import {
+  type DynamicFunctionalLabelSummary,
+  fixedFunctionalTagDefinitions,
+  isUnmappedFunctionalLabelFinding,
+  summarizeDynamicFunctionalLabels,
+  type UnmappedFunctionalLabelFinding,
+} from "../conversion/functionalLabels";
 import type {
   CanonicalEntryPlan,
   Level1Finding,
+  LinkRejection,
   OwnershipDecision,
+  SoftLinkEntryPlan,
 } from "../level1/types";
 import type { IndexedSourceRow } from "../source/rows";
 
@@ -32,6 +40,7 @@ export interface BuildReportInput {
   readonly conversionFindings?: number;
   /** Soft-link count for full-database builds, whose links are not retained. */
   readonly softLinkCount?: number;
+  readonly functionalLabelFindings?: readonly UnmappedFunctionalLabelFinding[];
 }
 
 export type BuildFatalError =
@@ -45,7 +54,13 @@ export type BuildFatalError =
   | { readonly kind: "schema"; readonly message: string }
   | { readonly kind: "io"; readonly message: string };
 
-export interface BuildReport extends BuildReportInput {
+export interface BuildReport
+  extends Omit<BuildReportInput, "functionalLabelFindings"> {
+  readonly functionalLabels: {
+    readonly fixedTagCount: number;
+    readonly dynamicFindingCount: number;
+    readonly dynamicTags: readonly DynamicFunctionalLabelSummary[];
+  };
   readonly totals: {
     readonly roots: number;
     readonly dependencies: number;
@@ -76,6 +91,14 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
   const planningFindings = [...(input.planningFindings ?? [])];
   const linkRejections = [...(input.linkRejections ?? [])];
   const errors = [...input.errors];
+  const functionalLabelFindings =
+    input.functionalLabelFindings ??
+    conversions.flatMap(
+      ({
+        findings,
+      }: ConvertedCanonical): readonly UnmappedFunctionalLabelFinding[] =>
+        findings.filter(isUnmappedFunctionalLabelFinding),
+    );
   const conversionFindings = fullDatabase
     ? (input.conversionFindings ?? 0)
     : conversions.reduce(
@@ -83,6 +106,9 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
           total + conversion.findings.length,
         0,
       );
+  const canonicalEntryCount = fullDatabase
+    ? Math.max(0, (input.recordCount ?? 0) - (input.softLinkCount ?? 0))
+    : canonicalEntryPlans.length;
 
   return {
     requestedWords,
@@ -96,10 +122,15 @@ export const createBuildReport = (input: BuildReportInput): BuildReport => {
     linkRejections,
     errors,
     archivePath: input.archivePath,
+    functionalLabels: {
+      fixedTagCount: fixedFunctionalTagDefinitions().length,
+      dynamicFindingCount: functionalLabelFindings.length,
+      dynamicTags: summarizeDynamicFunctionalLabels(functionalLabelFindings),
+    },
     totals: {
       roots: rootRows.length,
       dependencies: dependencyRows.length,
-      canonicalEntries: canonicalEntryPlans.length,
+      canonicalEntries: canonicalEntryCount,
       softLinkEntries: fullDatabase
         ? (input.softLinkCount ?? 0)
         : softLinkEntries.length,

@@ -7,6 +7,7 @@
   "scripts": {
     "build:selected": "bun run src/index.ts",
     "build:full": "bun run src/index.ts --full",
+    "inventory:functional-labels": "bun run src/index.ts --inventory:functional-labels",
     "dev:build": "bun run src/index.ts --words-file tests/testWords.txt",
     "design:survey": "bun run design-fixtures/survey-html.ts",
     "design:what:zip": "bun run design-fixtures/what/write-zip.ts",

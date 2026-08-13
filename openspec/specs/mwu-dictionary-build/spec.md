@@ -110,6 +110,41 @@ records.
 - **THEN** one `bare-affix-soft-link` targets canonical `in-` with the
   `alternative` rule
 
+### Requirement: Emit complete functional-label tag metadata
+
+Every successful archive SHALL contain `tag_bank_1.json`. It SHALL contain the
+complete reviewed fixed functional-tag catalog, including tags not used by the
+current selected build. Each fixed record SHALL have its reviewed name,
+`partOfSpeech` category, deterministic catalog order, clear note, and score
+zero.
+
+The archive SHALL add a dynamic tag-bank record only when its source build
+encounters that dynamic functional tag. A dynamic record SHALL have category
+`unmappedPartOfSpeech`, order `9000`, a note that includes the exact normalized
+source label, and score zero. It SHALL not add speculative dynamic records.
+
+Every nonempty token in every serialized `definitionTags` field SHALL resolve
+to exactly one emitted tag-bank record. The builder SHALL keep `termTags`
+empty; sense-local structured-content labels are not tag-bank records.
+
+#### Scenario: Selected build with only fixed labels
+
+- **WHEN** a selected build uses only reviewed functional labels
+- **THEN** its archive contains the complete fixed catalog and no dynamic
+  tag-bank record
+
+#### Scenario: Selected build with an unknown label
+
+- **WHEN** a selected build encounters `future label`
+- **THEN** its archive contains the complete fixed catalog and the one dynamic
+  record `?future_label`
+
+#### Scenario: Definition-tag metadata coverage
+
+- **WHEN** a canonical record has `definitionTags = v transitive`
+- **THEN** the archive contains exactly one tag-bank record for `v` and one
+  tag-bank record for `transitive`
+
 ### Requirement: Rank canonical records by selected-root ownership
 
 The builder SHALL assign popularity `100` to a canonical record when its
@@ -156,8 +191,18 @@ output directory is writable. The report SHALL contain:
 - alternative-local metadata and distinct-meaning rejections;
 - conversion findings, missing roots or dependencies, rejected owners, and
   fatal errors;
+- a functional-label summary with the fixed-tag count, dynamic-finding count,
+  and dynamic-tag aggregates;
 - canonical-entry, soft-link-entry, dependency, finding, and output-record totals;
 - the successful archive path when one is produced.
+
+For a selected build, conversion details SHALL retain each
+`unmapped-functional-label` finding with its source owner. For a full-database
+build, the report MAY omit per-entry conversion details, but it SHALL retain
+the functional-label summary. Each dynamic-tag aggregate SHALL include the
+tag, normalized label, total occurrence count, and at most five deterministic
+row-and-term samples. Dynamic-tag aggregates and samples SHALL have stable
+semantic ordering.
 
 #### Scenario: Successful report
 
@@ -179,24 +224,59 @@ output directory is writable. The report SHALL contain:
 - **THEN** the report retains both evidence occurrences and identifies the one
   serialized route
 
+#### Scenario: Bounded full-build dynamic summary
+
+- **WHEN** a full build encounters seven occurrences of the same unknown
+  functional label
+- **THEN** its report keeps the count `7` and at most five deterministic
+  samples even though it omits per-entry conversion details
+
+### Requirement: Audit the current functional-label inventory without building a dictionary
+
+The package SHALL provide `bun run inventory:functional-labels`. The command
+SHALL open the source database in read-only mode and scan canonical owners with
+the same owner-local functional-label rule used by conversion. It SHALL write
+deterministic JSON to `build/functional-label-inventory.json`. It SHALL not
+modify the source database or export a dictionary archive.
+
+Every inventory row SHALL include the normalized label, occurrence count,
+canonical-owner-kind counts, one deterministic row-and-term sample, mapping
+status, and resolved tags. The command SHALL finish writing its report and
+exit unsuccessfully if any label is unmapped or if a source-row scan error
+occurs. Repeated audits of the same source snapshot SHALL produce equal
+semantic JSON content and ordering.
+
+#### Scenario: Complete current inventory
+
+- **WHEN** the audit runs against the current MWU database snapshot
+- **THEN** it reports 98 normalized owned labels, all fixed, with zero
+  unmapped labels and zero scan errors
+
+#### Scenario: Unmapped inventory label
+
+- **WHEN** the audit encounters a current owner-local label without a fixed
+  mapping
+- **THEN** it writes the inventory evidence and exits unsuccessfully
+
 ### Requirement: Export a deterministic valid archive
 
 The builder SHALL use the existing dictionary-builder dependency and supported
 Yomitan schemas. Identical database input and effective target order SHALL
-produce equal semantic term-bank content and equal build-report content and
+produce equal semantic term-bank, tag-bank, and build-report content and
 ordering.
 
 #### Scenario: Repeated selected build
 
 - **WHEN** the same selected roots are built twice from identical source data
-- **THEN** semantic term-bank records and build-report data are equal in content
-  and order
+- **THEN** semantic term-bank records, tag-bank records, and build-report data
+  are equal in content and order
 
 #### Scenario: Archive validation
 
 - **WHEN** a successful ZIP is inspected
-- **THEN** its index and term-bank files conform to the repository-supported
-  Yomitan schemas and contain no dangling soft links
+- **THEN** its index, term-bank, and tag-bank files conform to the
+  repository-supported Yomitan schemas, every definition-tag token has
+  emitted metadata, and the archive contains no dangling soft links
 
 ### Requirement: Verify Level 1 behavior independently
 

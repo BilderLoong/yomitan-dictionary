@@ -96,6 +96,25 @@ The second item in the array of the tag bank schema determines the tag category,
 
 You can view the tag colors [here](https://github.com/yomidevs/yomitan/blob/48f1d012ad5045319d4e492dfbefa39da92817b2/ext/css/display.css#L136-L149).
 
+### MWU functional tags
+
+This dictionary emits `tag_bank_1.json` with the complete reviewed functional
+tag catalog. Fixed functional tags use category `partOfSpeech`, stable order,
+plain-English notes, and score `0`. The score is tag metadata and is separate
+from the term-bank popularity field.
+
+The converter reads the `.fl` label owned by the current entry. It uses an
+explicit mapping. For example, `noun` becomes `n`, `transitive verb` becomes
+`v transitive`, and `definite article` becomes `article definite`. `termTags`
+stays empty. Sense-local labels such as `archaic` remain structured content.
+
+If an owned `.fl` label is not in the fixed mapping, conversion keeps it as a
+dynamic definition tag. Dynamic names start with `?`; spaces become `_`, and
+the original label can be decoded from that name. For example, `future label`
+becomes `?future_label`. Dynamic tags use category `unmappedPartOfSpeech` and
+the package CSS displays them with an amber dashed outline. A conversion
+finding records each occurrence.
+
 # Community Contributions
 
 If you have any questions, need help, or want to share a new dictionary, feel free to pop in the [Yomitan Discord server](/README.md#yomitan). We're happy to help you get started!

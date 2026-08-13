@@ -225,38 +225,39 @@ const main = async (): Promise<void> => {
   const browserContext = await chromium.launchPersistentContext(
     userDataDirectory,
     {
-      headless: false,
+      headless: true,
       channel: "chromium",
       args: launchArgs,
     },
   );
 
-  const extensionUrlPrefix =
-    "chrome-extension://mlbjoknafgaddicpadejdmfnimmacble";
-  const searchPageUrl = `${extensionUrlPrefix}/search.html`;
-  const settingsPageUrl = `${extensionUrlPrefix}/settings.html`;
-  const dictionaryTitle = "Merriam Webster Unabridged";
-  const welcomePageUrl = `${extensionUrlPrefix}/welcome.html`;
-  const welcomePage = await browserContext.newPage();
-  const searchPage = await browserContext.newPage();
-  const queryText =
-    options.queryFilePath === null
-      ? (options.query ??
-        (await readFile(
-          path.resolve(import.meta.dirname, "./testWords.txt"),
-          "utf8",
-        )))
-      : await readFile(path.resolve(options.queryFilePath), "utf8");
-  const searchQueries = queriesFromText(queryText);
-  if (searchQueries.length === 0) {
-    throw new Error("No search queries were supplied");
-  }
-
-  browserContext.on("page", (page: Page): void => {
-    void closeWelcomePage(page, welcomePageUrl);
-  });
-
+  let succeeded = false;
   try {
+    const extensionUrlPrefix =
+      "chrome-extension://mlbjoknafgaddicpadejdmfnimmacble";
+    const searchPageUrl = `${extensionUrlPrefix}/search.html`;
+    const settingsPageUrl = `${extensionUrlPrefix}/settings.html`;
+    const dictionaryTitle = "Merriam Webster Unabridged";
+    const welcomePageUrl = `${extensionUrlPrefix}/welcome.html`;
+    const welcomePage = await browserContext.newPage();
+    const searchPage = await browserContext.newPage();
+    const queryText =
+      options.queryFilePath === null
+        ? (options.query ??
+          (await readFile(
+            path.resolve(import.meta.dirname, "./testWords.txt"),
+            "utf8",
+          )))
+        : await readFile(path.resolve(options.queryFilePath), "utf8");
+    const searchQueries = queriesFromText(queryText);
+    if (searchQueries.length === 0) {
+      throw new Error("No search queries were supplied");
+    }
+
+    browserContext.on("page", (page: Page): void => {
+      void closeWelcomePage(page, welcomePageUrl);
+    });
+
     await welcomePage.goto(welcomePageUrl);
     await Promise.all([
       setLanguage(welcomePage, "en"),
@@ -272,8 +273,9 @@ const main = async (): Promise<void> => {
     await searchPage.goto(
       `${searchPageUrl}?query=${encodeURIComponent(searchQueries.join(". "))}`,
     );
+    succeeded = true;
   } finally {
-    if (options.close) await browserContext.close();
+    if (!succeeded || options.close) await browserContext.close();
   }
 };
 

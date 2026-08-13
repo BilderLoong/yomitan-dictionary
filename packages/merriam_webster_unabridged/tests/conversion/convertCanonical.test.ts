@@ -450,12 +450,15 @@ test("maps part-of-speech labels to WTY-style tags", () => {
     ["conjunction", "conj"],
     ["preposition", "prep"],
     ["abbreviation", "abbr"],
-    ["verb, transitive + intransitive", "v"],
-    ["noun combining form", "comb"],
-    ["geographical name", "geo"],
-    ["adverb (or adjective)", "adv"],
-    ["noun, ", "n"],
-    ["noun plural but singular in construction", "n"],
+    ["verb, transitive + intransitive", "v transitive intransitive"],
+    ["noun combining form", "comb noun-forming"],
+    ["geographical name", "geographical-name"],
+    ["adverb (or adjective)", "adj adv"],
+    ["noun, ", "?noun%2C"],
+    [
+      "noun plural but singular in construction",
+      "n plural-form takes-singular-verb",
+    ],
   ];
 
   for (const [pos, expected] of cases) {
@@ -473,6 +476,160 @@ test("maps part-of-speech labels to WTY-style tags", () => {
     if (!result.ok) continue;
     expect(result.value.definitionTags, pos).toBe(expected);
   }
+});
+
+test("reads functional labels only from the owned entry header", () => {
+  const result = convert(
+    "<mean>" +
+      header("homeothermic", "", "¦hōmēəˈthərmik") +
+      '<div class="uro"><span class="ure">homeotherm</span>' +
+      '<span class="fl">noun, </span></div>' +
+      '<div class="section" data-id="definition"><span class="dt">of homeothermy</span></div></mean>',
+    "homeothermic",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe(null);
+  expect(unitsOf(result.value.content, "part-of-speech").map(textOf)).toEqual([
+    "noun, ",
+  ]);
+});
+
+const nestedRunOnRegressionCases: readonly (readonly [string, string])[] = [
+  ["Hall of Fame", "Hall of Famer"],
+  ["role-play", "role-player"],
+];
+
+test.each(nestedRunOnRegressionCases)(
+  "%s does not borrow the noun label from its nested undefined run-on",
+  (term: string, runOnTerm: string) => {
+    const result = convert(
+      "<mean>" +
+        `<div class="entry-header"><h1 class="hword">${term}</h1></div>` +
+        '<div class="section" data-id="definition"><span class="dt">meaning</span></div>' +
+        `<div class="dro"><div class="uro"><span class="ure">${runOnTerm}</span>` +
+        '<span class="fl">noun</span></div></div></mean>',
+      term,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.value.definitionTags).toBe(null);
+    expect(unitsOf(result.value.content, "part-of-speech").map(textOf)).toEqual(
+      ["noun"],
+    );
+  },
+);
+
+test("does not cross into a nested run-on entry header for a functional label", () => {
+  const result = convert(
+    '<mean><div class="section" data-id="definition"><span class="dt">meaning</span></div>' +
+      '<div class="dro"><div class="uro"><div class="entry-header">' +
+      '<h1 class="hword">nested form</h1><span class="fl">noun</span>' +
+      "</div></div></div></mean>",
+    "parent form",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe(null);
+});
+
+test("uses only its owned label for an alternative-spelling canonical entry", () => {
+  const result = convertCanonical({
+    kind: "alternative-spelling-canonical-entry",
+    term: "colour",
+    displayHeadword: "colour",
+    source: {
+      rowId: 12,
+      rowKey: "color",
+      meanIndex: 0,
+      phraseIndex: null,
+      ownerHtml:
+        '<mean><div class="entry-header"><h1 class="hword">colour</h1>' +
+        '<span class="fl">adjective</span></div>' +
+        '<div class="section" data-id="definition"><span class="dt">colored</span></div>' +
+        '<div class="dro"><div class="uro"><span class="ure">colourer</span>' +
+        '<span class="fl">noun</span></div></div></mean>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("adj");
+});
+
+test("adds phrase to a defined phrase with its owned functional label", () => {
+  const result = convertCanonical({
+    kind: "drp-phrase-canonical-entry",
+    term: "what phrase",
+    parentTerm: "what",
+    source: {
+      rowId: 10,
+      rowKey: "what",
+      meanIndex: 0,
+      phraseIndex: 0,
+      ownerHtml:
+        '<div class="dro"><span class="drp">what phrase</span>' +
+        '<div class="entry-header"><span class="fl">noun</span></div>' +
+        '<div class="vg"><div class="sb"><div class="sense"><span class="dt">meaning</span></div></div></div></div>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("n phrase");
+});
+
+test("keeps the fixed phrase tag before a dynamic functional tag", () => {
+  const result = convertCanonical({
+    kind: "drp-phrase-canonical-entry",
+    term: "future phrase",
+    parentTerm: "future",
+    source: {
+      rowId: 11,
+      rowKey: "future",
+      meanIndex: 0,
+      phraseIndex: 0,
+      ownerHtml:
+        '<div class="dro"><span class="drp">future phrase</span>' +
+        '<div class="entry-header"><span class="fl">future label</span></div>' +
+        '<div class="vg"><div class="sb"><div class="sense"><span class="dt">meaning</span></div></div></div></div>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("phrase ?future_label");
+});
+
+test("keeps an unknown owned functional label visible with a finding", () => {
+  const result = convert(
+    "<mean>" +
+      header("future", "future_label, 2%", "¦fyütʃər") +
+      '<div class="section" data-id="definition"><span class="dt">meaning</span></div></mean>',
+    "future",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(result.value.definitionTags).toBe("?future%5Flabel%2C_2%25");
+  expect(result.value.findings).toContainEqual({
+    kind: "unmapped-functional-label",
+    rowId: 1,
+    term: "future",
+    rawLabel: "future_label, 2%",
+    normalizedLabel: "future_label, 2%",
+    tag: "?future%5Flabel%2C_2%25",
+  });
 });
 
 test("renders one fallback and one finding for an unsupported subtree", () => {
