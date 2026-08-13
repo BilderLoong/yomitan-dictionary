@@ -653,10 +653,12 @@ refine, or contradict them.
   prefix (`bword://crow[1]` renders `<sup>1</sup>crow`); the renderer drops
   the leading homograph `sup` from the visible label for confirmed reference
   anchors (`.cxt`, `.mw_t_mat`, `.mw_t_et_link`, `.mw_t_sx`, `.mw_t_sc`,
-  `.mw_t_dxt`) and keeps the identity in report evidence only; a
-  `.text-lowercase` span directly after a reference anchor carries the
-  target's sense pointer (`1a`, `8`, `1a(1)`). Neither is a sense number of
-  the current entry; both stay bound to the reference.
+  `.mw_t_dxt`). The planner records the homograph identity in report
+  evidence for `.cxt` reference anchors (cxl `targetHomographNumber`); the
+  other confirmed anchor classes drop the prefix visually without a report
+  record. A `.text-lowercase` span directly after a reference anchor carries
+  the target's sense pointer (`1a`, `8`, `1a(1)`). Neither is a sense number
+  of the current entry; both stay bound to the reference.
 - `a.mw_t_et_link` is an etymology link and carries the same `origin`
   relation as `a.mw_t_mat`.
 - `.mw_t_a_link` and `.mw_t_i_link` are plain/italic cross-reference anchors

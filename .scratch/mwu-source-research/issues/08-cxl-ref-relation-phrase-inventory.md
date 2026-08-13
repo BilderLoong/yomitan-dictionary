@@ -1,6 +1,6 @@
 # 08 — cxl-ref relation-phrase inventory
 
-Status: resolved 2026-08-13 (research only; the approval decision is open).
+Status: resolved 2026-08-13 (research; policy accepted via ADR 0006).
 
 ## Resolution (2026-08-13)
 
@@ -59,23 +59,26 @@ What phrases exist in the source data, and how many references use them?
 | synonym | 2 | 1619 | 7.9% |
 | continuation | 4 | 132 | 0.6% |
 
-## Current behavior (docs cross-check)
+## Pre-decision behavior (superseded by ADR 0006)
 
-- `src/level1/planLinks.ts` `VARIANT_RELATION_PHRASES` approves exactly 8 phrases (case-insensitive):
+- `src/level1/planLinks.ts` `VARIANT_RELATION_PHRASES` approved exactly 8 phrases (case-insensitive):
   `variant spelling of`, `variant of`, `archaic variant of`, `obsolete variant of`, `dialectal variant of`, `Scottish variant of`, `chiefly Scottish variant of`, `chiefly British spelling of`.
-- That set covers 7415 of 20,495 references (36.2%). Everything else becomes a `cxl-ref-not-emitted` finding (reason `unapproved-relation`).
-- `openspec/specs/mwu-level-1-entry-generation/spec.md`, Requirement "Extract cxl-ref targets and rules conservatively": the same 8 phrases; `plural of`, `synonym of`, `taxonomic synonym of`, and `and of` continuations are the documented negative cases.
+- That set covered 7415 of 20,495 references (36.2%). Everything else became a `cxl-ref-not-emitted` finding (reason `unapproved-relation`).
+- `openspec/specs/mwu-level-1-entry-generation/spec.md`, Requirement "Extract cxl-ref targets and rules conservatively": the same 8 phrases; `plural of`, `synonym of`, `taxonomic synonym of`, and `and of` continuations were the documented negative cases.
 - `.scratch/mwu-implementation/issues/01-cxl-ref-variant-reference-soft-link.md`: implementation notes, same family.
-- `docs/archive/2026-08-06-mwu-level-1-entry-generation.md`: same family; catalog `docs/mwu-html-information-unit-catlog/README.md` classifies `.cxl-ref`/`.cxl`/`.cxt` as the `variant-reference` information unit (Level 1).
+- `docs/archive/2026-08-06-mwu-level-1-entry-generation.md`: same family; catalog `docs/mwu-html-information-unit-catlog/README.md` classified `.cxl-ref`/`.cxl`/`.cxt` as the `variant-reference` information unit (Level 1).
+
+The allowlist and the `unapproved-relation` reason are removed; the accepted policy
+(ADR 0006) emits every complete relation phrase as a `cxl-ref-soft-link` rule.
 
 ## Findings that matter for the approval decision
 
-1. `plural of` is the most common phrase of all: 4,172 references (20.4%), ahead of `variant spelling of` (3,319). The current build drops all of them.
+1. `plural of` is the most common phrase of all: 4,172 references (20.4%), ahead of `variant spelling of` (3,319). The pre-decision build dropped all of them.
 2. The inflection family is the largest: `present tense third person singular of` (2,057), `taxonomic synonym of` (1,609), `present participle of` (892), `past tense of` (875), `superlative of` (463), `comparative of` (457), `past tense and past participle of` (179), plus `singular of`, `objective case of`, `possessive of`, and the count-1 tail.
 3. The approved list is exact-match, so it also drops variant-family phrases outside the 8: `dialectal British variant of` (131), `less common variant of` (107), `chiefly British variant of` (65), `British variant of` (9), `now dialectal variant of` (17), `substandard variant of` (10), `variant spellings of` (22), `variants of` (5), `chiefly British spellings of` (65), `British spellings of` (63), `less common spellings of` (66).
    Variant-family but currently unapproved: 1589 references (7.8%).
 4. Continuations: all 132 (`or of` 113, `or` 16, `and of` 1, `and` 2) directly follow a sibling `.cxl-ref` in the same parent element — the relation text continues from the previous paragraph. Approving `plural of` without joining continuations still leaves `or of` paragraphs as findings.
-5. 336 references carry two or more `.cxt` anchors for one relation (example: `variant of aquacultural, aquaculture`). The current planner reads only the first anchor.
+5. 336 references carry two or more `.cxt` anchors for one relation (example: `variant of aquacultural, aquaculture`). The pre-decision planner read only the first anchor.
 6. The data has legacy shorthand and typos: `present 3d singular of`, `pres part of`, `past part of`, `past and past part of`, `past particple of` (sic). The matcher needs tolerance or normalization.
 7. The count-1 tail is combinatorial (person/number/mood qualifiers): exact-list matching does not scale; a structured matcher (family + qualifier tokens) is the long-term shape.
 
