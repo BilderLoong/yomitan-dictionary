@@ -7,6 +7,7 @@ import {
   oConverted,
   ohConverted,
   runConverted,
+  sumConverted,
   turnConverted,
 } from "./fixtures";
 
@@ -47,12 +48,15 @@ export const GiveThanksSubDefinitionStyle = {
       expect(computed.paddingInlineStart).toBe("0px");
       expect(computed.marginBlockStart).toBe("0px");
 
-      const example = subDefinition.querySelector(
-        ':scope > [data-sc-content="example-sentence"]',
+      const exampleGroup = subDefinition.querySelector(
+        ':scope > [data-sc-content="example-group"]',
       );
-      expect(example).not.toBeNull();
-      if (example === null) return;
-      expect(getComputedStyle(example).display).toBe("block");
+      expect(exampleGroup).not.toBeNull();
+      if (exampleGroup === null) return;
+      expect(getComputedStyle(exampleGroup).display).toBe("block");
+      expect(getComputedStyle(exampleGroup).backgroundColor).not.toBe(
+        "rgba(0, 0, 0, 0)",
+      );
     }
   },
 };
@@ -157,7 +161,7 @@ export const GiveLocalTagStyle = {
   },
 };
 
-export const GiveHeaderSurfaceStyle = {
+export const GiveHeaderMetadataStyle = {
   render: (): string => renderToHtml(giveConverted.content),
   play: async ({
     canvasElement,
@@ -178,9 +182,10 @@ export const GiveHeaderSurfaceStyle = {
         const computed = getComputedStyle(element);
         const label = getComputedStyle(element, "::before");
         expect(computed.borderInlineStartWidth).toBe("0px");
-        expect(computed.borderTopLeftRadius).not.toBe("0px");
+        expect(computed.borderTopWidth).toBe("0px");
+        expect(computed.borderTopLeftRadius).toBe("0px");
         expect(computed.paddingTop).not.toBe("0px");
-        expect(computed.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+        expect(computed.backgroundColor).toBe("rgba(0, 0, 0, 0)");
         if (label.content !== "none" && label.content !== "normal") {
           expect(label.display).toBe("block");
         }
@@ -199,7 +204,11 @@ export const GiveExampleListStyle = {
     const examples = canvasElement.querySelectorAll(
       '[data-sc-content="example-sentence"]',
     );
+    const exampleGroups = canvasElement.querySelectorAll(
+      '[data-sc-content="example-group"]',
+    );
     expect(examples.length).toBeGreaterThan(0);
+    expect(exampleGroups.length).toBeGreaterThan(0);
 
     const textLeft = (element: Element): number | null => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
@@ -217,12 +226,21 @@ export const GiveExampleListStyle = {
         requestAnimationFrame(() => resolve());
       });
 
+      exampleGroups.forEach((element) => {
+        const computed = getComputedStyle(element);
+        expect(computed.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+        expect(computed.borderTopWidth).toBe("0px");
+        expect(computed.borderTopLeftRadius).not.toBe("0px");
+      });
+
       examples.forEach((element) => {
         const computed = getComputedStyle(element);
         const marker = getComputedStyle(element, "::marker");
         expect(computed.display).toBe("list-item");
         expect(computed.listStyleType).toBe("disc");
-        expect(computed.borderInlineStartWidth).toBe("0px");
+        expect(computed.borderTopWidth).toBe("0px");
+        expect(computed.borderTopLeftRadius).toBe("0px");
+        expect(computed.backgroundColor).toBe("rgba(0, 0, 0, 0)");
         expect(marker.listStyleType).toBe("disc");
       });
 
@@ -242,6 +260,12 @@ export const GiveExampleListStyle = {
             : null;
           const summaryLeft = summary === null ? null : textLeft(summary);
           const exampleLeft = example === null ? null : textLeft(example);
+          if (summary !== null) {
+            const summaryStyle = getComputedStyle(
+              summary.parentElement ?? details,
+            );
+            expect(summaryStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+          }
           return summaryLeft === null || exampleLeft === null
             ? null
             : Math.abs(summaryLeft - exampleLeft);
@@ -250,6 +274,42 @@ export const GiveExampleListStyle = {
 
       expect(pairs.length).toBeGreaterThan(0);
       expect(Math.max(...pairs)).toBeLessThan(1);
+    }
+  },
+};
+
+export const DisclosureHierarchyStyle = {
+  render: (): string => renderToHtml(sumConverted.content),
+  play: async ({
+    canvasElement,
+  }: {
+    readonly canvasElement: HTMLElement;
+  }): Promise<void> => {
+    const entry = canvasElement.querySelector('[data-sc-content="mwu-entry"]');
+    const phraseSummary = canvasElement.querySelector(
+      'details[data-sc-content="phrase-group"] > summary',
+    );
+    const originSummary = canvasElement.querySelector(
+      'details[data-sc-content="origin"] > summary',
+    );
+    expect(entry).not.toBeNull();
+    expect(phraseSummary).not.toBeNull();
+    expect(originSummary).not.toBeNull();
+    if (entry === null || phraseSummary === null || originSummary === null) {
+      return;
+    }
+
+    for (const colorScheme of ["light", "dark"] as const) {
+      canvasElement.style.colorScheme = colorScheme;
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+      const phraseStyle = getComputedStyle(phraseSummary);
+      const originStyle = getComputedStyle(originSummary);
+      expect(phraseStyle.color).not.toBe(originStyle.color);
+      expect(Number.parseInt(phraseStyle.fontWeight, 10)).toBeGreaterThan(
+        Number.parseInt(originStyle.fontWeight, 10),
+      );
     }
   },
 };

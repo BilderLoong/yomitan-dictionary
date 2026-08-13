@@ -14,7 +14,7 @@ pnpm install
 
 ## Yomitan test fixture
 
-Tests that drive the real extension (`tests/inspect_dict.ts`,
+Scripts that drive the real extension (`scripts/dictionary-inspection/`,
 `tests/archive/schema.test.ts`) need the Yomitan fixture — a Chrome-extension
 build of upstream Yomitan with the schemas and browser harness — installed at
 `tests/fixture/` (gitignored):
@@ -145,31 +145,61 @@ and determinism tests are under `tests/`. The browser harness can import a
 production ZIP with:
 
 ```bash
-bun run tests/inspect_dict.ts \
-  "build/Merriam Webster Unabridged.zip" \
-  --query "what, take the word, in, o, il" \
+# Headless full E2E: eight words, both themes, search and popup surfaces,
+# computed-layout checks, and keyboard disclosure interaction.
+bun run inspect:dict:headless -- --close
+
+# Human visual review: open one real entry and leave the visible browser open.
+bun run inspect:dict -- --query turn
+
+# Visible smoke test with bounded cleanup.
+bun run inspect:dict -- --query turn --close
+
+# Package help exits before the build, browser launch, or profile creation.
+bun run inspect:dict -- --help
+bun run inspect:dict:headless -- --help
+
+# Run a script directly against an existing ZIP, without rebuilding it.
+bun run scripts/dictionary-inspection/inspect-headless.ts \
+  "build/Merriam Webster Unabridged.zip" --close
+
+# Direct adapter help documents the required existing ZIP argument.
+bun run scripts/dictionary-inspection/inspect-headless.ts --help
+
+# Run exactly the eight presentation queries against an existing ZIP.
+bun run inspect:dict:headless -- \
+  --query "what, in, give, put, sum, down, turn, o" \
   --close
 
-bun run tests/inspect_dict.ts \
-  "build/Merriam Webster Unabridged.zip" \
-  --query-file tests/testWords.txt \
-  --close
+# Park a headless browser for live Chrome DevTools MCP control.
+bun run inspect:dict:headless -- --mcp-port 9222
+curl http://127.0.0.1:9222/json/version
 ```
 
-The harness accepts either one comma- or newline-delimited `--query` value or a
-newline-delimited `--query-file`. The two options are mutually exclusive. If
-neither is supplied, it uses `tests/testWords.txt`. It uses bundled Chromium
-and checks that import progress completes, no import error is shown, the
-installed dictionary count increases, and each query produces a rendered
-result. It also opens Yomitan's real search popup with the final query at a
-360px viewport and checks the light and dark presentation for wrapping,
-overflow, local-tag geometry, example list markers, and collapsed disclosures.
+The package commands build the selected real MWU records before starting the
+inspector. Their `--help` and `-h` forms exit before `dev:build`, browser
+launch, profile creation, or build-artifact mutation. The direct adapters under
+`scripts/dictionary-inspection/` require an existing dictionary ZIP as their
+first argument and do not build it.
+
+The headless harness accepts either one comma- or newline-delimited `--query`
+value or a newline-delimited `--query-file`. The two options are mutually
+exclusive. If neither is supplied, it uses `tests/testWords.txt`. The visible
+inspector accepts one query and defaults to `what`. Both workflows use bundled
+Chromium, import the dictionary ZIP first, and import the settings backup
+through Yomitan's real settings file input. The headless workflow also checks
+that import progress completes, no import error is shown, the installed
+dictionary count increases, every acceptance query produces a rendered result,
+and the 360px popup passes the light/dark presentation and disclosure checks.
+The visible workflow opens only the requested entry for human review.
 Use `--extension-path` when the ignored Yomitan fixture lives in a different
-checkout, `--user-data-dir /path/to/profile` to point
-the bundled Chromium at a specific profile (defaults to a fresh
-`/tmp/test-user-data-dir` so your real Chrome profile is never touched), and
-`--screenshot /tmp/mwu.png` to capture the rendered search page for visual
-inspection.
+checkout. By default, each run creates a unique temporary browser profile.
+The runner removes that profile after a bounded `--close` run. An explicit
+`--user-data-dir /path/to/profile` must be absent or empty; a non-empty or
+symbolic-link path is refused and preserved. This protects an existing profile
+from deletion and prevents settings from another run from contaminating the
+inspection. Use `--screenshot /tmp/mwu.png` to capture the rendered search page
+for visual inspection.
 
 ## Origin data
 

@@ -235,11 +235,24 @@ row deferral), recorded with its reason.
 **Yomitan fixture**:
 The unpacked Yomitan extension under
 `packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright`
-used by the e2e loop (`inspect:dict`) and by the archive schema tests
-(its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
+used by the dictionary inspection commands (`inspect:dict` for visible human
+review and `inspect:dict:headless` for headless E2E/MCP) and by the archive
+schema tests (its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
 `bun run update:fixture` (defaults to the newest upstream release tag;
 `--ref master` for the latest development build, `--ref <tag>` to pin an
 older release); provenance is recorded in
 `tests/fixture/UPSTREAM.json`, and the source cache lives in
 `tests/fixture/yomitan-src` (excluded from `bun test` discovery via
 `bunfig.toml`).
+
+The bounded E2E command is
+`bun run inspect:dict:headless -- --close`; live MCP uses
+`bun run inspect:dict:headless -- --mcp-port 9222`. The inspection runner
+extracts `styles.css` from the current dictionary ZIP and injects that exact
+text into a temporary copy of the repository-owned settings backup before the
+real settings import. Each run gets a unique temporary browser profile by
+default. An explicit profile must be absent or empty and is never deleted.
+The package commands use one shared launcher and handle `--help` or `-h` before
+`dev:build`, browser launch, profile creation, or build-artifact mutation. The
+direct adapters under `scripts/dictionary-inspection/` require an existing
+dictionary ZIP as their first argument and do not build it.

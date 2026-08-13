@@ -1506,7 +1506,7 @@ Unabridged.zip exists.
 **Files:**
 
 - Create: packages/merriam_webster_unabridged/tests/archive/schema.test.ts
-- Modify: packages/merriam_webster_unabridged/tests/import_dict.ts to add --query and --close, enforce import-error checks, and verify dictionary-count increase
+- Use: packages/merriam_webster_unabridged/scripts/dictionary-inspection/inspect-headless.ts for --query and --close, importer-error checks, dictionary-count verification, and rendered acceptance checks
 - Remove after replacement verification: packages/merriam_webster_unabridged/src/db.ts
 - Remove after replacement verification: packages/merriam_webster_unabridged/src/parser.ts
 - Remove after replacement verification: packages/merriam_webster_unabridged/src/termTagCollector.ts
@@ -1564,10 +1564,9 @@ The importer must wait for .dictionary-import-progress to hide, fail when
 increases. Run:
 
 ~~~bash
-bun run packages/merriam_webster_unabridged/tests/import_dict.ts \
-  "packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip" \
-  --query "what, take the word, in, o, il" \
-  --close
+bun run packages/merriam_webster_unabridged/scripts/dictionary-inspection/inspect-headless.ts \
+ "packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip" \
+ --close
 ~~~
 
 Expected: import success, no dictionary error, dictionary count increases, and

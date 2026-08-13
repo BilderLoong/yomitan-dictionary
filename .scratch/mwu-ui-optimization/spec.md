@@ -178,8 +178,12 @@ acceptance seam.
   and synonym section summaries.
 - Example sentences use quiet list-item treatment with native disc markers.
   Example sources use smaller text with accessible contrast and remain attached
-  to the example they identify. The extra-example summary text aligns with the
-  example text column while keeping its native disclosure marker.
+  to the example they identify, including when the source article emits the
+  attribution as a sibling after the example group. When an attribution wraps,
+  it stays together as one inline unit and moves to the example sentence text
+  column through logical, relative spacing. The extra-example summary text
+  aligns with the example text column while keeping its native disclosure
+  marker.
 - Noninteractive cross-references use neutral text rather than link-blue. The
   visible relationship wording remains the navigation cue.
 - An unnumbered continuation in a phrase definition remains in the same visual
@@ -224,6 +228,9 @@ acceptance seam.
   shared treatment, while inflection labels such as `or` and `also` do not.
 - Interaction checks must prove that local tags have no pointer/help affordance
   and that disclosure summaries can be reached and operated by keyboard.
+- Section-alignment checks must inspect every origin, phrase-group, and
+  related-item disclosure. Their summaries must have no logical start
+  indentation or border, and every origin body must align with its summary.
 - Theme checks must cover light and dark presentation and calculate contrast
   from computed foreground and background colors. Quiet metadata must not fall
   below the agreed accessible contrast target.

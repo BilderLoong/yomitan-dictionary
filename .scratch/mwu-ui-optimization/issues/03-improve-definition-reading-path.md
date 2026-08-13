@@ -23,6 +23,15 @@ competing with the meaning.
       visible keyboard focus, and keyboard operation
 - [x] Example sources use quieter text with accessible contrast and remain
       attached to the examples they identify
+- [x] Sibling example attributions from real MWU entries stay inside the
+      owning example sentence and its shared frame
+- [x] Wrapped example attributions align with the example sentence text column
+      using logical, relative spacing
+- [x] Attribution text stays together when it wraps, so a citation moves as one
+      unit to the example text column
+- [x] An attribution only stays beside its sentence when its full inline unit
+      fits there; otherwise it starts at the example text column and wraps only
+      when it is wider than that full column
 - [x] Noninteractive cross-references use neutral text instead of link-blue
       styling and do not suggest unavailable navigation
 - [x] Fresh real-source checks for `what` and `in` prove the reading order in
@@ -39,10 +48,12 @@ competing with the meaning.
 - Real-source `what` and `in` entries show definitions first, quiet notes and
   examples, neutral dotted cross-references, and count-based extra-example
   disclosures in light and dark themes.
+- The real `give thanks` phrase keeps its sibling source attribution inside
+  the framed example sentence instead of rendering it as an unframed sibling.
 - The real-popup harness checks list markers, collapsed extra-example rows,
   neutral references, and no horizontal overflow at a 360px viewport.
-- Live keyboard check: an extra-example summary receives a 2px focus outline
-  and opens with `Enter`. The 42-state sweep found zero list, alignment,
-  disclosure, reference, or overflow failures.
+- Headless keyboard check: an extra-example summary receives a 2px focus
+  outline, opens with `Enter`, and closes with `Enter`. The 32-state sweep found
+  zero list, alignment, disclosure, reference, or overflow failures.
 - `uiContract.test.ts`, conversion tests, and render smoke tests preserve the
-  structured-content owners and source order; `bun test` passed with 192 tests.
+  structured-content owners and source order; `bun test` passed with 194 tests.

@@ -36,16 +36,16 @@ search page and narrow popup.
 
 - Real-source `in` and `put` entries show pronunciation first, optional notes
   second, and visible inflection content after them. `put` keeps its complete
-  inflection group in the 320px dark state without horizontal overflow.
+  inflection group in the 360px popup without horizontal overflow.
 - The real-popup harness repeats the `put` wrapping and overflow checks in
   light and dark themes at a 360px viewport.
-- The inflection surface uses a quiet theme-relative tint, rounded corners,
-  and a readable `FORMS` label without changing the source order. Short
+- Pronunciation notes and inflection forms use transparent, borderless metadata
+  rows. One subtle header boundary separates them from definitions. Short
   `inflected form(s)` metadata stays on one compact row, while long qualifiers
   remain readable in normal case.
 - Source marker gutters use calculated relative widths, and long markers such
   as `1c(1)` stay intact in the narrow popup.
-- The 42-state live sweep passed in light and dark themes at 320, 360, and
-  760px widths.
+- The 32-state headless sweep passed in light and dark themes on the 1100px
+  search page and 360px popup.
 - `uiContract.test.ts` proves header row order and pronunciation ownership;
-  `bun test` passed with 192 tests.
+  `bun test` passed with 194 tests.

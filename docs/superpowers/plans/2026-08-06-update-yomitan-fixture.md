@@ -6,7 +6,7 @@
 
 **Architecture:** A bun CLI script `tests/update-fixture.ts` maintains a gitignored source cache (`tests/fixture/yomitan-src`) of the upstream `yomidevs/yomitan` repo, resolves the newest numeric release tag by default (`--ref` overrides with any branch/tag/commit), builds the `chrome-dev` extension variant with the upstream's own build (`node dev/bin/build.js --target chrome-dev --version <tag>`), verifies the produced zip, swaps it into the fixture directory atomically via a staging dir, and writes a provenance sidecar (`tests/fixture/UPSTREAM.json`). The fixture itself stays gitignored (dev-local, by existing design); the script is the single documented way to refresh it.
 
-**Tech Stack:** Bun (script runtime + `Bun.spawn`), git (clone/fetch/checkout/tag resolution), npm + Node >= 22 (upstream build; machine has v22.23.1), `unzip` (macOS built-in). Existing consumers: `tests/inspect_dict.ts` (Playwright e2e) and `tests/archive/schema.test.ts` (imports the fixture's `lib/validate-schemas.js`).
+**Tech Stack:** Bun (script runtime + `Bun.spawn`), git (clone/fetch/checkout/tag resolution), npm + Node >= 22 (upstream build; machine has v22.23.1), `unzip` (macOS built-in). Existing consumers: `scripts/dictionary-inspection/` (Playwright E2E) and `tests/archive/schema.test.ts` (imports the fixture's `lib/validate-schemas.js`).
 
 ---
 
@@ -488,33 +488,39 @@ Expected: `build/Merriam Webster Unabridged.zip` written, `build/build-report.js
 
 - [ ] **Step 2: Run the inspect e2e loop**
 
-Run: `cd packages/merriam_webster_unabridged && bun run inspect:dict`
+Run: `cd packages/merriam_webster_unabridged && bun run inspect:dict:headless -- --close`
 Expected: exit 0 — Chromium launches with the NEW fixture via `--disable-extensions-except`, the zip imports, and every `tests/testWords.txt` query returns entries.
 
 - [ ] **Step 3: Handle UI drift (only if Step 2 fails)**
 
-Yomitan 26.x may have changed the import/search DOM that `tests/inspect_dict.ts` drives (`#dictionary-list[data-count]`, `#dictionary-import-file-input`, `.dictionary-import-progress`, result rows). Diagnose with the skill's CDP flow (`mwu-yomitan-e2e-verification`: browser tool, `app: { cdp_url: "http://localhost:9222" }`), update `tests/inspect_dict.ts` selectors to the new DOM, re-run Step 2. Commit:
+Yomitan 26.x may have changed the import/search DOM that
+`scripts/dictionary-inspection/` drives (`#dictionary-list[data-count]`,
+`#dictionary-import-file-input`, `.dictionary-import-progress`, result rows).
+Diagnose with the `mwu-dictionary-inspection` skill's CDP flow and update the
+shared runner selectors, then re-run Step 2. Commit:
 
 ```bash
-git add packages/merriam_webster_unabridged/tests/inspect_dict.ts
+git add packages/merriam_webster_unabridged/scripts/dictionary-inspection/
 git commit -m "fix(mwu): adapt inspect e2e to yomitan 26.7.29.0 UI"
 ```
 
 ---
 
-### Task 5: Docs and script alias
+### Task 5: Docs and inspection commands
 
 **Files:**
-- Modify: `packages/merriam_webster_unabridged/package.json` (add script)
+- Modify: `packages/merriam_webster_unabridged/package.json` (inspection scripts)
 - Modify: `CONTEXT.md` (add Tooling section)
-- Modify: `~/.omp/agent/managed-skills/mwu-yomitan-e2e-verification/SKILL.md`
+- Modify: `.agents/skills/mwu-dictionary-inspection/SKILL.md`
 
-- [ ] **Step 1: Add the npm script alias**
+- [ ] **Step 1: Add the inspection scripts**
 
-In `packages/merriam_webster_unabridged/package.json` scripts, after `"inspect:dict"`:
+In `packages/merriam_webster_unabridged/package.json` scripts, keep the visible
+command and add the headless command:
 
 ```json
-    "update:fixture": "bun run tests/update-fixture.ts",
+    "inspect:dict": "bun run scripts/dictionary-inspection/package-entry.ts visible",
+    "inspect:dict:headless": "bun run scripts/dictionary-inspection/package-entry.ts headless",
 ```
 
 - [ ] **Step 2: Document the fixture in CONTEXT.md**
@@ -527,7 +533,8 @@ Append a short section at the end of `CONTEXT.md` (match existing plain-prose st
 **Yomitan fixture**:
 The unpacked Yomitan extension under
 `packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright`
-used by the e2e loop (`inspect:dict`) and by the archive schema tests
+used by the inspection commands (`inspect:dict` and
+`inspect:dict:headless`) and by the archive schema tests
 (its `lib/validate-schemas.js`). Dev-local and gitignored. Refresh it with
 `bun run update:fixture` (defaults to the newest upstream release tag;
 `--ref master` for the latest development build, `--ref <tag>` to pin an
@@ -538,10 +545,10 @@ older release); provenance is recorded in
 
 - [ ] **Step 3: Update the e2e skill**
 
-Edit `~/.omp/agent/managed-skills/mwu-yomitan-e2e-verification/SKILL.md`: replace the line
-`` (`tests/fixture` symlink — dev-local, gitignored) ``
-with:
-`` (provisioned by `bun run update:fixture` — gitignored; source cache `tests/fixture/yomitan-src`, provenance `tests/fixture/UPSTREAM.json`) ``
+Edit `.agents/skills/mwu-dictionary-inspection/SKILL.md` to route visible review,
+headless E2E, and parked MCP inspection to their separate commands. Keep the
+fixture provenance and refresh instructions in the skill instead of pointing
+to the obsolete managed-skill path.
 
 - [ ] **Step 4: Commit**
 
@@ -562,7 +569,7 @@ git commit -m "docs(mwu): document yomitan fixture refresh workflow"
 
 **Placeholder scan:** No TBD/TODO; every step has exact commands or code. The script code above is the complete file.
 
-**Type consistency:** `FixtureOptions`/`FixtureArgumentError`/`ParsedOptions` used consistently; `parseFixtureArguments` mirrors `parseImportArguments` from `tests/import_options.ts` (same `Result` from `src/shared/result`, same usage-error envelope). `run()` returns `Result<string, string>` everywhere it is called.
+**Type consistency:** `FixtureOptions`/`FixtureArgumentError`/`ParsedOptions` used consistently; `parseFixtureArguments` mirrors `parseInspectionArguments` from `scripts/dictionary-inspection/options.ts` (same `Result` from `src/shared/result`, same usage-error envelope). `run()` returns `Result<string, string>` everywhere it is called.
 
 **Known accepted tradeoffs:**
 - Version stamp derives from the resolved ref: numeric release tags stamp their own version (e.g. `26.7.29.0`); branch/commit refs stamp `0.0.0.0` (upstream's own dev default, matching `~/Projects/yomitan/builds/yomitan-chrome-dev.zip`).

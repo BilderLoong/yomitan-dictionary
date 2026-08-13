@@ -37,15 +37,14 @@ search-page and narrow-popup check that later UI tickets use.
 
 ## Verification
 
-- Fresh `bun run inspect:dict` build and import: 281 records for the 10
-  selected roots.
+- Fresh real-source build and import: 377 records for 14 selected roots.
 - The inspect harness opens Yomitan's real search popup at a 360px viewport
   and checks local-tag geometry, neutral color separation, wrapping, and
   horizontal-overflow behavior in light and dark themes.
-- Live acceptance: 42 states across `what`, `in`, `give`, `put`, `sum`,
-  `down`, and `turn`; light/dark themes; 320/360/760px widths; zero local
-  tag, overflow, or layout failures.
+- Headless acceptance: 32 states across `what`, `in`, `give`, `put`, `sum`,
+  `down`, `turn`, and `o`; light/dark themes; 1100px search page and 360px
+  popup; zero local-tag, overflow, or layout failures.
 - Runtime geometry matches Yomitan's native badge metrics: 21.5px height,
   3.5px radius, 5.25px horizontal padding, and 11px tag text at the default
   host scale. The local fill remains neutral by design.
-- `bun test`: 192 pass; Biome and `git diff --check`: pass.
+- `bun test`: 194 pass; Biome and `git diff --check`: pass.

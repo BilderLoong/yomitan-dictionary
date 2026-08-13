@@ -257,9 +257,9 @@ Expected: focused tests pass; the build exits zero and its report has no fatal e
 ### Task 5: Restore deterministic archive/schema and browser harness gates
 
 **Files:**
-- Modify: `packages/merriam_webster_unabridged/tests/import_dict.ts`
-- Modify: `packages/merriam_webster_unabridged/tests/import_options.ts`
-- Modify: `packages/merriam_webster_unabridged/tests/import_options.test.ts`
+- Use: `packages/merriam_webster_unabridged/scripts/dictionary-inspection/inspect-headless.ts`
+- Modify: `packages/merriam_webster_unabridged/scripts/dictionary-inspection/options.ts`
+- Modify: `packages/merriam_webster_unabridged/tests/dictionary_inspection_options.test.ts`
 - Modify: `packages/merriam_webster_unabridged/package.json`
 
 **Interfaces:**
@@ -279,9 +279,9 @@ After import completion, assert dictionary count increases, query results exist,
 Run:
 
 ```sh
-bun test packages/merriam_webster_unabridged/tests/archive/schema.test.ts packages/merriam_webster_unabridged/tests/import_options.test.ts
+bun test packages/merriam_webster_unabridged/tests/archive/schema.test.ts packages/merriam_webster_unabridged/tests/dictionary_inspection_options.test.ts
 bun run packages/merriam_webster_unabridged/src/index.ts --words what take process set hand
-bun run packages/merriam_webster_unabridged/tests/import_dict.ts "/Users/birudo/Projects/yomitan-dictionary/.worktrees/structure-content/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip" --extension-path "/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright" --query "what take process" --close
+bun run packages/merriam_webster_unabridged/scripts/dictionary-inspection/inspect-headless.ts "/Users/birudo/Projects/yomitan-dictionary/.worktrees/structure-content/packages/merriam_webster_unabridged/build/Merriam Webster Unabridged.zip" --extension-path "/Users/birudo/Projects/yomitan-dictionary/packages/merriam_webster_unabridged/tests/fixture/yomitan-chrome-playwright" --close
 ```
 
 Expected: schemas pass and the local bundled Chromium harness imports the archive with no UI error and a larger dictionary count. If Chrome MCP remains unavailable, record that exact limitation separately.
@@ -311,7 +311,7 @@ Update the visual audit with the actual query set, counts, collapsed sections, t
 Run:
 
 ```sh
-bun test packages/merriam_webster_unabridged/tests/conversion packages/merriam_webster_unabridged/tests/yomitan packages/merriam_webster_unabridged/tests/build packages/merriam_webster_unabridged/tests/level1 packages/merriam_webster_unabridged/tests/source packages/merriam_webster_unabridged/tests/import_options.test.ts
+bun test packages/merriam_webster_unabridged/tests/conversion packages/merriam_webster_unabridged/tests/yomitan packages/merriam_webster_unabridged/tests/build packages/merriam_webster_unabridged/tests/level1 packages/merriam_webster_unabridged/tests/source packages/merriam_webster_unabridged/tests/dictionary_inspection_options.test.ts
 bun test packages/merriam_webster_unabridged/design-fixtures
 git diff --check
 ```

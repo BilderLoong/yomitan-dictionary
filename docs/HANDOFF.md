@@ -10,8 +10,8 @@ the Merriam-Webster Unabridged → Yomitan dictionary builder.
 - Worktree root: `/Users/birudo/Projects/yomitan-dictionary/.worktrees/structure-content`
 - Branch `structure-content` (master is merged in; the last merge brought the
   `src/build` → `src/pipeline` and `tests/build` → `tests/pipeline` renames
-  plus the `import_dict.ts` → `inspect_dict.ts` / `test:dict` → `inspect:dict`
-  rename).
+  plus the test-side dictionary importer → `scripts/dictionary-inspection/`
+  and `test:dict` → `inspect:dict` / `inspect:dict:headless` renames).
 - **Read `CONTEXT.md` in this worktree root first** — it is the shared project
   vocabulary (domain names like `main-canonical-entry`, `soft-link-entry`,
   `plan` vs `record` layers, functional-style rules, `Result<T,E>` errors,
@@ -34,11 +34,13 @@ the Merriam-Webster Unabridged → Yomitan dictionary builder.
 - **Tests**: 94 pass / 0 fail in this worktree (20 files). The `tests/archive/*`
   tests build from the real 3.4 GB `assets/MWU.db` — slow (~50 s sequential),
   timeouts are 90 s; they can exceed that under parallel `bun test` load.
-- **E2E harness**: `inspect:dict` is the manual inspector and intentionally
-  leaves its Playwright browser open unless `--close` is supplied. It was run
-  unchanged against the generated ZIP during the audit. The Chrome MCP was not
-  available in this session because the Chrome extension/native host was absent,
-  so no Chrome-page DOM or visual result is claimed here.
+- **E2E harness**: `inspect:dict` is the visible manual inspector and
+  intentionally leaves its Playwright browser open unless `--close` is
+  supplied. `inspect:dict:headless` owns the full desktop E2E sweep and can
+  either close deterministically with `--close` or park on CDP port 9222 for
+  MCP. The Chrome MCP was not available in this session because the Chrome
+  extension/native host was absent, so no Chrome-page DOM or visual result is
+  claimed here.
 - **Docs**: `docs/mwu-level-1-entry-generation.md` (§ Structured-content
   rendering), `docs/mwu-html-survey/README.md`.
 
@@ -46,9 +48,10 @@ the Merriam-Webster Unabridged → Yomitan dictionary builder.
 
 - `tests/fixture` is a **deliberate symlink** (to the main repo's fixture dir),
   intentionally untracked — leave it alone.
-- The user-facing inspector is `packages/merriam_webster_unabridged/tests/inspect_dict.ts`.
-  It is intentionally manual and must not be rewritten into an automated
-  assertion runner. Use a separate audit script for source/output comparisons.
+- The user-facing inspector is
+  `packages/merriam_webster_unabridged/scripts/dictionary-inspection/inspect.ts`.
+  It is intentionally manual. The headless adapter owns automated assertions
+  and MCP parking; both adapters call the shared runner.
 - `assets/MWU.db` is gitignored; in this worktree it is a symlink into the main
   repo so real-DB builds work.
 - The main repo (master) and this branch are kept in sync by the user's
@@ -179,4 +182,5 @@ Verification for this slice:
 
 Chrome MCP was checked separately but exposed only the Codex In-app Browser in
 this session, so no Chrome-specific DOM or screenshot claim is made. The
-manual `inspect:dict` and import scripts were not modified.
+inspection workflow now has a visible `inspect:dict` adapter and a headless
+`inspect:dict:headless` adapter over one shared runner.

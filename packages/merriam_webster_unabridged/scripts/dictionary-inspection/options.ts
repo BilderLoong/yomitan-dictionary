@@ -1,6 +1,6 @@
-import type { Result } from "../src/shared/result";
+import type { Result } from "../../src/shared/result";
 
-export interface ImportOptions {
+export interface InspectionOptions {
   readonly dictionaryPath: string;
   readonly query: string | null;
   readonly queryFilePath: string | null;
@@ -11,8 +11,8 @@ export interface ImportOptions {
   readonly userDataDirectory: string | null;
 }
 
-export interface ImportArgumentError {
-  readonly kind: "usage";
+export interface InspectionArgumentError {
+  readonly kind: "help" | "usage";
   readonly message: string;
 }
 
@@ -26,22 +26,68 @@ interface ParsedOptions {
   readonly userDataDirectory: string | null;
 }
 
-const usage =
-  "Usage: bun run tests/inspect_dict.ts <dictionary.zip> [--query <queries>] [--query-file <path>] [--extension-path <path>] [--user-data-dir <path>] [--mcp-port <port>] [--chrome-flag <flag>] [--screenshot <path>] [--close]";
+const formatUsage = (
+  command: string,
+  dictionaryArgument: string,
+  queryOptions: string,
+): string =>
+  [
+    `Usage: ${command}${dictionaryArgument} [options]`,
+    "Options:",
+    `  ${queryOptions}`,
+    "  --extension-path <path>",
+    "  --user-data-dir <path>",
+    "  --mcp-port <port>",
+    "  --chrome-flag <flag>",
+    "  --screenshot <path>",
+    "  --close",
+    "  --help",
+  ].join("\n");
+
+export const inspectUsage = formatUsage(
+  "bun run scripts/dictionary-inspection/inspect.ts",
+  " <dictionary.zip>",
+  "--query <query>",
+);
+
+export const headlessUsage = formatUsage(
+  "bun run scripts/dictionary-inspection/inspect-headless.ts",
+  " <dictionary.zip>",
+  "--query <queries> | --query-file <path>",
+);
+
+export const packageInspectUsage = formatUsage(
+  "bun run inspect:dict",
+  "",
+  "--query <query>",
+);
+
+export const packageHeadlessUsage = formatUsage(
+  "bun run inspect:dict:headless",
+  "",
+  "--query <queries> | --query-file <path>",
+);
 
 const parseOptions = (
   argumentsList: readonly string[],
   index: number,
   options: ParsedOptions,
-): Result<ParsedOptions, ImportArgumentError> => {
+  usage: string,
+): Result<ParsedOptions, InspectionArgumentError> => {
   const argument = argumentsList[index];
   if (argument === undefined) return { ok: true, value: options };
 
+  if (argument === "--help" || argument === "-h") {
+    return { ok: false, error: { kind: "help", message: usage } };
+  }
+
   if (argument === "--close") {
-    return parseOptions(argumentsList, index + 1, {
-      ...options,
-      close: true,
-    });
+    return parseOptions(
+      argumentsList,
+      index + 1,
+      { ...options, close: true },
+      usage,
+    );
   }
 
   if (argument === "--mcp-port") {
@@ -62,14 +108,19 @@ const parseOptions = (
         },
       };
     }
-    return parseOptions(argumentsList, index + 2, {
-      ...options,
-      chromeFlags: [
-        ...options.chromeFlags,
-        `--remote-debugging-port=${port}`,
-        "--remote-allow-origins=*",
-      ],
-    });
+    return parseOptions(
+      argumentsList,
+      index + 2,
+      {
+        ...options,
+        chromeFlags: [
+          ...options.chromeFlags,
+          `--remote-debugging-port=${port}`,
+          "--remote-allow-origins=*",
+        ],
+      },
+      usage,
+    );
   }
 
   if (argument === "--screenshot") {
@@ -83,10 +134,12 @@ const parseOptions = (
         },
       };
     }
-    return parseOptions(argumentsList, index + 2, {
-      ...options,
-      screenshotPath: value,
-    });
+    return parseOptions(
+      argumentsList,
+      index + 2,
+      { ...options, screenshotPath: value },
+      usage,
+    );
   }
 
   if (argument === "--extension-path") {
@@ -100,10 +153,12 @@ const parseOptions = (
         },
       };
     }
-    return parseOptions(argumentsList, index + 2, {
-      ...options,
-      extensionPath: value,
-    });
+    return parseOptions(
+      argumentsList,
+      index + 2,
+      { ...options, extensionPath: value },
+      usage,
+    );
   }
 
   if (argument === "--user-data-dir") {
@@ -117,10 +172,12 @@ const parseOptions = (
         },
       };
     }
-    return parseOptions(argumentsList, index + 2, {
-      ...options,
-      userDataDirectory: value,
-    });
+    return parseOptions(
+      argumentsList,
+      index + 2,
+      { ...options, userDataDirectory: value },
+      usage,
+    );
   }
 
   if (argument === "--chrome-flag") {
@@ -134,10 +191,12 @@ const parseOptions = (
         },
       };
     }
-    return parseOptions(argumentsList, index + 2, {
-      ...options,
-      chromeFlags: [...options.chromeFlags, value],
-    });
+    return parseOptions(
+      argumentsList,
+      index + 2,
+      { ...options, chromeFlags: [...options.chromeFlags, value] },
+      usage,
+    );
   }
 
   if (argument !== "--query" && argument !== "--query-file") {
@@ -181,26 +240,36 @@ const parseOptions = (
     argument === "--query"
       ? { ...options, query: value }
       : { ...options, queryFilePath: value },
+    usage,
   );
 };
 
-export const parseImportArguments = (
+export const parseInspectionArguments = (
   argumentsList: readonly string[],
-): Result<ImportOptions, ImportArgumentError> => {
+  usage: string,
+): Result<InspectionOptions, InspectionArgumentError> => {
   const dictionaryPath = argumentsList[0];
+  if (dictionaryPath === "--help" || dictionaryPath === "-h") {
+    return { ok: false, error: { kind: "help", message: usage } };
+  }
   if (dictionaryPath === undefined) {
     return { ok: false, error: { kind: "usage", message: usage } };
   }
 
-  const parsed = parseOptions(argumentsList, 1, {
-    query: null,
-    queryFilePath: null,
-    close: false,
-    chromeFlags: [],
-    screenshotPath: null,
-    extensionPath: null,
-    userDataDirectory: null,
-  });
+  const parsed = parseOptions(
+    argumentsList,
+    1,
+    {
+      query: null,
+      queryFilePath: null,
+      close: false,
+      chromeFlags: [],
+      screenshotPath: null,
+      extensionPath: null,
+      userDataDirectory: null,
+    },
+    usage,
+  );
   if (!parsed.ok) return parsed;
 
   return {

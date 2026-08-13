@@ -19,6 +19,11 @@ interface RenderResult {
   readonly visibleText: string;
 }
 
+interface ExampleSentence {
+  readonly sentence: Element;
+  readonly source: StructuredContent | null;
+}
+
 interface MarkerSegment {
   readonly level: 3 | 4 | 5;
   readonly marker: string;
@@ -218,6 +223,15 @@ const normalizeWhitespace = (text: string): string =>
 
 const normalizeBlockText = (text: string): string =>
   normalizeWhitespace(text).trim();
+
+const formatSlashSeparatedInflectionMarker = (
+  nodes: readonly StructuredContent[],
+): readonly StructuredContent[] => {
+  const onlyNode = nodes.length === 1 ? nodes[0] : undefined;
+  return typeof onlyNode === "string"
+    ? [onlyNode.replace(/\s*\/\s*/gu, " / ")]
+    : nodes;
+};
 
 const inflectionFormLabels: readonly string[] = [
   "plural",
@@ -540,6 +554,7 @@ const renderInlineNode = (
   if (!isKnownTag(element.tagName)) {
     return renderUnsupported(root, element, path, plan);
   }
+  if (isExternalExampleAttribution(root, element)) return emptyResult();
 
   if (hasClass(root, element, "vis")) {
     const groups = root(element)
@@ -960,6 +975,47 @@ const renderAttribution = (
     : null;
 };
 
+const isExampleAttribution = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  (hasClass(root, node, "source") ||
+    hasClass(root, node, "auth") ||
+    (hasClass(root, node, "ex-sent") && hasClass(root, node, "aq")));
+
+const previousMeaningfulSibling = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): AnyNode | null => {
+  const parent = root(element).parent().get(0);
+  if (parent === undefined) return null;
+  const siblings = root(parent).contents().toArray();
+  const elementIndex = siblings.indexOf(element);
+  if (elementIndex < 0) return null;
+  return (
+    siblings
+      .slice(0, elementIndex)
+      .reverse()
+      .find(
+        (node: AnyNode): boolean =>
+          node.type !== "text" || node.data.trim().length > 0,
+      ) ?? null
+  );
+};
+
+const isExternalExampleAttribution = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): boolean => {
+  const previous = previousMeaningfulSibling(root, element);
+  return (
+    previous?.type === "tag" &&
+    hasClass(root, previous, "ex-sent-group") &&
+    isExampleAttribution(root, element)
+  );
+};
+
 const nextExampleAttribution = (
   root: cheerio.CheerioAPI,
   sentence: Element,
@@ -975,9 +1031,8 @@ const nextExampleAttribution = (
       (node: AnyNode): boolean =>
         node.type !== "text" || node.data.trim().length > 0,
     );
-  return nextMeaningful?.type === "tag" &&
-    hasClass(root, nextMeaningful, "ex-sent") &&
-    hasClass(root, nextMeaningful, "aq")
+  return nextMeaningful !== undefined &&
+    isExampleAttribution(root, nextMeaningful)
     ? renderAttribution(root, nextMeaningful)
     : null;
 };
@@ -1033,8 +1088,11 @@ const collapseExampleResults = (
             { data: unitData("extra-examples"), open: false },
           ),
         ];
+  const exampleGroup = container("div", [...first.nodes, ...extra], {
+    data: unitData("example-group", { level: 6 }),
+  });
   return renderResult(
-    [...first.nodes, ...extra],
+    [exampleGroup],
     [
       ...first.findings,
       ...remaining.flatMap(
@@ -1050,23 +1108,29 @@ const renderExampleGroups = (
   path: readonly number[],
   plan: CanonicalEntryPlan,
 ): RenderResult => {
-  const sentences = groups.flatMap((group: Element): Element[] =>
-    root(group)
-      .find(".ex-sent")
-      .toArray()
-      .filter((sentence: Element): boolean => !hasClass(root, sentence, "aq")),
+  const sentences = groups.flatMap(
+    (group: Element): readonly ExampleSentence[] => {
+      const groupSentences = root(group)
+        .find(".ex-sent")
+        .toArray()
+        .filter(
+          (sentence: Element): boolean => !hasClass(root, sentence, "aq"),
+        );
+      const groupAttribution = nextExampleAttribution(root, group);
+      return groupSentences.map(
+        (sentence: Element, index: number): ExampleSentence => ({
+          sentence,
+          source:
+            nextExampleAttribution(root, sentence) ??
+            (index === groupSentences.length - 1 ? groupAttribution : null),
+        }),
+      );
+    },
   );
 
   const examples = sentences.map(
-    (sentence: Element, index: number): RenderResult => {
-      return renderExampleSentence(
-        root,
-        sentence,
-        [...path, index],
-        plan,
-        nextExampleAttribution(root, sentence),
-      );
-    },
+    ({ sentence, source }: ExampleSentence, index: number): RenderResult =>
+      renderExampleSentence(root, sentence, [...path, index], plan, source),
   );
   return collapseExampleResults(examples);
 };
@@ -2561,7 +2625,7 @@ const renderInflectionNode = (
     const child = renderInlineChildren(root, element, path, plan);
     return renderResult(
       [
-        container("span", child.nodes, {
+        container("span", formatSlashSeparatedInflectionMarker(child.nodes), {
           data: unitData("inflection-marker", { level: 1 }),
         }),
       ],

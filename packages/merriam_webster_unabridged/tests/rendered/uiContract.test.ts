@@ -190,8 +190,34 @@ test("give thanks keeps its specific meaning in one flow with the example below"
   expect(specificDefinition.prop("tagName")?.toLowerCase()).toBe("span");
   expect(mainDefinition.text()).toContain("to say grace");
   expect(
-    specificDefinition.children('[data-sc-content="example-sentence"]').length,
+    specificDefinition.children('[data-sc-content="example-group"]').length,
   ).toBe(1);
+});
+
+test("phrase example attributions stay inside the example frame", () => {
+  const $ = rendered(giveConverted.content);
+  const specificDefinition = $(
+    '[data-sc-content="definition"][data-sc-level="3"]',
+  )
+    .filter((_, element) => $(element).text().includes("to say grace"))
+    .first();
+  const exampleGroup = specificDefinition.children(
+    '[data-sc-content="example-group"]',
+  );
+  const sources = exampleGroup.find(
+    '[data-sc-content="example-source"], [data-sc-content="example-source-inline"]',
+  );
+
+  expect(exampleGroup.length).toBe(1);
+  expect(sources.length).toBe(1);
+  expect(sources.closest('[data-sc-content="example-sentence"]').length).toBe(
+    1,
+  );
+  expect(
+    exampleGroup.next(
+      '[data-sc-content="example-source"], [data-sc-content="example-source-inline"]',
+    ).length,
+  ).toBe(0);
 });
 
 test("phrase groups, phrases, origin, synonym, and extra-example disclosures start closed with owned summaries", () => {

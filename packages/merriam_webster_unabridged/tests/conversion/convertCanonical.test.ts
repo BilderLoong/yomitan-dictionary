@@ -93,7 +93,12 @@ test("spaces slash-separated header inflection markers", () => {
         '<div class="headword-row"><span class="vg-ins"><span class="ix">-ed/-ing/-s</span></span></div>',
       ) +
       '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
-      sb(sense('<span class="num">1</span>', '<span class="dt ">to rotate</span>')) +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to rotate</span>',
+        ),
+      ) +
       "</div></div></div></mean>",
     "turn",
   );
@@ -253,6 +258,10 @@ test("shows one example and collapses the rest", () => {
 
   const examples = unitsOf(result.value.content, "example-sentence");
   expect(examples).toHaveLength(3);
+  const exampleGroups = unitsOf(result.value.content, "example-group");
+  expect(exampleGroups).toHaveLength(1);
+  expect(exampleGroups[0]?.tag).toBe("div");
+  expect(unitsOf(exampleGroups[0], "example-sentence")).toHaveLength(3);
   const extra = unitsOf(result.value.content, "extra-examples");
   expect(extra).toHaveLength(1);
   expect(extra[0]?.open).toBe(false);

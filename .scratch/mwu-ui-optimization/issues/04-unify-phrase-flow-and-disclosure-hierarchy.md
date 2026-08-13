@@ -45,10 +45,13 @@ obscuring the main definition tree.
 - Live hierarchy check: phrase summaries use the strongest text treatment,
   origin and synonym summaries use the secondary treatment, and extra-example
   summaries use smaller, quieter text. `Enter` opens an extra-example group.
-- Fine-pointer narrow layouts keep the compact disclosure row; touch
-  emulation provides a 44px keyboard/touch target without changing the
-  compact desktop rhythm.
-- The 42-state sweep covered `give`, `what`, `turn`, `sum`, and `down` in both
-  themes at 320, 360, and 760px with zero disclosure or overflow failures.
+- The live popup gate checks every origin, phrase-group, and related-item
+  summary for zero logical start indentation or border, and checks every
+  origin body against its own summary alignment.
+- Desktop search and narrow-popup layouts keep the compact disclosure row.
+  Mobile and touch adaptation are outside this work.
+- The 32-state headless sweep covered all eight acceptance words in both
+  themes on the 1100px search page and 360px popup, with zero disclosure or
+  overflow failures.
 - `uiContract.test.ts`, `what.test.ts`, and render smoke tests passed as part
-  of the 192-test suite.
+  of the 194-test suite.
