@@ -38,16 +38,16 @@ const main = async (): Promise<number> => {
   let totalBytes = 0;
   for (const word of words) {
     const row = query.get(word);
-    if (row === undefined) {
-      console.error(`No source row for ${word}`);
-      return 1;
+    if (row === null || row === undefined) {
+      console.error(`No source row for ${word}; skipping`);
+      continue;
     }
     const decodedKey = decodeURIComponent(row.encodedKey);
     if (decodedKey !== word) {
       console.error(
-        `Row ${row.id} key ${decodedKey} does not match requested ${word}`,
+        `Row ${row.id} key ${decodedKey} does not match requested ${word}; skipping`,
       );
-      return 1;
+      continue;
     }
     await writeFile(path.join(fixtureDir, `${word}.html`), row.html);
     totalBytes += row.html.length;

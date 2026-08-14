@@ -113,7 +113,7 @@ These units have evidence for their meaning and nearest-level ownership:
 - sense-label, definition-label, definition, and sub-definition;
 - usage-note, example-sentence, extra-examples, example-source, and
   example-date;
-- comparison-reference, cross-reference, and variant-reference;
+- comparison-reference, cross-reference, and relation-reference;
 - phrase, `drp-phrase-canonical-entry`, and `phrase-alternate-soft-link`;
 - undefined-run-on and run-on-form;
 - variant-qualifier, grammar-label, related-item, see-in-addition,
@@ -140,12 +140,12 @@ demand, and adds dedicated rows required by canonical soft-link targets. It
 emits `main-canonical-entry`, `alternative-spelling-canonical-entry`, and
 `drp-phrase-canonical-entry` records plus
 `main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
-`phrase-alternate-soft-link`, `cxl-ref-variant-reference-soft-link`, and
+`phrase-alternate-soft-link`, `cxl-ref-soft-link`, and
 source-confirmed `bare-affix-soft-link`
 records. Each soft link keeps its target and rules without copying the
 canonical definition. A cross-reference-only `<mean>` (for example `O` in
-the `o` row) emits its variant-reference soft link from the `.cxt`
-`bword://` target with the confirmed relation phrase as the rule. Defined
+the `o` row) emits its relation-reference soft link from the `.cxt`
+`bword://` target with the exact relation phrase as the rule. Defined
 `.drp` phrases whose examples show the interposed-object pattern serialize
 the `v_phr` rule in the term-bank rules field.
 
@@ -250,7 +250,7 @@ Six distinct shapes exist; only four were hypothesized:
 | --- | --- | --- | --- |
 | headword homograph number | `sup` in `.hword` (76% of sample) | Level 1 identity | `homograph-number` header unit, stripped from the searchable term (implemented) |
 | sense reference | NOT a `sup`: `.text-lowercase` span after a reference anchor (`1a`, `8`, `1a(1)`) | the preceding `cross-reference` | `superscript-reference` unit, lowered presentation (implemented 2026-08-07) |
-| cross-reference number | `sup` inside the anchor — homograph prefix of the `bword://TARGET[N]` target (22% of sample) | the reference anchor | generic `superscript-reference`; `a.mw_t_et_link` now carries the `origin` relation like `.mw_t_mat` (implemented) |
+| cross-reference number | `sup` inside the anchor — homograph prefix of the `bword://TARGET[N]` target (22% of sample) | the reference anchor | dropped from confirmed reference anchors (`.cxt`, `.mw_t_mat`, `.mw_t_et_link`, `.mw_t_sx`, `.mw_t_sc`, `.mw_t_dxt`); identity kept in report evidence only (implemented 2026-08-13) |
 | called-also reference number | does not exist | n/a | nothing to render; leading digits in `.cat` anchors are chemical names |
 | pronunciation superscript | literal `sup` in `.prs`/`.pr` reading content (`'em <sup>21</sup>`) | `pronunciation` | generic `superscript-reference` |
 | chemical-formula superscript | literal `sup` for charge/ion notation in examples/definitions (`Ca2+`) | `example-sentence`/`definition` | generic `superscript-reference` |
@@ -651,11 +651,16 @@ refine, or contradict them.
   and must not gain a hyphen. Literal `<br>` inside Level 6 usage prose is a
   meaningful break; `.sls` is a structural block boundary. Inline labels
   never contain either shape.
-- A `sup` inside a reference anchor is the target's homograph prefix
-  (`bword://crow[1]` renders `<sup>1</sup>crow`); a `.text-lowercase` span
-  directly after a reference anchor carries the target's sense pointer
-  (`1a`, `8`, `1a(1)`). Neither is a sense number of the current entry; both
-  stay bound to the reference.
+- A `sup` inside a confirmed reference anchor is the target's homograph
+  prefix (`bword://crow[1]` renders `<sup>1</sup>crow`); the renderer drops
+  the leading homograph `sup` from the visible label for confirmed reference
+  anchors (`.cxt`, `.mw_t_mat`, `.mw_t_et_link`, `.mw_t_sx`, `.mw_t_sc`,
+  `.mw_t_dxt`). The planner records the homograph identity in report
+  evidence for `.cxt` reference anchors (cxl `targetHomographNumber`); the
+  other confirmed anchor classes drop the prefix visually without a report
+  record. A `.text-lowercase` span directly after a reference anchor carries
+  the target's sense pointer (`1a`, `8`, `1a(1)`). Neither is a sense number
+  of the current entry; both stay bound to the reference.
 - `a.mw_t_et_link` is an etymology link and carries the same `origin`
   relation as `a.mw_t_mat`.
 - `.mw_t_a_link` and `.mw_t_i_link` are plain/italic cross-reference anchors

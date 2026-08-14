@@ -95,7 +95,7 @@ structured-content generator drops unknown tags.
 | `.aq` / `.auth` / `.aqdate` | `example-source` | `div` |
 | `.source` / `.auth` not under `.aq` | `example-source-inline` | `span` |
 | `.dx-jump` / `.mw_t_dxt` | `comparison-reference` + `cross-reference` (relation `compare`) | `div`/`span` |
-| `.cxl-ref` / `.cxl` / `.cxt` | `variant-reference` + `cross-reference` (relation `variant`) | `span` |
+| `.cxl-ref` / `.cxl` / `.cxt` | `relation-reference` (exact relation phrase) + `cross-reference` (no relation) | `span` |
 | `.mw_t_mat`, `.mw_t_sx`, `.mw_t_sc` | `cross-reference` (relations `origin`, `see`, `related`) | `span` |
 | `.ca`, `.intro`, `.cat`, `.ucat` | `called-also` | `span` |
 | `.sdsense`, `.sd` | definition continuation (no separate unit) | inline |

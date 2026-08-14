@@ -421,6 +421,50 @@ const renderTextNode = (
   return text.length === 0 ? emptyResult() : renderResult([text]);
 };
 
+/**
+ * Confirmed reference anchors are the source-known cxl target class and the
+ * cross-reference classes. A leading homograph <sup> direct child is target
+ * identity metadata, not part of the visible label.
+ */
+const isReferenceAnchor = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): boolean =>
+  hasAnyClass(root, element, [
+    "cxt",
+    "mw_t_mat",
+    "mw_t_et_link",
+    "mw_t_sx",
+    "mw_t_sc",
+    "mw_t_dxt",
+  ]);
+
+const renderReferenceAnchorChildren = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+  options: InlineOptions,
+): RenderResult => {
+  const contents = root(element).contents().toArray();
+  const firstVisible = contents.findIndex(
+    (node: AnyNode): boolean =>
+      !(node.type === "text" && node.data.trim().length === 0),
+  );
+  const leadingHomographSup =
+    firstVisible >= 0 &&
+    contents[firstVisible].type === "tag" &&
+    contents[firstVisible].tagName === "sup";
+  return combineResults(
+    contents.flatMap(
+      (child: AnyNode, index: number): readonly RenderResult[] =>
+        leadingHomographSup && index === firstVisible
+          ? []
+          : [renderInlineNode(root, child, [...path, index], plan, options)],
+    ),
+  );
+};
+
 const renderInlineNode = (
   root: cheerio.CheerioAPI,
   node: AnyNode,
@@ -505,10 +549,16 @@ const renderInlineNode = (
   }
   if (hasClass(root, element, "cxl-ref")) {
     const child = renderInlineChildren(root, element, path, plan, options);
+    const relationSpan = root(element).find(".cxl").toArray()[0];
+    const relation =
+      relationSpan === undefined ? undefined : root(relationSpan).text().trim();
     return renderResult(
       [
         container("span", child.nodes, {
-          data: unitData("variant-reference", { level: 6 }),
+          data: unitData("relation-reference", {
+            level: 6,
+            ...(relation === undefined ? {} : { relation }),
+          }),
         }),
       ],
       child.findings,
@@ -634,7 +684,9 @@ const renderInlineNode = (
     );
   }
   if (element.tagName === "a") {
-    const child = renderInlineChildren(root, element, path, plan, options);
+    const child = isReferenceAnchor(root, element)
+      ? renderReferenceAnchorChildren(root, element, path, plan, options)
+      : renderInlineChildren(root, element, path, plan, options);
     if (options.plainLinks === true) {
       return child;
     }
@@ -648,9 +700,7 @@ const renderInlineNode = (
             ? "related"
             : hasClass(root, element, "mw_t_dxt")
               ? "compare"
-              : hasClass(root, element, "cxt")
-                ? "variant"
-                : undefined;
+              : undefined;
     return renderResult(
       [
         container("span", child.nodes, {
@@ -3159,10 +3209,16 @@ const renderLooseNode = (
   }
   if (hasClass(root, element, "cxl-ref")) {
     const child = renderInlineChildren(root, element, path, plan);
+    const relationSpan = root(element).find(".cxl").toArray()[0];
+    const relation =
+      relationSpan === undefined ? undefined : root(relationSpan).text().trim();
     return renderResult(
       [
         container("span", child.nodes, {
-          data: unitData("variant-reference", { level: 6 }),
+          data: unitData("relation-reference", {
+            level: 6,
+            ...(relation === undefined ? {} : { relation }),
+          }),
         }),
       ],
       child.findings,

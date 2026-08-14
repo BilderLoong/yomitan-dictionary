@@ -5,17 +5,14 @@ The todo in     mwu-html-information-unit-catlog/README.md
 
 ## the deflectataion rules for the term_bank    
 
-## full-database build mode
-Build the whole MWU.db, not only selected words. Current CLI only supports --words and --words-file; full-database mode is future work (see README "v1 boundary").
-
 ### xl-ref
 Do a research of what's the possible pattern of other than `plural of`.
 <p class="cxl-ref"> <span class="cxl">plural of</span> <a href="gdlookup://localhost/zero" class="cxt">zero</a> </p>
 
+RESEARCHED 2026-08-13 → `.scratch/mwu-source-research/issues/08-cxl-ref-relation-phrase-inventory.md`.
+191 distinct `.cxl` phrases across 20,495 references; `plural of` is #1 (4,172).
+Approved list (8 variant phrases) covers 7,415 refs (36.2%). Decision open: which families to approve.
 
-## Entry rank
-
-The `som` rank higher than `sum` in the result of `sum`
 
 ## why when i search `down`
 there is a alternative showing with the "down" entry

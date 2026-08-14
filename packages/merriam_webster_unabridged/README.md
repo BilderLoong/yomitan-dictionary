@@ -119,9 +119,14 @@ evidence, findings, rejections, and fatal errors.
 
 ## v1 boundary
 
-The first version implements selected-word Level 1 ownership and approved
-`main-to-alternative-spelling-soft-link`, `vr-mean-alternate-soft-link`,
-`phrase-alternate-soft-link`, and `bare-affix-soft-link` relationships. It emits
+The first version implements selected-word Level 1 ownership and the soft-link
+relationships `main-to-alternative-spelling-soft-link`,
+`vr-mean-alternate-soft-link`, `phrase-alternate-soft-link`,
+`bare-affix-soft-link`, and `cxl-ref-soft-link`. Per ADR 0006,
+`cxl-ref-soft-link` accepts every complete relation phrase as its rule,
+inherits continuation relations (`or`, `and`, `or of`, `and of`) from the
+nearest preceding complete relation, and drops routes whose target emits no
+canonical entry with a `soft-link-target-not-emitted` report finding. It emits
 conservative readable definitions, deterministic reports, and schema-valid
 Yomitan archives. Canonical entries now use MWU-shaped structured content:
 semantic headers, WTY-style POS tags, native nested sense lists, scoped labels,

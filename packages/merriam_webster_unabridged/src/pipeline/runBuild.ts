@@ -91,7 +91,7 @@ const archiveFileName = "Merriam Webster Unabridged.zip";
 const archiveReportPath = archiveFileName;
 
 /**
- * Full-database builds cover the Unabridged entries only. Rows prefixed with
+ * Every build covers the Unabridged entries only. Rows prefixed with
  * another Merriam-Webster product key (`collegiate_`, `medical_`,
  * `thesaurus_`) are condensed twin entries of words already present in the
  * Unabridged; planning them doubles the corpus, and their embedded means
@@ -284,7 +284,7 @@ const cxlRefDependencyLink = (
 ): SoftLinkEntryPlan | undefined =>
   planned.softLinkEntries.find(
     (link: SoftLinkEntryPlan): boolean =>
-      link.relationship === "cxl-ref-variant-reference-soft-link" &&
+      link.relationship === "cxl-ref-soft-link" &&
       findSourceRows(index, link.target).some(
         ({ id }: IndexedSourceRow): boolean => id === dependencyId,
       ),
@@ -306,7 +306,7 @@ const dependencyReason = (
   const cxlRefLink = cxlRefDependencyLink(planned, dependencyId, index);
   return cxlRefLink === undefined
     ? "canonical-dependency"
-    : `cxl-ref-variant-reference-soft-link:${cxlRefLink.target}`;
+    : `cxl-ref-soft-link:${cxlRefLink.target}`;
 };
 
 const dependencyTarget = (
@@ -333,10 +333,14 @@ const planSelectedRows = (
     request.fullDatabase === true
       ? { rows: index.rows.filter(isUnabridgedRow), missingWords: [] }
       : resolveRootRows(index, request.requestedWords);
-  const rootIds = new Set(
-    resolvedRoots.rows.map(({ id }: IndexedSourceRow): number => id),
+  const excludedRootRows = resolvedRoots.rows.filter(
+    (row: IndexedSourceRow): boolean => !isUnabridgedRow(row),
   );
-  const pendingRows: PendingRow[] = resolvedRoots.rows.map(
+  const rootRows = resolvedRoots.rows.filter(isUnabridgedRow);
+  const rootIds = new Set(
+    rootRows.map(({ id }: IndexedSourceRow): number => id),
+  );
+  const pendingRows: PendingRow[] = rootRows.map(
     (row: IndexedSourceRow): PendingRow => ({
       row,
       rootWord: row.decodedKey,
@@ -346,7 +350,16 @@ const planSelectedRows = (
   const processedRowIds = new Set<number>();
   const plannedRows: PlannedRow[] = [];
   const dependencyRows: BuildState["dependencyRows"][number][] = [];
-  const findings: Level1Finding[] = [...index.findings];
+  const findings: Level1Finding[] = [
+    ...index.findings,
+    ...excludedRootRows.map(
+      ({ id, decodedKey }: IndexedSourceRow): Level1Finding => ({
+        kind: "non-unabridged-row-excluded",
+        rowId: id,
+        rowKey: decodedKey,
+      }),
+    ),
+  ];
   const rejections: LinkRejection[] = [];
   const errors: BuildFatalError[] = resolvedRoots.missingWords.map(
     (word: string): BuildFatalError => ({ kind: "missing-root", word }),
@@ -406,6 +419,15 @@ const planSelectedRows = (
         continue;
       }
 
+      if (!isUnabridgedRow(dependencyRow)) {
+        findings.push({
+          kind: "non-unabridged-row-excluded",
+          rowId: dependencyId,
+          rowKey: dependencyRow.decodedKey,
+        });
+        continue;
+      }
+
       const reason = dependencyReason(planned, dependencyId, index);
       if (
         !dependencyRows.some(
@@ -442,7 +464,7 @@ const planSelectedRows = (
   }
 
   return {
-    rootRows: resolvedRoots.rows,
+    rootRows,
     dependencyRows,
     plannedRows,
     findings,
@@ -636,19 +658,13 @@ const buildSelectedDictionary = async (
       resolvedSoftLinkEntries.push(link);
       continue;
     }
-    if (fullDatabase) {
-      // The target spelling exists in the source but its dedicated row
-      // emits no canonical entry (for example a definition-free variant
-      // row). The link cannot resolve; drop it and stay auditable.
-      softLinkTargetFindings.push({
-        kind: "soft-link-target-not-emitted",
-        lookup: link.lookup,
-        target: link.target,
-      });
-      continue;
-    }
-    errors.push({
-      kind: "missing-dependency",
+    // The target spelling exists in the source but its dedicated row
+    // emits no canonical entry (for example a definition-free variant
+    // row). The link cannot resolve; drop it and stay auditable. This
+    // applies to selected and full builds alike.
+    softLinkTargetFindings.push({
+      kind: "soft-link-target-not-emitted",
+      lookup: link.lookup,
       target: link.target,
     });
   }

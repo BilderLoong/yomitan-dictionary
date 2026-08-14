@@ -45,3 +45,19 @@ export const cxlRef = (
   '" class="cxt">' +
   visibleTarget +
   "</a></p>";
+
+export const cxlRefs = (relation: string, targets: readonly string[]): string =>
+  '<p class="cxl-ref"><span class="cxl">' +
+  relation +
+  "</span>" +
+  targets
+    .map(
+      (target: string): string =>
+        '<a rel="prev" href="bword://' +
+        target +
+        '" class="cxt">' +
+        target +
+        "</a>",
+    )
+    .join(", ") +
+  "</p>";

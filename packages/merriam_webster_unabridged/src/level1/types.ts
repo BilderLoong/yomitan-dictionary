@@ -32,15 +32,30 @@ export type Level1Finding =
       readonly kind: "cxl-ref-not-emitted";
       readonly rowId: number;
       readonly meanIndex: number;
-      readonly relation: string | null;
+      readonly referenceIndex: number;
+      readonly targetIndex: number;
+      readonly rawRelation: string | null;
+      readonly effectiveRelation: string | null;
       readonly target: string | null;
-      readonly reason: "unapproved-relation" | "missing-target" | "self-link";
+      readonly homographNumber: string | null;
+      readonly reason:
+        | "empty-relation"
+        | "orphan-continuation"
+        | "missing-target-href"
+        | "unsupported-target-href"
+        | "self-link"
+        | "target-row-absent";
       readonly preview: string;
     }
   | {
       readonly kind: "soft-link-target-not-emitted";
       readonly lookup: string;
       readonly target: string;
+    }
+  | {
+      readonly kind: "non-unabridged-row-excluded";
+      readonly rowId: number;
+      readonly rowKey: string;
     };
 
 export type SoftLinkEntryRelationship =
@@ -48,7 +63,7 @@ export type SoftLinkEntryRelationship =
   | "vr-mean-alternate-soft-link"
   | "phrase-alternate-soft-link"
   | "bare-affix-soft-link"
-  | "cxl-ref-variant-reference-soft-link";
+  | "cxl-ref-soft-link";
 
 export interface LinkEvidence {
   readonly rowId: number;
@@ -58,6 +73,16 @@ export interface LinkEvidence {
   readonly selector: string;
   readonly qualifier: string | null;
   readonly localText: string;
+  /** Reference position within the owning mean; set for cxl evidence. */
+  readonly referenceIndex?: number;
+  /** Target position within the reference; set for cxl evidence. */
+  readonly targetIndex?: number;
+  /** Raw source relation phrase (trimmed); set for cxl evidence. */
+  readonly rawRelation?: string | null;
+  /** Effective relation used for the emitted rule; may be inherited. */
+  readonly effectiveRelation?: string | null;
+  /** Target homograph identity from the source href; report evidence only. */
+  readonly targetHomographNumber?: string;
 }
 
 export interface SoftLinkEntryPlan {
