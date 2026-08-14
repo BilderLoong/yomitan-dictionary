@@ -269,7 +269,6 @@ const waitForInspectionStop = (browserContext: BrowserContext): Promise<void> =>
   });
 
 const dictionaryTitle = "Merriam Webster Unabridged";
-const defaultHumanQuery = "what";
 const recommendedEnglishTerminationCharacters = [
   {
     enabled: true,
@@ -1412,31 +1411,20 @@ const assertDisclosureKeyboardInteraction = async (
 };
 
 const resolveSearchQueries = async (
-  mode: InspectionMode,
   options: InspectionOptions,
 ): Promise<readonly string[]> => {
-  if (mode === "visible" && options.queryFilePath !== null) {
-    throw new Error(
-      "The visible inspector accepts one --query, not --query-file",
-    );
-  }
+  const queryText = options.queryFilePath
+    ? await readFile(path.resolve(options.queryFilePath), "utf8")
+    : options.query;
 
-  const queryText =
-    options.queryFilePath === null
-      ? (options.query ??
-        (mode === "visible"
-          ? defaultHumanQuery
-          : await readFile(
-              path.resolve(import.meta.dirname, "../../tests/testWords.txt"),
-              "utf8",
-            )))
-      : await readFile(path.resolve(options.queryFilePath), "utf8");
-  const searchQueries = queriesFromText(queryText);
-  if (searchQueries.length === 0) {
+  if (queryText === null || queryText.trim() === "") {
     throw new Error("No search queries were supplied");
   }
-  if (mode === "visible" && searchQueries.length !== 1) {
-    throw new Error("The visible inspector requires exactly one query");
+
+  const searchQueries = queriesFromText(queryText);
+
+  if (searchQueries.length === 0) {
+    throw new Error("No search queries were supplied");
   }
   return searchQueries;
 };
@@ -1490,7 +1478,7 @@ export const runDictionaryInspection = async (
   runOptions: InspectionRunOptions,
 ): Promise<void> => {
   const { mode, ...options } = runOptions;
-  const searchQueries = await resolveSearchQueries(mode, options);
+  const searchQueries = await resolveSearchQueries(options);
   if (mode === "headless") {
     const missingPresentationQueries = presentationQueries.filter(
       (query): boolean => !searchQueries.includes(query),
@@ -1563,9 +1551,9 @@ export const runDictionaryInspection = async (
     await settingsPage.close();
 
     const themes = ["light", "dark"] as const;
-    await searchPage.setViewportSize({ width: 1100, height: 900 });
+    // await searchPage.setViewportSize({ width: 1100, height: 900 });
     if (mode === "visible") {
-      const query = searchQueries[0];
+      const query = searchQueries.join(" ");
       if (query === undefined) throw new Error("No visible query was supplied");
       await openSearchResult(searchPage, searchPageUrl, query);
       await setTheme(searchPage, "light");

@@ -207,12 +207,12 @@ ol[data-sc-content="mwu-level"][data-sc-level="4"] {
   margin-block: 0.4em 0.25em;
   padding-block: 0.15em 0.25em;
   padding-inline: 0.7em;
-  border-radius: 0.45em;
-  background-color: color-mix(
+  /* border-radius: 0.45em; */
+  /* background-color: color-mix(
     in srgb,
     var(--text-color, #242424) 4%,
     var(--background-color, #ffffff)
-  );
+  ); */
 }
 [data-sc-content="example-sentence"] {
   display: list-item;
@@ -794,6 +794,15 @@ ol[data-sc-content="mwu-level"][data-sc-level="2"]
 [data-sc-content="usage-note"] > [data-sc-content="example-group"] {
   margin-inline-start: 0.55em;
 }
+
+[data-sc-content="definition-text"] {
+  /* background-color: color-mix(
+    in srgb,
+    var(--text-color, #242424) 4%,
+    var(--background-color, #ffffff)
+  ); */
+}
+
 [data-sc-content="usage-note"]
   > [data-sc-content="example-group"]
   > details[data-sc-content="extra-examples"]
