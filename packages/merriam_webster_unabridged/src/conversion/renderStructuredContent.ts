@@ -45,6 +45,11 @@ interface SenseRecord {
   readonly findings: readonly ConversionFinding[];
 }
 
+interface DefinitionTextFold {
+  readonly output: readonly StructuredContent[];
+  readonly run: readonly StructuredContent[];
+}
+
 interface NodeOptions {
   readonly data?: StructuredContentData;
   readonly title?: string;
@@ -1198,6 +1203,50 @@ const renderScopedDefinition = (
   );
 };
 
+const isDefinitionTextBoundary = (node: StructuredContent): boolean => {
+  const content = dataContent(node);
+  if (content === "example-group" || content === "usage-note") return true;
+  if (content !== "definition") return false;
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    !Array.isArray(node) &&
+    "data" in node &&
+    node.data?.level === "3"
+  );
+};
+
+const wrapDefinitionTextRun = (
+  run: readonly StructuredContent[],
+): readonly StructuredContent[] =>
+  run.length === 0 || run.map(nodeVisibleText).join("").trim().length === 0
+    ? run
+    : [
+        container("span", run, {
+          data: unitData("definition-text", { level: 5 }),
+        }),
+      ];
+
+const groupDefinitionText = (
+  nodes: readonly StructuredContent[],
+): readonly StructuredContent[] => {
+  const folded: DefinitionTextFold = nodes.reduce(
+    (state: DefinitionTextFold, node: StructuredContent): DefinitionTextFold =>
+      isDefinitionTextBoundary(node)
+        ? {
+            output: [
+              ...state.output,
+              ...wrapDefinitionTextRun(state.run),
+              node,
+            ],
+            run: [],
+          }
+        : { output: state.output, run: [...state.run, node] },
+    { output: [], run: [] },
+  );
+  return [...folded.output, ...wrapDefinitionTextRun(folded.run)];
+};
+
 const renderDefinitionFlow = (
   root: cheerio.CheerioAPI,
   element: Element,
@@ -1228,9 +1277,11 @@ const renderDefinitionFlow = (
     },
   );
   const combined = combineResults(results);
+  const children =
+    level === 5 ? groupDefinitionText(combined.nodes) : combined.nodes;
   return renderResult(
     [
-      container("div", combined.nodes, {
+      container("div", children, {
         data: unitData("definition", { level }),
       }),
     ],

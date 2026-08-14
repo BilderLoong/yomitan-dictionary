@@ -181,9 +181,9 @@ describe("term-bank level 1 generation test", () => {
       ["role-play", null, ""],
     ]);
     expect(termBank.slice(0, 3).map(definitionHash)).toEqual([
-      "4c2c787509526f255648d63a7fb08ca12e17405665fead11940c9fee4e29bdfe",
-      "e7690a6ac8c544178ad8dedf0cbf401c85ada6927d631ff6b7b10720c88fe59a",
-      "fdbf0e85ac70812edd1839082a78916009f84a164adf04850cc946baa6e43775",
+      "34cfe52641201539e0273abed5d655bcd6979e30958b474247dba06c0a1db037",
+      "21f160a9ab2042bdcb93a1caebb40a103c55b332dd6d84c63d4d25b63845c59e",
+      "59a24cb4a80d23b2197125c70b52f65e4823ecec9cd120547eb7c4fa49460c64",
     ]);
   }, 90_000);
 

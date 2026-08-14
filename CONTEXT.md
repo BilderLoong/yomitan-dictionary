@@ -165,6 +165,12 @@ metadata that remains attached to its nearest source owner and source order,
 even when it renders inline.
 _Avoid_: anonymous wrapper, flattened text
 
+**Definition text**:
+The primary meaning content owned by an individual definition. It includes the
+source definition marker and inline semantic content, but excludes examples and
+usage notes owned by that definition.
+_Avoid_: definition container, example text, usage-note text
+
 **Local tag**:
 A short usage, register, subject, applicability, grammar, or definition
 qualifier inside structured content. Examples such as `archaic`, `cricket`,

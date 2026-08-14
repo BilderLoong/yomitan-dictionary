@@ -104,3 +104,103 @@ test("renders the first known use verbatim inside the collapsed origin section",
     bodyText.indexOf("Middle English"),
   );
 });
+
+test("primary definition text is wrapped in Level 5 definition-text spans", () => {
+  const sense1cDefinitionText = $(
+    'span[data-sc-content="definition-text"][data-sc-level="5"]',
+  ).filter((_, element) => $(element).text().includes(": how much"));
+  expect(sense1cDefinitionText.length).toBe(1);
+  expect(sense1cDefinitionText.text()).toBe(": how much ");
+  expect(
+    sense1cDefinitionText.next('[data-sc-content="example-group"]').length,
+  ).toBe(1);
+
+  const units = $('[data-sc-content="definition-text"]');
+  expect(units.length).toBeGreaterThan(0);
+  units.each((_, element) => {
+    const unit = $(element);
+    expect(unit.prop("tagName")?.toLowerCase()).toBe("span");
+    expect(unit.attr("data-sc-level")).toBe("5");
+    expect(unit.text().trim().length).toBeGreaterThan(0);
+  });
+
+  const references = $(
+    'div[data-sc-content="definition"][data-sc-level="5"] [data-sc-content="cross-reference"], div[data-sc-content="definition"][data-sc-level="5"] [data-sc-content="superscript-reference"]',
+  );
+  expect(references.length).toBeGreaterThan(0);
+  references.each((_, element) => {
+    const reference = $(element);
+    // References owned by a boundary unit (for example a "compare"
+    // cross-reference inside a usage note) stay outside by design.
+    if (
+      reference.closest(
+        '[data-sc-content="usage-note"], [data-sc-content="example-group"], [data-sc-content="definition"][data-sc-level="3"]',
+      ).length === 1
+    ) {
+      return;
+    }
+    expect(
+      reference.closest('span[data-sc-content="definition-text"]').length,
+    ).toBe(1);
+  });
+
+  const definitions = $('div[data-sc-content="definition"][data-sc-level="5"]');
+  expect(definitions.length).toBeGreaterThan(0);
+  definitions.each((_, element) => {
+    const bareText = $(element)
+      .contents()
+      .filter(
+        (_, node) =>
+          node.type === "text" &&
+          typeof node.data === "string" &&
+          node.data.trim().length > 0,
+      );
+    expect(bareText.length).toBe(0);
+  });
+
+  const multiRun = definitions
+    .filter((_, element) =>
+      $(element).text().includes("punishment especially by blows"),
+    )
+    .first();
+  expect(multiRun.length).toBe(1);
+  expect(
+    multiRun
+      .children()
+      .map((_, element) => $(element).attr("data-sc-content"))
+      .get(),
+  ).toEqual([
+    "definition-text",
+    "example-group",
+    "definition-text",
+    "example-group",
+    "definition-text",
+    "example-group",
+  ]);
+  expect(
+    multiRun
+      .children('span[data-sc-content="definition-text"]')
+      .map((_, element) => $(element).text())
+      .get(),
+  ).toEqual([
+    ": punishment especially by blows or by a sharp reprimand ",
+    " : rough treatment inflicted especially on an offender ",
+    " : severe pain ",
+  ]);
+
+  const usageOnly = definitions
+    .filter((_, element) => {
+      const definition = $(element);
+      const children = definition.children();
+      return (
+        children.length > 0 &&
+        children.filter('[data-sc-content="usage-note"]').length ===
+          children.length
+      );
+    })
+    .first();
+  expect(usageOnly.length).toBe(1);
+  expect(usageOnly.children('[data-sc-content="definition-text"]').length).toBe(
+    0,
+  );
+});
