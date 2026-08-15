@@ -174,9 +174,12 @@ and determinism tests are under `tests/`. The browser harness can import a
 production ZIP with:
 
 ```bash
+# Targeted headless smoke check: requested entries on search and popup surfaces.
+bun run inspect:dict:headless -- --query because --close
+
 # Headless full E2E: eight words, both themes, search and popup surfaces,
 # computed-layout checks, and keyboard disclosure interaction.
-bun run inspect:dict:headless -- --close
+bun run inspect:dict:headless -- --query-file tests/testWords.txt --close
 
 # Human visual review: open one real entry and leave the visible browser open.
 bun run inspect:dict -- --query turn
@@ -190,7 +193,7 @@ bun run inspect:dict:headless -- --help
 
 # Run a script directly against an existing ZIP, without rebuilding it.
 bun run scripts/dictionary-inspection/inspect-headless.ts \
-  "build/Merriam Webster Unabridged.zip" --close
+  "build/Merriam Webster Unabridged.zip" --query because --close
 
 # Direct adapter help documents the required existing ZIP argument.
 bun run scripts/dictionary-inspection/inspect-headless.ts --help

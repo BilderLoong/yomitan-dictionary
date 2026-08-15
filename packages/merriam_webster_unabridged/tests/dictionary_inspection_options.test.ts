@@ -12,6 +12,7 @@ import {
   queriesFromText,
 } from "../scripts/dictionary-inspection/options";
 import {
+  getMissingPresentationQueries,
   getOwnedInspectionProfilePath,
   getVisibleInspectionStatus,
   materializeInspectionSettings,
@@ -213,6 +214,37 @@ test("reads comma- and newline-delimited queries in order", () => {
     "what",
     "take the word",
     "in",
+    "o",
+  ]);
+});
+
+test("allows an explicit headless query without the full presentation suite", () => {
+  const parsed = parseInspectionArguments(
+    ["dictionary.zip", "--query", "because", "--close"],
+    headlessUsage,
+  );
+  expect(parsed.ok).toBe(true);
+  if (!parsed.ok) return;
+
+  expect(getMissingPresentationQueries(parsed.value, ["because"])).toEqual([]);
+});
+
+test("keeps the full presentation suite for a headless query file", () => {
+  const parsed = parseInspectionArguments(
+    ["dictionary.zip", "--query-file", "queries.txt", "--close"],
+    headlessUsage,
+  );
+  expect(parsed.ok).toBe(true);
+  if (!parsed.ok) return;
+
+  expect(getMissingPresentationQueries(parsed.value, ["because"])).toEqual([
+    "what",
+    "in",
+    "give",
+    "put",
+    "sum",
+    "down",
+    "turn",
     "o",
   ]);
 });

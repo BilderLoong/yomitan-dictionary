@@ -14,7 +14,7 @@
   display: block;
   min-width: 0;
   margin-block-start: 0.15em;
-  color: var(--text-color-light2, #666666);
+  color: var(--text-color-light2, #66666);
   line-height: 1.35;
 }
 [data-sc-content="mwu-header-pronunciation-notes"] {
@@ -512,6 +512,7 @@ details[data-sc-content="origin"] {
   border-inline-start: 0;
 }
 
+details[data-sc-content="usage-note"] > summary,
 details[data-sc-content="origin"] > summary,
 details[data-sc-content="related-item"] > summary,
 details[data-sc-content="phrase-group"] > summary {
@@ -836,4 +837,8 @@ details[data-sc-content="phrase"][open] > summary {
     padding-block: 0.3em;
     display: list-item;
   }
+}
+
+[data-sc-content="usage-explanation"] {
+  color: var(--text-color, #242424);
 }

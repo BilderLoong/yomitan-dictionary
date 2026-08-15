@@ -28,6 +28,16 @@ const presentationQueries = [
 type PresentationQuery = (typeof presentationQueries)[number];
 type PresentationSurface = "popup" | "search";
 
+export const getMissingPresentationQueries = (
+  options: InspectionOptions,
+  searchQueries: readonly string[],
+): readonly PresentationQuery[] =>
+  options.query === null
+    ? presentationQueries.filter(
+        (query): boolean => !searchQueries.includes(query),
+      )
+    : [];
+
 interface PresentationContext {
   readonly query: PresentationQuery;
   readonly surface: PresentationSurface;
@@ -660,6 +670,51 @@ const openSearchPopup = async (
     throw new Error(`Popup returned no dictionary entry for: ${query}`);
   }
   return popupPage;
+};
+
+const assertTargetedEntry = async (
+  page: Page,
+  query: string,
+  surface: PresentationSurface,
+): Promise<void> => {
+  const entryCount = await page
+    .locator('[data-sc-content="mwu-entry"]')
+    .count();
+  if (entryCount === 0) {
+    throw new Error(`${surface} did not render MWU content for: ${query}`);
+  }
+};
+
+const inspectTargetedQueries = async (
+  browserContext: BrowserContext,
+  searchPage: Page,
+  searchPageUrl: string,
+  searchQueries: readonly string[],
+): Promise<void> => {
+  for (const query of searchQueries) {
+    await openSearchResult(searchPage, searchPageUrl, query);
+    await assertTargetedEntry(searchPage, query, "search");
+  }
+
+  const firstQuery = searchQueries[0];
+  if (firstQuery === undefined)
+    throw new Error("No search queries were supplied");
+  const popupPage = await openSearchPopup(
+    browserContext,
+    searchPage,
+    searchPageUrl,
+    firstQuery,
+  );
+  for (const query of searchQueries) {
+    if (query !== firstQuery) {
+      await openSearchResult(popupPage, searchPageUrl, query);
+    }
+    await assertTargetedEntry(popupPage, query, "popup");
+  }
+
+  console.log(
+    `Targeted headless inspection passed for: ${searchQueries.join(", ")}`,
+  );
 };
 
 const assertEntryPresentation = async (
@@ -1480,8 +1535,9 @@ export const runDictionaryInspection = async (
   const { mode, ...options } = runOptions;
   const searchQueries = await resolveSearchQueries(options);
   if (mode === "headless") {
-    const missingPresentationQueries = presentationQueries.filter(
-      (query): boolean => !searchQueries.includes(query),
+    const missingPresentationQueries = getMissingPresentationQueries(
+      options,
+      searchQueries,
     );
     if (missingPresentationQueries.length > 0) {
       throw new Error(
@@ -1560,6 +1616,16 @@ export const runDictionaryInspection = async (
       await saveScreenshot(searchPage, options.screenshotPath);
       console.log(getVisibleInspectionStatus(query, options.close));
       if (!options.close) await waitForInspectionStop(browserContext);
+      return;
+    }
+
+    if (options.query !== null) {
+      await inspectTargetedQueries(
+        browserContext,
+        searchPage,
+        searchPageUrl,
+        searchQueries,
+      );
       return;
     }
 
