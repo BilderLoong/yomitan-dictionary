@@ -173,7 +173,9 @@ span[data-sc-content="verb-subtype"] {
   padding: calc(2.5em / var(--font-size-no-units)) 0.375em
     calc(2.5em / var(--font-size-no-units)) 0.375em;
   border-radius: calc(
-    0.25em * var(--font-size-no-units) / var(--tag-font-size-no-units)
+    0.25em *
+    var(--font-size-no-units) /
+    var(--tag-font-size-no-units)
   );
   min-height: var(--tag-height);
   background-color: var(
@@ -370,6 +372,7 @@ details[data-sc-content="related-item"],
 details[data-sc-content="phrase-group"] {
   padding-left: unset;
 }
+details[data-sc-content="usage-note"] > summary,
 details[data-sc-content="origin"] > summary,
 details[data-sc-content="related-item"] > summary,
 details[data-sc-content="phrase-group"] > summary {
@@ -379,4 +382,8 @@ details[data-sc-content="phrase-group"] > summary {
   color: var(--text-color-light2, #666666);
   font-weight: 600;
   margin-block: 0.25em;
+}
+
+[data-sc-content="usage-explanation"] {
+  color: var(--text-color, #242424);
 }

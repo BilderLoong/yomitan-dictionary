@@ -332,8 +332,9 @@ table_collegiate_alphabet) and inspecting the resulting ZIP records.
 - **Level 6 `.see-in-addition`**: same compact non-interactive pointer
   treatment as Level 1 (`see-in-addition` unit); the `#usage-notes` and
   `.usage` placements (`because`, `finalize`, `he`, `one`, `they`) are
-  confirmed but not yet wired through the renderer's usage-notes traversal
-  (implementation follow-up).
+  rendered as Level 6 content. The real `because` and `he` build records
+  preserve the source text and target order, and discard the navigation href
+  (verified by focused integration and archive inspection).
 - **`.sgram`**: stays scoped inline `grammar-label` content; it is not part of
   the entry-owned `.fl` functional tag bank because its scope is local.
 
@@ -467,11 +468,8 @@ that a source block boundary can require a line break even without a literal
 - `.sgram` tag promotion: the fixture renders it as scoped inline grammar text.
   It is not part of the functional `.fl` tag bank because its scope is local;
   the functional-label inventory audits only entry-owned `.fl` values;
-- the renderer traversal for Level 6 `.see-in-addition` lines in
-  `#usage-notes` and `.usage` (ownership confirmed; the 
-  `def-accordion-sections`/`.usages > .usage` paths are not yet collected)
-  and for `.sdsense`-sibling example attributions is implementation
-  follow-up, not an open presentation question;
+- `.sdsense`-sibling example attributions remain an implementation follow-up,
+  not an open presentation question;
 - general visual markup such as `.mw_t_it`: preserved as presentation evidence,
   but not assumed to carry semantic meaning;
 - `.mw_t_bold` and `.visible-phone`: presentation-only wrappers, no unit.

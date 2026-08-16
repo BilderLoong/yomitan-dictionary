@@ -437,6 +437,7 @@ const isReferenceAnchor = (
     "mw_t_sx",
     "mw_t_sc",
     "mw_t_dxt",
+    "ua-link",
   ]);
 
 const renderReferenceAnchorChildren = (
@@ -462,6 +463,46 @@ const renderReferenceAnchorChildren = (
           ? []
           : [renderInlineNode(root, child, [...path, index], plan, options)],
     ),
+  );
+};
+
+type SeeInAdditionOwnership =
+  | { readonly kind: "confirmed"; readonly level: 1 | 6 }
+  | { readonly kind: "unsupported" };
+
+const seeInAdditionOwnership = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): SeeInAdditionOwnership => {
+  const owner = root(element)
+    .closest(".synonym-discussion, #usage-notes, .usage")
+    .get(0);
+  if (owner === undefined) return { kind: "unsupported" };
+  if (hasClass(root, owner, "synonym-discussion")) {
+    return { kind: "confirmed", level: 1 };
+  }
+  return { kind: "confirmed", level: 6 };
+};
+
+const renderSeeInAddition = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+  options: InlineOptions = {},
+): RenderResult => {
+  const ownership = seeInAdditionOwnership(root, element);
+  if (ownership.kind === "unsupported") {
+    return renderUnsupported(root, element, path, plan);
+  }
+  const child = renderInlineChildren(root, element, path, plan, options);
+  return renderResult(
+    [
+      container("div", child.nodes, {
+        data: unitData("see-in-addition", { level: ownership.level }),
+      }),
+    ],
+    child.findings,
   );
 };
 
@@ -565,11 +606,7 @@ const renderInlineNode = (
     );
   }
   if (hasClass(root, element, "see-in-addition")) {
-    const child = renderInlineChildren(root, element, path, plan, options);
-    return renderResult(
-      [container("div", child.nodes, { data: unitData("see-in-addition") })],
-      child.findings,
-    );
+    return renderSeeInAddition(root, element, path, plan, options);
   }
   if (hasClass(root, element, "urefs") || hasClass(root, element, "ur")) {
     return renderUsageDiscussionReference(root, element, path, plan);
@@ -1099,20 +1136,18 @@ const partitionExampleRuns = (
   root: cheerio.CheerioAPI,
   nodes: readonly AnyNode[],
 ): readonly (readonly AnyNode[])[] => {
-  const runs: (readonly AnyNode[])[] = [];
-  let current: AnyNode[] = [];
-  let previousGroup = false;
-  for (const node of nodes) {
-    const isGroup = isExampleGroup(root, node);
-    if (current.length > 0 && isGroup !== previousGroup) {
-      runs.push(current);
-      current = [];
-    }
-    current.push(node);
-    previousGroup = isGroup;
-  }
-  if (current.length > 0) runs.push(current);
-  return runs;
+  const first = nodes[0];
+  if (first === undefined) return [];
+
+  const firstIsGroup = isExampleGroup(root, first);
+  const boundary = nodes.findIndex(
+    (node: AnyNode, index: number): boolean =>
+      index > 0 && isExampleGroup(root, node) !== firstIsGroup,
+  );
+  if (boundary < 0) return [nodes];
+  return [nodes.slice(0, boundary)].concat(
+    partitionExampleRuns(root, nodes.slice(boundary)),
+  );
 };
 
 /**
@@ -1126,27 +1161,44 @@ const renderNodeRuns = (
   path: readonly number[],
   plan: CanonicalEntryPlan,
   dispatch: (node: AnyNode, index: number) => RenderResult,
-): readonly RenderResult[] => {
-  const results: RenderResult[] = [];
-  for (const run of partitionExampleRuns(root, nodes)) {
-    if (run.every((node: AnyNode): boolean => isExampleGroup(root, node))) {
-      const groups = run.filter((node: AnyNode): node is Element =>
-        isExampleGroup(root, node),
+): readonly RenderResult[] =>
+  partitionExampleRuns(root, nodes).reduce(
+    (
+      results: readonly RenderResult[],
+      run: readonly AnyNode[],
+    ): readonly RenderResult[] => {
+      if (run.every((node: AnyNode): boolean => isExampleGroup(root, node))) {
+        const groups = run.filter((node: AnyNode): node is Element =>
+          isExampleGroup(root, node),
+        );
+        return results.concat(renderExampleGroups(root, groups, path, plan));
+      }
+      return results.concat(
+        run.map(
+          (node: AnyNode, index: number): RenderResult =>
+            dispatch(node, results.length + index),
+        ),
       );
-      results.push(renderExampleGroups(root, groups, path, plan));
-      continue;
-    }
-    for (const node of run) {
-      results.push(dispatch(node, results.length));
-    }
-  }
-  return results;
-};
+    },
+    [],
+  );
 
 const collectUsageNotes = (
   root: cheerio.CheerioAPI,
   element: Element,
-): Element[] => root(element).find(".un").toArray();
+): Element[] => root(element).find(".un, .usage").toArray();
+
+const collectUsageSeeInAddition = (
+  root: cheerio.CheerioAPI,
+  usage: Element,
+): Element[] =>
+  root(usage)
+    .find(".see-in-addition")
+    .toArray()
+    .filter(
+      (pointer: Element): boolean =>
+        root(pointer).closest(".un, .usage").get(0) === usage,
+    );
 
 const collectStandaloneUsageExamples = (
   root: cheerio.CheerioAPI,
@@ -1169,13 +1221,19 @@ const renderUsageNotes = (
 ): RenderResult => {
   const usageNodes = collectUsageNotes(root, element).map(
     (usage: Element, index: number): RenderResult => {
+      if (
+        hasClass(root, usage, "usage") &&
+        hasFlatUsageDiscussion(root, usage)
+      ) {
+        return renderUsageDiscussion(root, usage, [...path, index], plan);
+      }
       const textParts = root(usage)
-        .children()
+        .contents()
         .toArray()
         .map(
           (child: AnyNode, childIndex: number): RenderResult =>
             renderInlineNode(root, child, [...path, index, childIndex], plan, {
-              skipClasses: ["vis", "un", "uns"],
+              skipClasses: ["vis", "un", "uns", "see-in-addition"],
             }),
         );
       const examples = root(usage)
@@ -1190,6 +1248,17 @@ const renderUsageNotes = (
         );
       const text = combineResults(textParts);
       const exampleResults = combineResults(examples);
+      const seeInAdditionResults = combineResults(
+        collectUsageSeeInAddition(root, usage).map(
+          (pointer: Element, pointerIndex: number): RenderResult =>
+            renderInlineNode(
+              root,
+              pointer,
+              [...path, index, 100 + pointerIndex],
+              plan,
+            ),
+        ),
+      );
       const spacedText: readonly StructuredContent[] = text.nodes.map(
         (content: StructuredContent): StructuredContent =>
           content === "—" ? "— " : content,
@@ -1204,11 +1273,23 @@ const renderUsageNotes = (
             ];
       return renderResult(
         [
-          container("div", [...textSpan, ...exampleResults.nodes], {
-            data: unitData("usage-note", { level: 6 }),
-          }),
+          container(
+            "div",
+            [
+              ...textSpan,
+              ...exampleResults.nodes,
+              ...seeInAdditionResults.nodes,
+            ],
+            {
+              data: unitData("usage-note", { level: 6 }),
+            },
+          ),
         ],
-        [...text.findings, ...exampleResults.findings],
+        [
+          ...text.findings,
+          ...exampleResults.findings,
+          ...seeInAdditionResults.findings,
+        ],
       );
     },
   );
@@ -1730,6 +1811,40 @@ const renderDefinitionSection = (
   );
 };
 
+const renderEntryUsageNotes = (
+  root: cheerio.CheerioAPI,
+  owner: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const section = root(owner).find("#usage-notes").first().get(0);
+  if (section === undefined) return emptyResult();
+
+  const title = root(section).find(".toggle .text").first().get(0);
+  const summaryText = title === undefined ? "Usage" : elementText(root, title);
+  const body = root(section).find(".section-content").first().get(0);
+  if (body === undefined) return emptyResult();
+
+  const content = renderLooseChildren(root, body, path, plan);
+  return content.nodes.length === 0
+    ? emptyResult()
+    : renderResult(
+        [
+          container(
+            "details",
+            [
+              disclosureSummary(summaryText, "usage-note", 6),
+              container("div", content.nodes, {
+                data: unitData("usage-note-text", { level: 6 }),
+              }),
+            ],
+            { data: unitData("usage-note", { level: 6 }), open: false },
+          ),
+        ],
+        content.findings,
+      );
+};
+
 const renderOriginNode = (
   root: cheerio.CheerioAPI,
   node: AnyNode,
@@ -1897,6 +2012,65 @@ const renderSynonymInlineNodes = (
     ),
   );
 
+const isFlatExampleSentence = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  hasClass(root, node, "ex-sent") &&
+  !hasClass(root, node, "aq");
+
+const isFlatExampleAttribution = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): node is Element =>
+  node.type === "tag" &&
+  hasClass(root, node, "ex-sent") &&
+  hasClass(root, node, "aq");
+
+const isPairedFlatExampleAttribution = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): boolean => {
+  if (!isFlatExampleAttribution(root, node)) return false;
+  const previous = previousMeaningfulSibling(root, node);
+  return previous !== null && isFlatExampleSentence(root, previous);
+};
+
+const renderFlatExamplePairs = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const examples = collapseExampleResults(
+    nodes.flatMap((node: AnyNode, index: number): readonly RenderResult[] => {
+      if (!isFlatExampleSentence(root, node)) return [];
+      const nestedAttribution = root(node).find(".aq").first().get(0);
+      return [
+        renderExampleSentence(
+          root,
+          node,
+          [...path, index],
+          plan,
+          nextExampleAttribution(root, node) ??
+            (nestedAttribution === undefined
+              ? null
+              : renderAttribution(root, nestedAttribution)),
+        ),
+      ];
+    }),
+  );
+  const unmatchedAttributions = nodes.flatMap(
+    (node: AnyNode, index: number): readonly RenderResult[] =>
+      isFlatExampleAttribution(root, node) &&
+      !isPairedFlatExampleAttribution(root, node)
+        ? [renderUnsupported(root, node, [...path, index], plan)]
+        : [],
+  );
+  return combineResults([examples, ...unmatchedAttributions]);
+};
+
 const isStandaloneSynonymExample = (
   root: cheerio.CheerioAPI,
   node: AnyNode,
@@ -1940,19 +2114,159 @@ const renderSynonymExamples = (
     nodes.flatMap((node: AnyNode, index: number): readonly RenderResult[] => {
       if (!isStandaloneSynonymExample(root, node)) return [];
       const sibling = nextSynonymAttribution(root, nodes, index);
-      const siblingSource =
-        sibling === undefined ? null : renderAttribution(root, sibling);
-      const nestedAttribution = root(node).find(".aq").first().get(0);
-      const source =
-        siblingSource ??
-        (nestedAttribution === undefined
-          ? null
-          : renderAttribution(root, nestedAttribution));
       return [
-        renderExampleSentence(root, node, [...path, index], plan, source),
+        renderExampleSentence(
+          root,
+          node,
+          [...path, index],
+          plan,
+          sibling === undefined ? null : renderAttribution(root, sibling),
+        ),
       ];
     }),
   );
+
+type UsageDiscussionRun = {
+  readonly kind: "explanation" | "examples" | "see-in-addition";
+  readonly nodes: readonly AnyNode[];
+};
+
+const usageDiscussionRunKind = (
+  root: cheerio.CheerioAPI,
+  node: AnyNode,
+): UsageDiscussionRun["kind"] => {
+  if (
+    isFlatExampleSentence(root, node) ||
+    isFlatExampleAttribution(root, node)
+  ) {
+    return "examples";
+  }
+  if (isSeeInAddition(root, node)) return "see-in-addition";
+  return "explanation";
+};
+
+const partitionUsageDiscussionNodes = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+): readonly UsageDiscussionRun[] => {
+  return nodes.reduce(
+    (
+      runs: readonly UsageDiscussionRun[],
+      node: AnyNode,
+    ): readonly UsageDiscussionRun[] => {
+      if (node.type === "text" && node.data.trim().length === 0) {
+        const previous = runs[runs.length - 1];
+        return previous === undefined
+          ? runs
+          : runs.slice(0, -1).concat({
+              ...previous,
+              nodes: previous.nodes.concat(node),
+            });
+      }
+      const kind = usageDiscussionRunKind(root, node);
+      const previous = runs[runs.length - 1];
+      return previous?.kind === kind
+        ? runs.slice(0, -1).concat({ kind, nodes: previous.nodes.concat(node) })
+        : runs.concat({ kind, nodes: [node] });
+    },
+    [],
+  );
+};
+
+const renderUsageExplanation = (
+  root: cheerio.CheerioAPI,
+  nodes: readonly AnyNode[],
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const content = combineResults(
+    nodes.map(
+      (node: AnyNode, index: number): RenderResult =>
+        node.type === "text" && node.data.trim().length === 0
+          ? renderResult([normalizeWhitespace(node.data)])
+          : renderInlineNode(root, node, [...path, index], plan, {
+              skipClasses: ["ex-sent", "see-in-addition"],
+            }),
+    ),
+  );
+  return content.nodes.length === 0
+    ? emptyResult()
+    : renderResult(
+        [
+          container("span", content.nodes, {
+            data: unitData("usage-explanation", { level: 6 }),
+          }),
+        ],
+        content.findings,
+      );
+};
+
+const renderUsageDiscussionContent = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult =>
+  combineResults(
+    partitionUsageDiscussionNodes(root, root(element).contents().toArray()).map(
+      (run: UsageDiscussionRun, index: number): RenderResult => {
+        if (run.kind === "examples") {
+          return renderFlatExamplePairs(
+            root,
+            run.nodes,
+            [...path, index],
+            plan,
+          );
+        }
+        if (run.kind === "see-in-addition") {
+          return combineResults(
+            run.nodes
+              .filter((node: AnyNode): node is Element =>
+                isSeeInAddition(root, node),
+              )
+              .map(
+                (pointer: Element, pointerIndex: number): RenderResult =>
+                  renderSeeInAddition(
+                    root,
+                    pointer,
+                    [...path, index, pointerIndex],
+                    plan,
+                  ),
+              ),
+          );
+        }
+        return renderUsageExplanation(root, run.nodes, [...path, index], plan);
+      },
+    ),
+  );
+
+const hasFlatUsageDiscussion = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): boolean =>
+  root(element)
+    .contents()
+    .toArray()
+    .some((node: AnyNode): boolean => isFlatExampleSentence(root, node));
+
+const renderUsageDiscussion = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+  path: readonly number[],
+  plan: CanonicalEntryPlan,
+): RenderResult => {
+  const content = renderUsageDiscussionContent(root, element, path, plan);
+  return content.nodes.length === 0
+    ? emptyResult()
+    : renderResult(
+        [
+          container("div", content.nodes, {
+            data: unitData("usage-note", { level: 6 }),
+          }),
+        ],
+        content.findings,
+      );
+};
 
 const isSeeInAddition = (
   root: cheerio.CheerioAPI,
@@ -3195,6 +3509,13 @@ const renderLooseNode = (
   if (hasClass(root, element, "dt")) {
     return renderDefinitionFlow(root, element, path, plan);
   }
+  if (
+    element.tagName === "p" &&
+    hasFlatUsageDiscussion(root, element) &&
+    root(element).closest("#usage-notes").length > 0
+  ) {
+    return renderUsageDiscussionContent(root, element, path, plan);
+  }
   if (hasClass(root, element, "ex-sent-group")) {
     return renderExampleGroup(root, element, path, plan);
   }
@@ -3230,11 +3551,7 @@ const renderLooseNode = (
     );
   }
   if (hasClass(root, element, "see-in-addition")) {
-    const child = renderInlineChildren(root, element, path, plan);
-    return renderResult(
-      [container("div", child.nodes, { data: unitData("see-in-addition") })],
-      child.findings,
-    );
+    return renderSeeInAddition(root, element, path, plan);
   }
   if (hasClass(root, element, "urefs") || hasClass(root, element, "ur")) {
     return renderUsageDiscussionReference(root, element, path, plan);
@@ -3343,6 +3660,7 @@ export const renderCanonicalContent = (
 
   const header = renderHeader(root, owner, plan);
   const definition = renderDefinitionSection(root, owner, plan);
+  const usageNotes = renderEntryUsageNotes(root, owner, [1], plan);
   const origin = renderOrigin(root, owner, [2], plan);
   const related = renderRelated(root, owner, [3], plan);
   const phrases = renderPhrases(root, owner, [4], plan);
@@ -3350,6 +3668,7 @@ export const renderCanonicalContent = (
   const semanticNodes = [
     ...header.result.nodes,
     ...definition.nodes,
+    ...usageNotes.nodes,
     ...origin.nodes,
     ...related.nodes,
     ...phrases.nodes,
@@ -3357,7 +3676,7 @@ export const renderCanonicalContent = (
   ];
   const handledSections = (element: Element): boolean =>
     root(element).is(
-      '[data-id="definition"], [data-id="origin"], [data-id="related-to"]',
+      '[data-id="definition"], [data-id="origin"], [data-id="related-to"], #usage-notes',
     ) ||
     hasClass(root, element, "dro") ||
     hasClass(root, element, "entry-header") ||
@@ -3379,6 +3698,7 @@ export const renderCanonicalContent = (
   const findings = [
     ...header.result.findings,
     ...definition.findings,
+    ...usageNotes.findings,
     ...origin.findings,
     ...related.findings,
     ...phrases.findings,

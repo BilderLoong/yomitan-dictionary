@@ -247,3 +247,124 @@ test("keeps real MWU synonym references inside their source entries", async () =
     ),
   ).toBe(true);
 }, 30_000);
+
+test("renders real MWU Level 6 see-in-addition pointers for because and he", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-see-in-addition-"));
+  const attempt = await runBuild({
+    requestedWords: ["because", "he"],
+    databasePath: sourceDatabasePath,
+    buildPaths: {
+      outputDirectory,
+      reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
+    },
+  });
+
+  expect(
+    attempt.ok,
+    attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+  ).toBe(true);
+  if (!attempt.ok) return;
+
+  const recordForPointer = (
+    word: string,
+  ): { readonly content: unknown; readonly pointer: JsonObject } => {
+    const record = attempt.records.find(
+      (candidate: TermInformation): boolean =>
+        candidate[0] === word &&
+        unitsOf(structuredContent(candidate), "see-in-addition").length > 0,
+    );
+    const content = record === undefined ? null : structuredContent(record);
+    const pointer = unitsOf(content, "see-in-addition")[0];
+    if (pointer === undefined) {
+      throw new Error(`No see-in-addition pointer for ${word}`);
+    }
+    return { content, pointer };
+  };
+
+  const because = recordForPointer("because");
+  expect(because.pointer.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+  expect(textOf(because.pointer)).toBe("usages see in addition account");
+  expect(unitsOf(because.pointer, "cross-reference").map(textOf)).toEqual([
+    "account",
+  ]);
+  expect(JSON.stringify(because.content)).not.toContain("bword://");
+
+  const becauseDisclosure = unitsOf(because.content, "usage-note").find(
+    (node: JsonObject): boolean => node.tag === "details",
+  );
+  expect(becauseDisclosure).toBeDefined();
+  expect(becauseDisclosure?.open).toBe(false);
+  expect(becauseDisclosure?.data).toMatchObject({
+    content: "usage-note",
+    level: "6",
+  });
+  const becauseSummary = unitsOf(
+    becauseDisclosure,
+    "disclosure-summary",
+  ).filter(
+    (node: JsonObject): boolean =>
+      isObject(node.data) && node.data.category === "usage-note",
+  );
+  expect(becauseSummary).toHaveLength(1);
+  expect(textOf(becauseSummary[0])).toBe("Usage of BECAUSE");
+  expect(textOf(becauseDisclosure)).toContain("because");
+  expect(unitsOf(becauseDisclosure, "usage-explanation")).toHaveLength(1);
+  const becauseExampleGroups = unitsOf(becauseDisclosure, "example-group");
+  expect(becauseExampleGroups).toHaveLength(1);
+  const becauseExamples = unitsOf(becauseExampleGroups[0], "example-sentence");
+  expect(becauseExamples).toHaveLength(4);
+  expect(becauseExamples.map(textOf)).toEqual([
+    "Because the detail being removed was such a telling illustration of his meticulousness, I put up a small brief argument for keeping it … — George F. Will, Sports Illustrated, 12 Mar. 1990",
+    "Because of their quantum nature, atoms (like the particles they are made of) act like waves. — George Johnson, New York Times, 16 Oct. 2001",
+    'Because of the wood\'s value and popularity, lumber brokers in other parts of the world have bestowed the name "mahogany" on other species of reddish wood as a way to burnish their appeal. — Jeanne Huber, This Old House, January/February 2002',
+    "Because their audience works during the week, they tour less in the manner of rock and pop musicians, who are often on the road for weeks and months at a time, playing night after night, and more in the manner of drag racers, who race on the weekends and go home. — Alec Wilkinson, New Yorker, 24 May 2010",
+  ]);
+  expect(unitsOf(becauseExampleGroups[0], "extra-examples")[0]?.open).toBe(
+    false,
+  );
+  expect(
+    textOf(becauseDisclosure).indexOf("usages see in addition account"),
+  ).toBeGreaterThan(-1);
+  expect(unitsOf(becauseDisclosure, "see-in-addition")).toHaveLength(1);
+
+  const he = recordForPointer("he");
+  expect(he.pointer.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+  expect(textOf(he.pointer)).toBe(
+    "usages see in addition anybody, everybody, nobody, they",
+  );
+  expect(unitsOf(he.pointer, "cross-reference").map(textOf)).toEqual([
+    "anybody",
+    "everybody",
+    "nobody",
+    "they",
+  ]);
+  const heUsageDiscussion = unitsOf(he.content, "usage-note").find(
+    (node: JsonObject): boolean =>
+      unitsOf(node, "usage-explanation").length > 0,
+  );
+  expect(heUsageDiscussion).toBeDefined();
+  if (heUsageDiscussion === undefined) return;
+  expect(unitsOf(heUsageDiscussion, "example-group")).toHaveLength(1);
+  expect(
+    unitsOf(unitsOf(heUsageDiscussion, "example-group")[0], "example-sentence"),
+  ).toHaveLength(1);
+  expect(unitsOf(heUsageDiscussion, "see-in-addition")).toHaveLength(1);
+  const heDiscussionText = textOf(heUsageDiscussion);
+  expect(
+    heDiscussionText.indexOf("Since English has no third-person"),
+  ).toBeGreaterThan(-1);
+  expect(heDiscussionText.indexOf("Henry Fielding")).toBeGreaterThan(
+    heDiscussionText.indexOf("Since English has no third-person"),
+  );
+  expect(
+    heDiscussionText.indexOf("The grammarians then hit upon"),
+  ).toBeGreaterThan(heDiscussionText.indexOf("Henry Fielding"));
+  expect(JSON.stringify(he.content)).not.toContain("bword://");
+}, 30_000);
