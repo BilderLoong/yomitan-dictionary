@@ -7,20 +7,53 @@ import { whatConverted } from "./fixtures";
 const html = renderToHtml(whatConverted.content);
 const $ = cheerio.load(html);
 
-test("collapses extra example sentences behind exactly one inline example", () => {
+test("uses the first example sentence as the disclosure summary", () => {
   const extras = $('details[data-sc-content="extra-examples"]');
   expect(extras.length).toBeGreaterThan(0);
   extras.each((_, element) => {
     const details = $(element);
     expect(details.attr("open")).toBeUndefined();
-    const count = details.find('[data-sc-content="example-sentence"]').length;
-    const label = `${count} more ${count === 1 ? "example" : "examples"}`;
-    expect(details.children("summary").first().text()).toBe(label);
+    const summary = details.children("summary").first();
+    expect(summary.find('[data-sc-content="example-sentence"]').length).toBe(1);
+    expect(summary.text()).not.toMatch(/\d+ more examples?/u);
+    expect(
+      details.children('[data-sc-content="example-sentence"]').length,
+    ).toBeGreaterThan(0);
   });
-  const inline = $('[data-sc-content="example-sentence"]').not(
-    'details[data-sc-content="extra-examples"] [data-sc-content="example-sentence"]',
+});
+
+test("keeps a single example sentence non-interactive", () => {
+  const singleExampleGroup = $('[data-sc-content="example-group"]')
+    .filter((_, element) => {
+      const group = $(element);
+      return (
+        group.children('[data-sc-content="example-sentence"]').length === 1 &&
+        group.children('details[data-sc-content="extra-examples"]').length === 0
+      );
+    })
+    .first();
+
+  expect(singleExampleGroup.length).toBe(1);
+  expect(singleExampleGroup.find("details").length).toBe(0);
+  expect(
+    singleExampleGroup.children('[data-sc-content="example-sentence"]').length,
+  ).toBe(1);
+});
+
+test("keeps the first example source inside the summary sentence", () => {
+  const summary = $('details[data-sc-content="extra-examples"] summary')
+    .filter((_, element) => $(element).text().includes("what is man"))
+    .first();
+
+  expect(summary.length).toBe(1);
+  expect(summary.find('[data-sc-content="example-source"]').text()).toContain(
+    "Psalms 8:4",
   );
-  expect(inline.length).toBeGreaterThan(0);
+  expect(
+    summary
+      .find('[data-sc-content="example-source"]')
+      .closest('[data-sc-content="example-sentence"]').length,
+  ).toBe(1);
 });
 
 test("usage note text is wrapped in a span, separated from its examples", () => {

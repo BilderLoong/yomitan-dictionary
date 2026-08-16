@@ -633,7 +633,7 @@ const openSearchPopup = async (
     searchPage,
     searchPageUrl,
   );
-  await popupPage.setViewportSize({ width: 360, height: 720 });
+  // await popupPage.setViewportSize({ width: 360, height: 720 });
   await popupPage.waitForFunction(
     (): boolean =>
       document.documentElement.dataset.searchMode === "popup" &&

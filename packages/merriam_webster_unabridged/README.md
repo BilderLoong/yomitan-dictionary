@@ -11,7 +11,7 @@ including why definitions start with a colon (`: that which : those which`).
 ## Setup
 
 ```bash
-pnpm install
+bun install
 ```
 
 ## Yomitan test fixture

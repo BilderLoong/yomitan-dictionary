@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
+import * as cheerio from "cheerio";
 
 import { convertCanonical } from "../../src/conversion/convertCanonical";
 import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
+import { renderToHtml } from "../helpers/renderToHtml";
 
 type JsonObject = Record<string, unknown>;
 
@@ -265,7 +267,10 @@ test("shows one example and collapses the rest", () => {
   const extra = unitsOf(result.value.content, "extra-examples");
   expect(extra).toHaveLength(1);
   expect(extra[0]?.open).toBe(false);
-  expect(textOf(extra[0]?.content)).toContain("2 more examples");
+  expect(textOf(unitsOf(extra[0], "disclosure-summary")[0])).toContain(
+    "what is one",
+  );
+  expect(textOf(extra[0]?.content)).not.toContain("2 more examples");
   const visibleText = textOf(result.value.content);
   expect(visibleText).toContain("what is one");
   expect(visibleText).toContain("what is two");
@@ -345,7 +350,10 @@ test("collapses consecutive sibling example groups into one extras block", () =>
   const extras = unitsOf(result.value.content, "extra-examples");
   expect(extras).toHaveLength(1);
   expect(extras[0]?.open).toBe(false);
-  expect(textOf(extras[0]?.content)).toContain("2 more examples");
+  expect(textOf(unitsOf(extras[0], "disclosure-summary")[0])).toContain(
+    "turn a wheel",
+  );
+  expect(textOf(extras[0]?.content)).not.toContain("2 more examples");
   expect(textOf(extras[0]?.content)).toContain("turn a crank");
   expect(textOf(extras[0]?.content)).toContain("great wheel turns its axle");
   expect(
@@ -1372,6 +1380,56 @@ test("renders usage discussion references as non-interactive source pointers", (
   expect(textOf(references[0])).toBe(" See Usage Discussion at bring");
   expect(unitsOf(references[0], "cross-reference")).toHaveLength(0);
   expect(JSON.stringify(references[0])).not.toContain("gdlookup://");
+});
+
+test("preserves synonym-discussion reference targets", () => {
+  const result = convert(
+    "<mean>" +
+      header("abstract", "verb", "¦ab-ˈstrakt") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to summarize</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion related-to" data-id="related-to">' +
+      '<h2 class="toggle"><span class="text">Related to ABSTRACT</span></h2>' +
+      '<div class="section-content"><div class="sub-well">' +
+      '<div class="srefs synonym-discussion">See Synonym Discussion at ' +
+      '<a href="bword://detach" class="sr">detach</a></div>' +
+      "</div></div></div></mean>",
+    "abstract",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const related = unitsOf(result.value.content, "related-item");
+  expect(related).toHaveLength(1);
+  expect(related[0]?.open).toBe(false);
+  const references = unitsOf(related[0], "synonym-discussion-reference");
+  expect(references).toHaveLength(1);
+  expect(unitsOf(related[0], "synonym-discussion")).toHaveLength(0);
+  expect(textOf(references[0])).toBe("See Synonym Discussion at detach");
+  const targets = unitsOf(references[0], "cross-reference");
+  expect(targets).toHaveLength(1);
+  expect(textOf(targets[0])).toBe("detach");
+  expect(targets[0]?.data?.relation).toBeUndefined();
+  expect(JSON.stringify(references[0])).not.toContain("bword://");
+
+  const rendered = cheerio.load(renderToHtml(result.value.content));
+  const renderedReference = rendered(
+    '[data-sc-content="synonym-discussion-reference"]',
+  );
+  const renderedTarget = renderedReference.children(
+    'span[data-sc-content="cross-reference"]',
+  );
+  expect(renderedReference.prop("tagName")?.toLowerCase()).toBe("div");
+  expect(renderedTarget.text()).toBe("detach");
+  expect(renderedTarget.closest("a")).toHaveLength(0);
+  expect(renderedTarget.attr("data-sc-relation")).toBeUndefined();
 });
 
 test("structures a synonym discussion into term entries and local examples", () => {

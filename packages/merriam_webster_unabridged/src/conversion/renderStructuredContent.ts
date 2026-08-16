@@ -1012,18 +1012,14 @@ const collapseExampleResults = (
   const first = examples[0];
   if (first === undefined) return emptyResult();
   const remaining = examples.slice(1);
-  const extra =
+  const groupContent =
     remaining.length === 0
-      ? []
+      ? first.nodes
       : [
           container(
             "details",
             [
-              disclosureSummary(
-                `${remaining.length} more ${remaining.length === 1 ? "example" : "examples"}`,
-                "extra-examples",
-                6,
-              ),
+              disclosureSummary(first.nodes, "extra-examples", 6),
               ...remaining.flatMap(
                 ({ nodes }: RenderResult): readonly StructuredContent[] =>
                   nodes,
@@ -1032,7 +1028,7 @@ const collapseExampleResults = (
             { data: unitData("extra-examples"), open: false },
           ),
         ];
-  const exampleGroup = container("div", [...first.nodes, ...extra], {
+  const exampleGroup = container("div", groupContent, {
     data: unitData("example-group", { level: 6 }),
   });
   return renderResult(
@@ -1097,7 +1093,7 @@ const isExampleGroup = (
  * ex-sent-group elements. Sources emit a sense's example block either as a
  * single `.vis` wrapper or as several bare sibling `.ex-sent-group`s (e.g.
  * turn 1a); batching the siblings through collapseExampleResults makes both
- * shapes render as one inline example plus "N more examples".
+ * shapes render as one summary sentence with the remaining sentences below.
  */
 const partitionExampleRuns = (
   root: cheerio.CheerioAPI,
@@ -2286,12 +2282,16 @@ const renderRelated = (
 
   const body = root(section).find(".section-content").first().get(0);
   const discussion = root(section).find(".synonym-discussion").first().get(0);
+  const isSynonymDiscussionReference =
+    discussion !== undefined && hasClass(root, discussion, "srefs");
   const renderedBody =
     discussion === undefined
       ? body === undefined
         ? renderLooseChildren(root, section, path, plan, ["toggle"])
         : renderLooseChildren(root, body, path, plan, ["toggle"])
-      : renderSynonymDiscussion(root, discussion, path, plan);
+      : isSynonymDiscussionReference
+        ? renderInlineChildren(root, discussion, path, plan)
+        : renderSynonymDiscussion(root, discussion, path, plan);
   return renderResult(
     [
       container(
@@ -2299,7 +2299,12 @@ const renderRelated = (
         [
           disclosureSummary(summaryText, "synonym", 1),
           container("div", renderedBody.nodes, {
-            data: unitData("synonym-discussion", { level: 1 }),
+            data: unitData(
+              isSynonymDiscussionReference
+                ? "synonym-discussion-reference"
+                : "synonym-discussion",
+              { level: 1 },
+            ),
           }),
         ],
         { data: unitData("related-item", { level: 1 }), open: false },

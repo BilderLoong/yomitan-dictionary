@@ -126,6 +126,63 @@ test("renders real MWU what records as structured content", async () => {
   ).toBe(true);
 }, 30_000);
 
+test("preserves real abstract synonym-discussion reference targets", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-abstract-"));
+  const attempt = await runBuild({
+    requestedWords: ["abstract"],
+    databasePath: sourceDatabasePath,
+    buildPaths: {
+      outputDirectory,
+      reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
+    },
+  });
+
+  expect(
+    attempt.ok,
+    attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+  ).toBe(true);
+  if (!attempt.ok) return;
+
+  const references = attempt.records
+    .filter(
+      (record: TermInformation): boolean =>
+        record[0] === "abstract" && structuredContent(record) !== null,
+    )
+    .flatMap((record: TermInformation): readonly JsonObject[] =>
+      unitsOf(structuredContent(record), "synonym-discussion-reference"),
+    );
+  expect(references).toHaveLength(2);
+  expect(references.map(textOf)).toEqual(
+    expect.arrayContaining([
+      "See Synonym Discussion at abridgment",
+      "See Synonym Discussion at detach",
+    ]),
+  );
+  expect(
+    references.map((reference: JsonObject): string[] =>
+      unitsOf(reference, "cross-reference").map(textOf),
+    ),
+  ).toEqual(expect.arrayContaining([["abridgment"], ["detach"]]));
+  const targets = references.flatMap(
+    (reference: JsonObject): readonly JsonObject[] =>
+      unitsOf(reference, "cross-reference"),
+  );
+  expect(targets).toHaveLength(2);
+  expect(
+    targets.every(
+      (target: JsonObject): boolean => target.data?.relation === undefined,
+    ),
+  ).toBe(true);
+  expect(
+    JSON.stringify(
+      attempt.records.filter(
+        (record: TermInformation): boolean => record[0] === "abstract",
+      ),
+    ),
+  ).not.toContain("bword://");
+});
+
 test("keeps real MWU synonym references inside their source entries", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-synonym-"));
   const attempt = await runBuild({

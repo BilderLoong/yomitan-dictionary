@@ -284,6 +284,11 @@ Related entry-level prose that compares terms and their usage differences. It
 has one introductory term group, one structured entry per compared term, and
 separate example and additional-reference content.
 
+**Synonym-discussion reference**:
+A visible entry-level pointer to a separate synonym discussion, such as
+`See Synonym Discussion at detach`. Each named target is a cross-reference.
+_Avoid_: synonym discussion, usage-discussion reference
+
 **Synonym entry**:
 One term-specific explanation inside a synonym discussion, owning its term,
 explanation, examples, attributions, and local cross-references.

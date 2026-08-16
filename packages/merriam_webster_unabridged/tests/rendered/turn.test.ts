@@ -7,20 +7,19 @@ import { turnConverted } from "./fixtures";
 const html = renderToHtml(turnConverted.content);
 const $ = cheerio.load(html);
 
-test("collapses extra example sentences behind exactly one inline example", () => {
+test("uses the first example sentence as the disclosure summary", () => {
   const extras = $('details[data-sc-content="extra-examples"]');
   expect(extras.length).toBeGreaterThan(0);
   extras.each((_, element) => {
     const details = $(element);
     expect(details.attr("open")).toBeUndefined();
-    const count = details.find('[data-sc-content="example-sentence"]').length;
-    const label = `${count} more ${count === 1 ? "example" : "examples"}`;
-    expect(details.children("summary").first().text()).toBe(label);
+    const summary = details.children("summary").first();
+    expect(summary.find('[data-sc-content="example-sentence"]').length).toBe(1);
+    expect(summary.text()).not.toMatch(/\d+ more examples?/u);
+    expect(
+      details.children('[data-sc-content="example-sentence"]').length,
+    ).toBeGreaterThan(0);
   });
-  const inline = $('[data-sc-content="example-sentence"]').not(
-    'details[data-sc-content="extra-examples"] [data-sc-content="example-sentence"]',
-  );
-  expect(inline.length).toBeGreaterThan(0);
 });
 
 test("transitive verb sense 1a collapses its five example sentences", () => {
@@ -31,14 +30,6 @@ test("transitive verb sense 1a collapses its five example sentences", () => {
   ).first();
   expect(definition.length).toBe(1);
 
-  const inline = definition
-    .find('[data-sc-content="example-sentence"]')
-    .not(
-      'details[data-sc-content="extra-examples"] [data-sc-content="example-sentence"]',
-    );
-  expect(inline.length).toBe(1);
-  expect(inline.first().text()).toContain("turn a wheel");
-
   const exampleGroup = definition.children('[data-sc-content="example-group"]');
   expect(exampleGroup.length).toBe(1);
   const extras = exampleGroup.children(
@@ -46,7 +37,15 @@ test("transitive verb sense 1a collapses its five example sentences", () => {
   );
   expect(extras.length).toBe(1);
   expect(extras.attr("open")).toBeUndefined();
-  expect(extras.children("summary").first().text()).toBe("4 more examples");
+  expect(
+    extras
+      .children("summary")
+      .find('[data-sc-content="example-sentence"]')
+      .text(),
+  ).toContain("turn a wheel");
+  expect(extras.children('[data-sc-content="example-sentence"]')).toHaveLength(
+    4,
+  );
   const extrasText = extras.text();
   expect(extrasText).toContain("turn a crank");
   expect(extrasText).toContain("great wheel turns its axle");

@@ -1,23 +1,23 @@
 ---
 name: mwu-dictionary-inspection
-description: Inspect, view, use, build, check, or E2E-test the built Merriam Webster Unabridged dictionary in this repository. Use this skill whenever an agent is asked to build or inspect MWU/Yomitan output, perform dictionary UI checks, review a real entry, see the rendered build, or control the parked inspection browser with Chrome DevTools MCP. Route human visual review, automated headless verification, and live MCP control to their correct commands.
+description: Always use this when you want to inspect the build dict or e2e test.
 ---
 
 # MWU dictionary inspection
 
 Use the real selected-word build and the real Yomitan extension fixture as the
 source of truth. Do not replace the browser workflow with a static HTML page or
-a hand-written fixture when the request is about the built dictionary.
+a hand-written fixture when the request is about the built dictionary. You should always use headless mode, when what you do is not involving big daddy, otherwise you disrupt him.
 
 ## Choose the workflow
 
 Run commands from `packages/merriam_webster_unabridged`.
 
-| Request | Command | Result |
-| --- | --- | --- |
-| Human visual review or “show me the entry” | `bun run inspect:dict -- --query turn` | Headed Chromium opens one entry and stays open; add `--close` for a bounded smoke test. |
-| Automated E2E or deterministic check | `bun run inspect:dict:headless -- --close` | Headless Chromium checks all eight acceptance words, both themes, both desktop surfaces, and keyboard disclosure behavior, then closes. |
-| Live MCP inspection | `bun run inspect:dict:headless -- --mcp-port 9222` | Headless Chromium stays parked on CDP port `9222` for MCP control. |
+| Request                                    | Command                                            | Result                                                                                                                                  |
+| ------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Human visual review or “show me the entry” | `bun run inspect:dict -- --query turn`             | Headed Chromium opens one entry and stays open; add `--close` for a bounded smoke test.                                                 |
+| Automated E2E or deterministic check       | `bun run inspect:dict:headless -- --close`         | Headless Chromium checks all eight acceptance words, both themes, both desktop surfaces, and keyboard disclosure behavior, then closes. |
+| Live MCP inspection                        | `bun run inspect:dict:headless -- --mcp-port 9222` | Headless Chromium stays parked on CDP port `9222` for MCP control.                                                                      |
 
 The package commands build the selected real MWU records before starting the
 inspector. Their `--help` and `-h` forms are handled before `dev:build`, browser
