@@ -358,6 +358,7 @@ li[data-sc-source-marker-path] {
   display: grid;
   grid-template-columns: subgrid;
   align-items: baseline;
+  row-gap: 0.25em;
 }
 
 li[data-sc-source-marker-path]::before {
