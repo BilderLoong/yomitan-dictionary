@@ -138,9 +138,9 @@ test("renders the first known use verbatim inside the collapsed origin section",
   );
 });
 
-test("primary definition text is wrapped in Level 5 definition-text spans", () => {
+test("primary definition text is wrapped in Level 5 definition-text blocks", () => {
   const sense1cDefinitionText = $(
-    'span[data-sc-content="definition-text"][data-sc-level="5"]',
+    'div[data-sc-content="definition-text"][data-sc-level="5"]',
   ).filter((_, element) => $(element).text().includes(": how much"));
   expect(sense1cDefinitionText.length).toBe(1);
   expect(sense1cDefinitionText.text()).toBe(": how much ");
@@ -152,7 +152,7 @@ test("primary definition text is wrapped in Level 5 definition-text spans", () =
   expect(units.length).toBeGreaterThan(0);
   units.each((_, element) => {
     const unit = $(element);
-    expect(unit.prop("tagName")?.toLowerCase()).toBe("span");
+    expect(unit.prop("tagName")?.toLowerCase()).toBe("div");
     expect(unit.attr("data-sc-level")).toBe("5");
     expect(unit.text().trim().length).toBeGreaterThan(0);
   });
@@ -173,7 +173,7 @@ test("primary definition text is wrapped in Level 5 definition-text spans", () =
       return;
     }
     expect(
-      reference.closest('span[data-sc-content="definition-text"]').length,
+      reference.closest('div[data-sc-content="definition-text"]').length,
     ).toBe(1);
   });
 
@@ -212,7 +212,7 @@ test("primary definition text is wrapped in Level 5 definition-text spans", () =
   ]);
   expect(
     multiRun
-      .children('span[data-sc-content="definition-text"]')
+      .children('div[data-sc-content="definition-text"]')
       .map((_, element) => $(element).text())
       .get(),
   ).toEqual([

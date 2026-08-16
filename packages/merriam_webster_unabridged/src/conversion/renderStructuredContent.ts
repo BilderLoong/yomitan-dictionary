@@ -1349,7 +1349,7 @@ const wrapDefinitionTextRun = (
   run.length === 0 || run.map(nodeVisibleText).join("").trim().length === 0
     ? run
     : [
-        container("span", run, {
+        container("div", run, {
           data: unitData("definition-text", { level: 5 }),
         }),
       ];
