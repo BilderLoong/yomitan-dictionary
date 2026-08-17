@@ -727,14 +727,15 @@ export const CATALOG_UNITS: readonly CatalogUnit[] = [
     explanation:
       "A compact pointer line that lists additional entries for synonym or usage information. It is the same information unit in both locations; only its nearest semantic owner changes.",
     example: "synonyms see in addition depend; usages see in addition -ize",
-    classes: ".see-in-addition; .sa-link; .sc; #usage-notes; .usage",
+    classes: ".see-in-addition; .sa-link; .sc; .ua-link; #usage-notes; .usage",
     binding:
       "Level 1 inside a synonym discussion; Level 6 when inside #usage-notes or a definition-local .usage block. Bind it to the nearest owner and discard only the navigation target.",
     ignore: false,
     rows: null,
-    state: "follow-up",
-    inBuild: null,
-    todo: "Level 6 #usage-notes/.usage placements (because, finalize, he, one, they) not yet wired through the renderer's usage-notes traversal",
+    state: "resolved",
+    inBuild:
+      "Real MWU build: because and he each emit one Level 6 pointer with source text and target order preserved; navigation hrefs are discarded.",
+    todo: "—",
   },
   {
     unit: "called-also",

@@ -1,13 +1,13 @@
 ---
 name: mwu-dictionary-inspection
-description: Inspect, view, use, build, check, or E2E-test the built Merriam Webster Unabridged dictionary in this repository. Use this skill whenever an agent is asked to build or inspect MWU/Yomitan output, perform dictionary UI checks, review a real entry, see the rendered build, or control the parked inspection browser with Chrome DevTools MCP. Route human visual review, automated headless verification, and live MCP control to their correct commands.
+description: Always use this when you want to inspect the build dict or e2e test.
 ---
 
 # MWU dictionary inspection
 
 Use the real selected-word build and the real Yomitan extension fixture as the
 source of truth. Do not replace the browser workflow with a static HTML page or
-a hand-written fixture when the request is about the built dictionary.
+a hand-written fixture when the request is about the built dictionary. You should always use headless mode, when what you do is not involving big daddy, otherwise you disrupt him.
 
 ## Choose the workflow
 
@@ -16,7 +16,8 @@ Run commands from `packages/merriam_webster_unabridged`.
 | Request | Command | Result |
 | --- | --- | --- |
 | Human visual review or “show me the entry” | `bun run inspect:dict -- --query turn` | Headed Chromium opens one entry and stays open; add `--close` for a bounded smoke test. |
-| Automated E2E or deterministic check | `bun run inspect:dict:headless -- --close` | Headless Chromium checks all eight acceptance words, both themes, both desktop surfaces, and keyboard disclosure behavior, then closes. |
+| Targeted automated smoke check | `bun run inspect:dict:headless -- --query because --close` | Headless Chromium opens the requested entry on the search and popup surfaces, verifies MWU content rendered, then closes. |
+| Full deterministic presentation check | `bun run inspect:dict:headless -- --query-file tests/testWords.txt --close` | Headless Chromium checks all eight acceptance words, both themes, both desktop surfaces, and keyboard disclosure behavior, then closes. |
 | Live MCP inspection | `bun run inspect:dict:headless -- --mcp-port 9222` | Headless Chromium stays parked on CDP port `9222` for MCP control. |
 
 The package commands build the selected real MWU records before starting the
@@ -31,8 +32,11 @@ Examples:
 # Human review of one real entry.
 bun run inspect:dict -- --query turn
 
-# Agent E2E gate. --close is required for deterministic cleanup.
-bun run inspect:dict:headless -- --close
+# Targeted agent smoke gate. --close is required for deterministic cleanup.
+bun run inspect:dict:headless -- --query because --close
+
+# Full presentation gate.
+bun run inspect:dict:headless -- --query-file tests/testWords.txt --close
 
 # Package help does not build the dictionary.
 bun run inspect:dict -- --help
@@ -41,7 +45,7 @@ bun run inspect:dict:headless -- -h
 # Direct adapter help and direct existing-ZIP execution.
 bun run scripts/dictionary-inspection/inspect-headless.ts --help
 bun run scripts/dictionary-inspection/inspect-headless.ts \
-  "build/Merriam Webster Unabridged.zip" --close
+  "build/Merriam Webster Unabridged.zip" --query because --close
 
 # Park a headless browser for MCP. The port is opt-in.
 bun run inspect:dict:headless -- --mcp-port 9222
@@ -117,8 +121,8 @@ confirm that port `9222` is no longer listening before starting another run.
 - Do not click the operating-system file chooser. Use Playwright
   `setInputFiles` on Yomitan's real file input.
 - Import the dictionary before importing the settings backup.
-- Keep the eight acceptance words: `what`, `in`, `give`, `put`, `sum`, `down`,
-  `turn`, and `o`.
+- Keep the eight acceptance words in the full presentation gate: `what`, `in`,
+  `give`, `put`, `sum`, `down`, `turn`, and `o`.
 - Keep the 1100px search-page and 360px popup desktop checks, light and dark
   themes, computed-layout assertions, collapsed disclosures, and keyboard
   `Enter` interaction.

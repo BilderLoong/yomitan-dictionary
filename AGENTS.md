@@ -1,6 +1,6 @@
 - Always address me with a `Handsome` before my name.
 - When describing anything that can be include with examples, always include examples.
-- Always talk in ASD-STE100 Simplified Technical English. Always read CONTEXT.md files, and use their ubiquitous language. Make sure what you said is human-readable and easy to understand, don't assmue context.
+- Always talk in ASD-STE100 Simplified Technical English. Always read CONTEXT.md files, and use their ubiquitous language. Make sure what you said is human-readable and easy to understand, don't assume context.
 
 - Do not preserve backward compatibility. Remove obsolete paths instead of adding compatibility layers, fallbacks, or migrations.
 - Choose the simplest implementation that fully meets the current requirements. Avoid speculative abstractions, configuration, and indirection.
@@ -11,3 +11,17 @@
 - Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
 - When writing code always use the functional programming skill.
 - You're not allow to use fast mode when using subagents.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs use local Markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The tracker uses the default engineering-skill labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repository uses one root `CONTEXT.md` and root `docs/adr/`. See `docs/agents/domain.md`.

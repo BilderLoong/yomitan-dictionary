@@ -28,6 +28,16 @@ const presentationQueries = [
 type PresentationQuery = (typeof presentationQueries)[number];
 type PresentationSurface = "popup" | "search";
 
+export const getMissingPresentationQueries = (
+  options: InspectionOptions,
+  searchQueries: readonly string[],
+): readonly PresentationQuery[] =>
+  options.query === null
+    ? presentationQueries.filter(
+        (query): boolean => !searchQueries.includes(query),
+      )
+    : [];
+
 interface PresentationContext {
   readonly query: PresentationQuery;
   readonly surface: PresentationSurface;
@@ -633,7 +643,7 @@ const openSearchPopup = async (
     searchPage,
     searchPageUrl,
   );
-  await popupPage.setViewportSize({ width: 360, height: 720 });
+  // await popupPage.setViewportSize({ width: 360, height: 720 });
   await popupPage.waitForFunction(
     (): boolean =>
       document.documentElement.dataset.searchMode === "popup" &&
@@ -660,6 +670,51 @@ const openSearchPopup = async (
     throw new Error(`Popup returned no dictionary entry for: ${query}`);
   }
   return popupPage;
+};
+
+const assertTargetedEntry = async (
+  page: Page,
+  query: string,
+  surface: PresentationSurface,
+): Promise<void> => {
+  const entryCount = await page
+    .locator('[data-sc-content="mwu-entry"]')
+    .count();
+  if (entryCount === 0) {
+    throw new Error(`${surface} did not render MWU content for: ${query}`);
+  }
+};
+
+const inspectTargetedQueries = async (
+  browserContext: BrowserContext,
+  searchPage: Page,
+  searchPageUrl: string,
+  searchQueries: readonly string[],
+): Promise<void> => {
+  for (const query of searchQueries) {
+    await openSearchResult(searchPage, searchPageUrl, query);
+    await assertTargetedEntry(searchPage, query, "search");
+  }
+
+  const firstQuery = searchQueries[0];
+  if (firstQuery === undefined)
+    throw new Error("No search queries were supplied");
+  const popupPage = await openSearchPopup(
+    browserContext,
+    searchPage,
+    searchPageUrl,
+    firstQuery,
+  );
+  for (const query of searchQueries) {
+    if (query !== firstQuery) {
+      await openSearchResult(popupPage, searchPageUrl, query);
+    }
+    await assertTargetedEntry(popupPage, query, "popup");
+  }
+
+  console.log(
+    `Targeted headless inspection passed for: ${searchQueries.join(", ")}`,
+  );
 };
 
 const assertEntryPresentation = async (
@@ -883,7 +938,7 @@ const assertEntryPresentation = async (
               null,
           }),
         );
-      const sourceMarkerAlignments = [
+      const sourceMarkerLayouts = [
         ...document.querySelectorAll("li[data-sc-source-marker-path]"),
       ]
         .filter(isVisibleElement)
@@ -891,38 +946,30 @@ const assertEntryPresentation = async (
           (
             item,
           ): {
-            readonly delta: number;
+            readonly valid: boolean;
             readonly marker: string;
-          } | null => {
-            const textRect = firstTextRect(item);
+          } => {
+            const marker =
+              item.getAttribute("data-sc-source-marker-path") ?? "?";
+            const list = item.parentElement;
+            const itemStyle = getComputedStyle(item);
             const markerStyle = getComputedStyle(item, "::before");
-            const markerTop = Number.parseFloat(markerStyle.insetBlockStart);
-            const markerLineHeight = Number.parseFloat(markerStyle.lineHeight);
-            if (
-              textRect === null ||
-              !Number.isFinite(markerTop) ||
-              !Number.isFinite(markerLineHeight)
-            ) {
-              return null;
-            }
-            const markerCenter =
-              item.getBoundingClientRect().top +
-              markerTop +
-              markerLineHeight / 2;
-            const textCenter = textRect.top + textRect.height / 2;
             return {
-              delta: Math.abs(markerCenter - textCenter),
-              marker: item.getAttribute("data-sc-source-marker-path") ?? "?",
+              marker,
+              valid:
+                list !== null &&
+                getComputedStyle(list).display === "grid" &&
+                itemStyle.display === "grid" &&
+                itemStyle.gridTemplateColumns.startsWith("subgrid") &&
+                itemStyle.alignItems === "baseline" &&
+                markerStyle.content.includes(marker) &&
+                markerStyle.gridColumnStart === "1" &&
+                [...item.children].every(
+                  (child): boolean =>
+                    getComputedStyle(child).gridColumnStart === "2",
+                ),
             };
           },
-        )
-        .filter(
-          (
-            alignment,
-          ): alignment is {
-            readonly delta: number;
-            readonly marker: string;
-          } => alignment !== null,
         );
       const failures: string[] = [];
       if (
@@ -1054,18 +1101,12 @@ const assertEntryPresentation = async (
           `quiet metadata ${lowestContrastMetadata?.element.getAttribute("data-sc-content") ?? "?"}/${lowestContrastMetadata?.owner ?? "root"} contrast is ${lowestContrastMetadata?.ratio?.toFixed(2) ?? "unknown"}:1`,
         );
       }
-      const markerAlignmentFailures = sourceMarkerAlignments.filter(
-        (alignment): boolean => alignment.delta > 4,
+      const markerLayoutFailures = sourceMarkerLayouts.filter(
+        ({ valid }): boolean => !valid,
       );
-      const worstSourceMarkerAlignment = markerAlignmentFailures.toSorted(
-        (left, right): number => right.delta - left.delta,
-      )[0];
-      if (
-        sourceMarkerAlignments.length === 0 ||
-        markerAlignmentFailures.length > sourceMarkerAlignments.length * 0.02
-      ) {
+      if (sourceMarkerLayouts.length === 0 || markerLayoutFailures.length > 0) {
         failures.push(
-          `${markerAlignmentFailures.length}/${sourceMarkerAlignments.length} source markers exceed the first-line tolerance; worst ${worstSourceMarkerAlignment?.marker ?? "?"} is ${worstSourceMarkerAlignment?.delta.toFixed(2) ?? "unknown"}px`,
+          `${markerLayoutFailures.length}/${sourceMarkerLayouts.length} source markers do not use the aligned grid layout; first ${markerLayoutFailures[0]?.marker ?? "?"}`,
         );
       }
       if (
@@ -1480,8 +1521,9 @@ export const runDictionaryInspection = async (
   const { mode, ...options } = runOptions;
   const searchQueries = await resolveSearchQueries(options);
   if (mode === "headless") {
-    const missingPresentationQueries = presentationQueries.filter(
-      (query): boolean => !searchQueries.includes(query),
+    const missingPresentationQueries = getMissingPresentationQueries(
+      options,
+      searchQueries,
     );
     if (missingPresentationQueries.length > 0) {
       throw new Error(
@@ -1560,6 +1602,16 @@ export const runDictionaryInspection = async (
       await saveScreenshot(searchPage, options.screenshotPath);
       console.log(getVisibleInspectionStatus(query, options.close));
       if (!options.close) await waitForInspectionStop(browserContext);
+      return;
+    }
+
+    if (options.query !== null) {
+      await inspectTargetedQueries(
+        browserContext,
+        searchPage,
+        searchPageUrl,
+        searchQueries,
+      );
       return;
     }
 

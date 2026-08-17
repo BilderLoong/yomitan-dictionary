@@ -284,6 +284,11 @@ Related entry-level prose that compares terms and their usage differences. It
 has one introductory term group, one structured entry per compared term, and
 separate example and additional-reference content.
 
+**Synonym-discussion reference**:
+A visible entry-level pointer to a separate synonym discussion, such as
+`See Synonym Discussion at detach`. Each named target is a cross-reference.
+_Avoid_: synonym discussion, usage-discussion reference
+
 **Synonym entry**:
 One term-specific explanation inside a synonym discussion, owning its term,
 explanation, examples, attributions, and local cross-references.
@@ -292,6 +297,18 @@ explanation, examples, attributions, and local cross-references.
 A visible source pointer from a definition to a separate usage discussion. It
 preserves the source relationship and target text but is not an interactive
 link or a copied discussion.
+
+**Usage discussion**:
+A source-owned explanation of how an entry or definition is used. It owns its
+explanatory prose, paired examples and sources, and optional see-in-addition
+pointer, and belongs to the nearest entry or definition.
+_Avoid_: flat usage text, usage paragraph
+
+**See-in-addition**:
+A compact, non-interactive pointer line that lists additional entries for
+synonym or usage information. It belongs to its nearest semantic owner: Level
+1 in a synonym discussion or Level 6 in usage information.
+_Avoid_: see-also link, navigation link
 
 **Unclassified visible content**:
 Visible source content whose semantic class is not yet recognized. Preserve it
@@ -337,8 +354,11 @@ older release); provenance is recorded in
 `tests/fixture/yomitan-src` (excluded from `bun test` discovery via
 `bunfig.toml`).
 
-The bounded E2E command is
-`bun run inspect:dict:headless -- --close`; live MCP uses
+The bounded targeted command is
+`bun run inspect:dict:headless -- --query because --close`; the full
+presentation gate is
+`bun run inspect:dict:headless -- --query-file tests/testWords.txt --close`;
+live MCP uses
 `bun run inspect:dict:headless -- --mcp-port 9222`. The inspection runner
 extracts `styles.css` from the current dictionary ZIP and injects that exact
 text into a temporary copy of the repository-owned settings backup before the

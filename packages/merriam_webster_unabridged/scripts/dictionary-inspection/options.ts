@@ -53,7 +53,7 @@ export const inspectUsage = formatUsage(
 export const headlessUsage = formatUsage(
   "bun run scripts/dictionary-inspection/inspect-headless.ts",
   " <dictionary.zip>",
-  "--query <queries> | --query-file <path>",
+  "--query <queries> (targeted) | --query-file <path> (full suite)",
 );
 
 export const packageInspectUsage = formatUsage(
@@ -65,7 +65,7 @@ export const packageInspectUsage = formatUsage(
 export const packageHeadlessUsage = formatUsage(
   "bun run inspect:dict:headless",
   "",
-  "--query <queries> | --query-file <path>",
+  "--query <queries> (targeted) | --query-file <path> (full suite)",
 );
 
 const parseOptions = (

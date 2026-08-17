@@ -64,6 +64,18 @@ Parent specification: `mwu-implementation` issue 05.
 | 03 | improve-definition-reading-path | 01 | completed |
 | 04 | unify-phrase-flow-and-disclosure-hierarchy | 03 | completed |
 
+## mwu-usage-discussion-structure — Level 6 usage discussion content
+
+Parent specification: `.scratch/mwu-usage-discussion-structure/spec.md`.
+
+| # | Ticket | Blocked by | Status |
+|---|---|---|---|
+| 01 | structure-usage-discussions | None | completed |
+
+Implementation, generated-HTML proof, and a bounded targeted real-Yomitan
+inspection for `because` are complete. The separate full presentation suite
+still reports its unrelated existing `what` failure.
+
 ## Resolved during migration
 
 - "Is there any way to test the final render result?" — answered in TODO.md

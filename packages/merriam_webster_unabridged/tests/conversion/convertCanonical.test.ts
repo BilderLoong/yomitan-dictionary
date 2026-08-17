@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
+import * as cheerio from "cheerio";
 
 import { convertCanonical } from "../../src/conversion/convertCanonical";
 import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
+import { renderToHtml } from "../helpers/renderToHtml";
 
 type JsonObject = Record<string, unknown>;
 
@@ -265,7 +267,10 @@ test("shows one example and collapses the rest", () => {
   const extra = unitsOf(result.value.content, "extra-examples");
   expect(extra).toHaveLength(1);
   expect(extra[0]?.open).toBe(false);
-  expect(textOf(extra[0]?.content)).toContain("2 more examples");
+  expect(textOf(unitsOf(extra[0], "disclosure-summary")[0])).toContain(
+    "what is one",
+  );
+  expect(textOf(extra[0]?.content)).not.toContain("2 more examples");
   const visibleText = textOf(result.value.content);
   expect(visibleText).toContain("what is one");
   expect(visibleText).toContain("what is two");
@@ -345,7 +350,10 @@ test("collapses consecutive sibling example groups into one extras block", () =>
   const extras = unitsOf(result.value.content, "extra-examples");
   expect(extras).toHaveLength(1);
   expect(extras[0]?.open).toBe(false);
-  expect(textOf(extras[0]?.content)).toContain("2 more examples");
+  expect(textOf(unitsOf(extras[0], "disclosure-summary")[0])).toContain(
+    "turn a wheel",
+  );
+  expect(textOf(extras[0]?.content)).not.toContain("2 more examples");
   expect(textOf(extras[0]?.content)).toContain("turn a crank");
   expect(textOf(extras[0]?.content)).toContain("great wheel turns its axle");
   expect(
@@ -781,6 +789,131 @@ test("pairs each example with its own attribution", () => {
   expect(textOf(examples[1])).not.toContain("Shakespeare");
 });
 
+test("structures a flat usage discussion explanation", () => {
+  const result = convert(
+    "<mean>" +
+      header("because", "conjunction", "¦bi-¦kȯz") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">for the reason that</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion" data-id="usage-notes" id="usage-notes">' +
+      '<h2 class="toggle"><span class="text">Usage of BECAUSE</span></h2>' +
+      '<div class="section-content usage-notes"><div class="sub-well"><p> A university professor some years back surveyed incoming freshmen to find out what they had been taught about writing before they came to college. About 75 percent of them reported that they had been told never to begin a sentence with <em class="mw_t_it">because</em>. This rule is a myth. <em class="mw_t_it">Because</em> is frequently used to begin sentences. It\'s especially useful when you want to put the cause before an effect. ' +
+      '<span class="ex-sent t has-aq sents sents-inline"> → <span class="mw_t_sp"><span class="mw_t_wi">Because</span> the detail being removed was such a telling illustration of his meticulousness, I put up a small brief argument for keeping it …</span> </span>' +
+      '<span class="ex-sent aq has-aq sents"> <span class="aq"> <span class="auth"> — George F. Will</span>, <span class="source"><em class="mw_t_it">Sports Illustrated</em></span>, <span class="aqdate">12 Mar. 1990</span></span> </span>' +
+      '<span class="ex-sent t has-aq sents sents-inline"> → <span class="mw_t_sp"><span class="mw_t_wi">Because</span> of their quantum nature, atoms (like the particles they are made of) act like waves.</span> </span>' +
+      '<span class="ex-sent aq has-aq sents"> <span class="aq"> <span class="auth"> — George Johnson</span>, <span class="source"><em class="mw_t_it">New York Times</em></span>, <span class="aqdate">16 Oct. 2001</span></span> </span>' +
+      '<span class="ex-sent t has-aq sents sents-inline"> → <span class="mw_t_sp"><em class="mw_t_it">Because</em> of the wood\'s value and popularity, lumber brokers in other parts of the world have bestowed the name "mahogany" on other species of reddish wood as a way to burnish their appeal.</span> </span>' +
+      '<span class="ex-sent aq has-aq sents"> <span class="aq"> <span class="auth"> — Jeanne Huber</span>, <span class="source"><em class="mw_t_it">This Old House</em></span>, <span class="aqdate">January/February 2002</span></span> </span>' +
+      '<span class="ex-sent t has-aq sents sents-inline"> → <span class="mw_t_sp"><span class="mw_t_wi">Because</span> their audience works during the week, they tour less in the manner of rock and pop musicians, who are often on the road for weeks and months at a time, playing night after night, and more in the manner of drag racers, who race on the weekends and go home.</span> </span>' +
+      '<span class="ex-sent aq has-aq sents"> <span class="aq"> <span class="auth"> — Alec Wilkinson</span>, <span class="source"><em class="mw_t_it">New Yorker</em></span>, <span class="aqdate">24 May 2010</span></span> </span>' +
+      '</p><p class="see-in-addition"><strong>usages</strong> see in addition <a href="bword://account%5B1%5D" class="ua-link"><sup>1</sup>account</a></p></div></div></div></mean>',
+    "because",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const explanation = unitsOf(result.value.content, "usage-explanation");
+  expect(explanation).toHaveLength(1);
+  expect(textOf(explanation[0])).toContain(
+    "A university professor some years back surveyed incoming freshmen",
+  );
+
+  const exampleGroups = unitsOf(result.value.content, "example-group");
+  expect(exampleGroups).toHaveLength(1);
+  const examples = unitsOf(exampleGroups[0], "example-sentence");
+  expect(examples).toHaveLength(4);
+  expect(examples.map(textOf)).toEqual([
+    "Because the detail being removed was such a telling illustration of his meticulousness, I put up a small brief argument for keeping it … — George F. Will, Sports Illustrated, 12 Mar. 1990",
+    "Because of their quantum nature, atoms (like the particles they are made of) act like waves. — George Johnson, New York Times, 16 Oct. 2001",
+    'Because of the wood\'s value and popularity, lumber brokers in other parts of the world have bestowed the name "mahogany" on other species of reddish wood as a way to burnish their appeal. — Jeanne Huber, This Old House, January/February 2002',
+    "Because their audience works during the week, they tour less in the manner of rock and pop musicians, who are often on the road for weeks and months at a time, playing night after night, and more in the manner of drag racers, who race on the weekends and go home. — Alec Wilkinson, New Yorker, 24 May 2010",
+  ]);
+  const extraExamples = unitsOf(exampleGroups[0], "extra-examples");
+  expect(extraExamples).toHaveLength(1);
+  expect(extraExamples[0]?.open).toBe(false);
+  const summaries = unitsOf(extraExamples[0], "disclosure-summary");
+  expect(summaries).toHaveLength(1);
+  expect(textOf(summaries[0])).toBe(textOf(examples[0]));
+  expect(textOf(extraExamples[0])).not.toContain("3 more examples");
+  expect(unitsOf(extraExamples[0], "see-in-addition")).toHaveLength(0);
+
+  const pointers = unitsOf(result.value.content, "see-in-addition");
+  expect(pointers).toHaveLength(1);
+  expect(textOf(pointers[0])).toBe("usages see in addition account");
+  expect(JSON.stringify(result.value.content)).not.toContain("bword://");
+});
+
+test("preserves an unmatched flat usage attribution with a finding", () => {
+  const result = convert(
+    "<mean>" +
+      header("because", "conjunction", "¦bi-¦kȯz") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">for the reason that</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion" data-id="usage-notes" id="usage-notes">' +
+      '<h2 class="toggle"><span class="text">Usage of BECAUSE</span></h2>' +
+      '<div class="section-content usage-notes"><div class="sub-well"><p>Explanation ' +
+      '<span class="ex-sent aq"><span class="aq"><span class="auth"> — Orphan Source</span></span></span> ' +
+      '<span class="ex-sent t"> → a sentence</span>' +
+      "</p></div></div></div></mean>",
+    "because",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(textOf(result.value.content)).toContain("— Orphan Source");
+  expect(result.value.findings).toEqual([
+    expect.objectContaining({
+      kind: "unsupported-visible-subtree",
+      term: "because",
+      tagName: "span",
+      classes: ["ex-sent", "aq"],
+    }),
+  ]);
+});
+
+test("preserves whitespace between usage explanation inline nodes", () => {
+  const result = convert(
+    "<mean>" +
+      header("because", "conjunction", "¦bi-¦kȯz") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">for the reason that</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion" data-id="usage-notes" id="usage-notes">' +
+      '<h2 class="toggle"><span class="text">Usage of BECAUSE</span></h2>' +
+      '<div class="section-content usage-notes"><div class="sub-well"><p>first ' +
+      '<em class="mw_t_it">middle</em> <strong>last</strong> ' +
+      '<span class="ex-sent t"> → an example</span></p>' +
+      "</div></div></div></mean>",
+    "because",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const explanations = unitsOf(result.value.content, "usage-explanation");
+  expect(explanations).toHaveLength(1);
+  expect(textOf(explanations[0])).toBe("first middle last ");
+});
+
 test("does not invent attributions for earlier examples", () => {
   const result = convert(
     "<mean>" +
@@ -1095,7 +1228,7 @@ test("tags cross-reference relations from source classes", () => {
   ).toEqual(["origin", "see", "related"]);
 });
 
-test("marks see-in-addition units", () => {
+test("renders a Level 1 see-in-addition line in a synonym discussion", () => {
   const result = convert(
     "<mean>" +
       header("turn", "noun", "¦tərn") +
@@ -1105,9 +1238,10 @@ test("marks see-in-addition units", () => {
       ) +
       "</div></div></div>" +
       '<div class="section" data-id="related-to"><div class="section-content">' +
+      '<div class="synonym-discussion">' +
       '<p class="see-in-addition"><strong>synonyms</strong> see in addition ' +
       '<a href="bword://depend" class="sa-link sc">depend</a></p>' +
-      "</div></div></mean>",
+      "</div></div></div></mean>",
     "turn",
   );
 
@@ -1116,11 +1250,246 @@ test("marks see-in-addition units", () => {
 
   const seeInAddition = unitsOf(result.value.content, "see-in-addition");
   expect(seeInAddition).toHaveLength(1);
+  expect(seeInAddition[0]?.data).toMatchObject({
+    content: "see-in-addition",
+    level: "1",
+  });
   expect(textOf(seeInAddition[0])).toContain("synonyms");
   expect(textOf(seeInAddition[0])).toContain("depend");
   const strong = unitsOf(result.value.content, "strong");
   expect(strong).toHaveLength(1);
   expect(textOf(strong[0])).toContain("synonyms");
+});
+
+test("uses the nearest owner for a nested see-in-addition line", () => {
+  const result = convert(
+    "<mean>" +
+      header("future", "noun", "¦fyü-chər") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">time that is to come</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section" data-id="related-to"><div class="section-content">' +
+      '<div class="synonym-discussion"><div class="usage">' +
+      '<p class="see-in-addition"><strong>usages</strong> see in addition ' +
+      '<a href="bword://later" class="ua-link">later</a></p>' +
+      "</div></div></div></div></mean>",
+    "future",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const pointers = unitsOf(result.value.content, "see-in-addition");
+  expect(pointers).toHaveLength(1);
+  expect(pointers[0]?.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+});
+
+test("renders a Level 6 see-in-addition line in entry usage notes", () => {
+  const result = convert(
+    "<mean>" +
+      header("because", "conjunction", "¦bi-¦kȯz") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">for the reason that</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion" data-id="usage-notes" id="usage-notes">' +
+      '<h2 class="toggle"><span class="text">Usage of BECAUSE</span></h2>' +
+      '<div class="section-content usage-notes"><div class="sub-well">' +
+      "<p>usage explanation</p>" +
+      '<p class="see-in-addition"><strong>usages</strong> see in addition ' +
+      '<a href="bword://account%5B1%5D" class="ua-link"><sup>1</sup>account</a></p>' +
+      "</div></div></div></mean>",
+    "because",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const pointers = unitsOf(result.value.content, "see-in-addition");
+  expect(pointers).toHaveLength(1);
+  expect(pointers[0]?.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+  expect(textOf(pointers[0])).toBe("usages see in addition account");
+  expect(unitsOf(pointers[0], "cross-reference").map(textOf)).toEqual([
+    "account",
+  ]);
+  expect(unitsOf(pointers[0], "superscript-reference")).toHaveLength(0);
+  expect(JSON.stringify(pointers[0])).not.toContain("bword://");
+});
+
+test("renders entry usage notes as a titled collapsed disclosure", () => {
+  const result = convert(
+    "<mean>" +
+      header("because", "conjunction", "¦bi-¦kȯz") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">for the reason that</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion" data-id="usage-notes" id="usage-notes">' +
+      '<h2 class="toggle"><span class="text">Usage of BECAUSE</span></h2>' +
+      '<div class="section-content usage-notes"><div class="sub-well">' +
+      "<p>usage explanation</p>" +
+      '<p class="see-in-addition"><strong>usages</strong> see in addition ' +
+      '<a href="bword://account%5B1%5D" class="ua-link"><sup>1</sup>account</a></p>' +
+      "</div></div></div></mean>",
+    "because",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const disclosures = unitsOf(result.value.content, "usage-note");
+  expect(disclosures).toHaveLength(1);
+  expect(disclosures[0]?.tag).toBe("details");
+  expect(disclosures[0]?.open).toBe(false);
+  expect(disclosures[0]?.data).toMatchObject({
+    content: "usage-note",
+    level: "6",
+  });
+
+  const summaries = unitsOf(result.value.content, "disclosure-summary").filter(
+    (node: JsonObject): boolean =>
+      isObject(node.data) && node.data.category === "usage-note",
+  );
+  expect(summaries).toHaveLength(1);
+  expect(textOf(summaries[0])).toBe("Usage of BECAUSE");
+
+  expect(textOf(disclosures[0])).toContain("usage explanation");
+  expect(textOf(disclosures[0])).toContain("usages see in addition account");
+  const pointer = unitsOf(disclosures[0], "see-in-addition");
+  expect(pointer).toHaveLength(1);
+  expect(pointer[0]?.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+  expect(JSON.stringify(disclosures[0])).not.toContain("bword://");
+});
+
+test("renders a Level 6 see-in-addition line in a definition-local usage", () => {
+  const result = convert(
+    "<mean>" +
+      header("he", "pronoun", "¦hē") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">the male person previously mentioned</span>' +
+            '<div class="usages"><div class="usage">' +
+            "<span>Usage Discussion of <i>he</i></span><br>discussion text" +
+            '<p class="see-in-addition"><strong>usages</strong> see in addition ' +
+            '<a href="bword://anybody" class="ua-link">anybody</a>, ' +
+            '<a href="bword://everybody" class="ua-link">everybody</a></p>' +
+            "</div></div>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "he",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const pointers = unitsOf(result.value.content, "see-in-addition");
+  expect(pointers).toHaveLength(1);
+  expect(pointers[0]?.data).toMatchObject({
+    content: "see-in-addition",
+    level: "6",
+  });
+  expect(textOf(pointers[0])).toBe("usages see in addition anybody, everybody");
+  expect(unitsOf(pointers[0], "cross-reference").map(textOf)).toEqual([
+    "anybody",
+    "everybody",
+  ]);
+  expect(textOf(result.value.content).indexOf("discussion text")).toBeLessThan(
+    textOf(result.value.content).indexOf("usages see in addition"),
+  );
+  expect(JSON.stringify(pointers[0])).not.toContain("bword://");
+});
+
+test("reports see-in-addition content outside confirmed owners", () => {
+  const result = convert(
+    "<mean>" +
+      header("future", "noun", "¦fyü-chər") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">time that is to come</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<p class="see-in-addition"><strong>usages</strong> see in addition ' +
+      '<a href="bword://later" class="ua-link">later</a></p></mean>',
+    "future",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "see-in-addition")).toHaveLength(0);
+  expect(textOf(result.value.content)).toContain(
+    "usages see in addition later",
+  );
+  expect(result.value.findings).toEqual([
+    expect.objectContaining({
+      kind: "unsupported-visible-subtree",
+      term: "future",
+      tagName: "p",
+      classes: ["see-in-addition"],
+    }),
+  ]);
+});
+
+test("reports inline see-in-addition content outside confirmed owners", () => {
+  const result = convert(
+    "<mean>" +
+      header("future", "noun", "¦fyü-chər") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">time that is to come ' +
+            '<span class="see-in-addition">usages see in addition later</span>' +
+            "</span>",
+        ),
+      ) +
+      "</div></div></div></mean>",
+    "future",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "see-in-addition")).toHaveLength(0);
+  expect(textOf(result.value.content)).toContain(
+    "usages see in addition later",
+  );
+  expect(result.value.findings).toEqual([
+    expect.objectContaining({
+      kind: "unsupported-visible-subtree",
+      term: "future",
+      tagName: "span",
+      classes: ["see-in-addition"],
+    }),
+  ]);
 });
 
 test("renders em and mw_t_it as emphasis units", () => {
@@ -1372,6 +1741,56 @@ test("renders usage discussion references as non-interactive source pointers", (
   expect(textOf(references[0])).toBe(" See Usage Discussion at bring");
   expect(unitsOf(references[0], "cross-reference")).toHaveLength(0);
   expect(JSON.stringify(references[0])).not.toContain("gdlookup://");
+});
+
+test("preserves synonym-discussion reference targets", () => {
+  const result = convert(
+    "<mean>" +
+      header("abstract", "verb", "¦ab-ˈstrakt") +
+      '<div class="section" data-id="definition"><div class="def-wrapper"><div class="vg">' +
+      sb(
+        sense(
+          '<span class="num">1</span>',
+          '<span class="dt ">to summarize</span>',
+        ),
+      ) +
+      "</div></div></div>" +
+      '<div class="section custom-accordion related-to" data-id="related-to">' +
+      '<h2 class="toggle"><span class="text">Related to ABSTRACT</span></h2>' +
+      '<div class="section-content"><div class="sub-well">' +
+      '<div class="srefs synonym-discussion">See Synonym Discussion at ' +
+      '<a href="bword://detach" class="sr">detach</a></div>' +
+      "</div></div></div></mean>",
+    "abstract",
+  );
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  const related = unitsOf(result.value.content, "related-item");
+  expect(related).toHaveLength(1);
+  expect(related[0]?.open).toBe(false);
+  const references = unitsOf(related[0], "synonym-discussion-reference");
+  expect(references).toHaveLength(1);
+  expect(unitsOf(related[0], "synonym-discussion")).toHaveLength(0);
+  expect(textOf(references[0])).toBe("See Synonym Discussion at detach");
+  const targets = unitsOf(references[0], "cross-reference");
+  expect(targets).toHaveLength(1);
+  expect(textOf(targets[0])).toBe("detach");
+  expect(targets[0]?.data?.relation).toBeUndefined();
+  expect(JSON.stringify(references[0])).not.toContain("bword://");
+
+  const rendered = cheerio.load(renderToHtml(result.value.content));
+  const renderedReference = rendered(
+    '[data-sc-content="synonym-discussion-reference"]',
+  );
+  const renderedTarget = renderedReference.children(
+    'span[data-sc-content="cross-reference"]',
+  );
+  expect(renderedReference.prop("tagName")?.toLowerCase()).toBe("div");
+  expect(renderedTarget.text()).toBe("detach");
+  expect(renderedTarget.closest("a")).toHaveLength(0);
+  expect(renderedTarget.attr("data-sc-relation")).toBeUndefined();
 });
 
 test("structures a synonym discussion into term entries and local examples", () => {

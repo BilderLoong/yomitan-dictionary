@@ -15,20 +15,19 @@ for (const converted of allConverted) {
     expect(html).not.toContain("bword://");
   });
 
-  test(`${term} keeps every extra-examples group collapsed behind one inline example`, () => {
+  test(`${term} uses the first example as the summary and keeps the rest in the body`, () => {
     const extras = $('details[data-sc-content="extra-examples"]');
     extras.each((_, element) => {
       const details = $(element);
       expect(details.attr("open")).toBeUndefined();
-      const count = details.find('[data-sc-content="example-sentence"]').length;
-      const label = `${count} more ${count === 1 ? "example" : "examples"}`;
-      expect(details.children("summary").first().text()).toBe(label);
+      const summary = details.children("summary").first();
+      expect(summary.find('[data-sc-content="example-sentence"]').length).toBe(
+        1,
+      );
+      expect(summary.text()).not.toMatch(/\d+ more examples?/u);
+      expect(
+        details.children('[data-sc-content="example-sentence"]').length,
+      ).toBe(details.find('[data-sc-content="example-sentence"]').length - 1);
     });
-    const inline = $('[data-sc-content="example-sentence"]').not(
-      'details[data-sc-content="extra-examples"] [data-sc-content="example-sentence"]',
-    );
-    if ($('[data-sc-content="example-sentence"]').length > 0) {
-      expect(inline.length).toBeGreaterThan(0);
-    }
   });
 }
