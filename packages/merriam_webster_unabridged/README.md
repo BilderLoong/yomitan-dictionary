@@ -235,3 +235,31 @@ for visual inspection.
 The SQLite source is derived from the Merriam-Webster Unabridged 2024 MDX
 release using [pyglossary](https://github.com/ilius/pyglossary). The source
 license and download details are maintained with the project data.
+
+### Versioned source data
+
+`assets/source-data-manifest.json` is the versioned source-data contract. It
+records the expected `MWU.db` filename and the Hugging Face object URI and
+SHA-256 checksum for both the database and original MDX archive.
+
+### Download the source database
+
+Run this command in the package directory:
+
+```bash
+bun run source:download
+```
+
+The main checkout downloads and verifies `assets/MWU.db` with the pinned
+Python `huggingface_hub` library through `uv`. A worktree verifies the main
+checkout database against its own manifest, then links only `assets/MWU.db`.
+It never downloads a second copy.
+
+If the main checkout database has the wrong checksum, replace it explicitly:
+
+```bash
+bun run source:download -- --replace
+```
+
+The original MDX archive remains published provenance data; this command does
+not download it.

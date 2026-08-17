@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "sourceDataRevision": "Merriam Webster's Unabridged 2024 modified 04.05.2025",
+  "artifacts": {
+    "database": {
+      "filename": "MWU.db",
+      "uri": "hf://buckets/Birudo/yomitan-dict-source-data/source/MWU.db",
+      "sha256": "ea31003171ba0264057cb6027471d9b02a3276fb71020d3a4316bf1dc8925a72"
+    },
+    "originalMdxArchive": {
+      "filename": "Merriam-Webster-Unabridged-2024-MDX.7z",
+      "uri": "hf://buckets/Birudo/yomitan-dict-source-data/source/Merriam-Webster-Unabridged-2024-MDX.7z",
+      "sha256": "31ba47861af02211ae32930e1bea156abfdca2e95eeb27889cc20e802c8197be"
+    }
+  }
+}

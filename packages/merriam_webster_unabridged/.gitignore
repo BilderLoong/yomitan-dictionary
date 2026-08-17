@@ -1,5 +1,7 @@
 # Playwright
 node_modules/
+__pycache__/
+*.pyc
 /test-results/
 /playwright-report/
 /blob-report/
@@ -7,7 +9,8 @@ node_modules/
 # Anchored: only the package-root build output dir; src/build and tests/build
 # are real source and must stay trackable.
 /build/
-assets
+assets/*
+!assets/source-data-manifest.json
 fixture
 # Source-HTML render fixtures: regenerated from assets/MWU.db via
 # `bun run update:render-fixtures` (same provenance as the build itself).
