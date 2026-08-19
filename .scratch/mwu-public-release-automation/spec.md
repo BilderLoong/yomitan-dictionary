@@ -191,8 +191,10 @@ only after every gate succeeds.
 - The uv setup action does not force a Python version. `uv run` respects the
   Python requirement in the downloader's PEP 723 script metadata and can
   install a compatible Python when needed.
-- GitHub action references keep required major-version refs. Runtime-version
-  deduplication does not remove the `@ref` that GitHub requires for an action.
+- GitHub action references keep the upstream-supported ref. `setup-uv` is
+  pinned to the immutable commit recommended in its upstream README because it
+  does not publish a major-version alias. Runtime-version deduplication does
+  not remove the `@ref` that GitHub requires for an action.
 - The workflow has read-only repository contents permission by default. The
   release job receives contents write permission for GitHub Release creation.
 - GitHub CLI verifies that the tag exists, generates change notes, prepends
