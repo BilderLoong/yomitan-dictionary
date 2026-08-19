@@ -12,8 +12,7 @@ import { runBuild } from "./runBuild";
 export const PUBLIC_ARCHIVE_FILE_NAME = "Merriam-Webster-Unabridged.zip";
 export const PUBLIC_INDEX_FILE_NAME = "Merriam-Webster-Unabridged.index.json";
 export const PUBLIC_CHECKSUMS_FILE_NAME = "SHA256SUMS";
-export const PUBLIC_REPORT_FILE_NAME = "build-report.json";
-export const PROVENANCE_NOTES_FILE_NAME = "provenance-notes.md";
+export const RELEASE_REPORT_FILE_NAME = "build-report.json";
 
 const PUBLIC_INDEX_URL =
   "https://github.com/BilderLoong/yomitan-dictionary/releases/latest/download/Merriam-Webster-Unabridged.index.json";
@@ -57,7 +56,6 @@ export interface PublicReleaseAssets {
   readonly indexPath: string;
   readonly checksumsPath: string;
   readonly reportPath: string;
-  readonly provenanceNotesPath: string;
   readonly report: ReleaseBuildReport;
 }
 
@@ -264,19 +262,6 @@ export const formatSha256Sums = (
 ): string =>
   `${entries.map(({ digest, filename }) => `${digest}  ${filename}`).join("\n")}\n`;
 
-export const formatProvenanceNotes = (provenance: ReleaseProvenance): string =>
-  [
-    "Release provenance",
-    "",
-    `Release revision: ${provenance.releaseRevision}`,
-    `Release tag: ${provenance.releaseTag}`,
-    `Converter commit: ${provenance.converterCommit}`,
-    `Source-data revision: ${provenance.sourceDataRevision}`,
-    `Source database filename: ${provenance.sourceDatabaseFilename}`,
-    `Source database SHA-256: ${provenance.sourceDatabaseSha256}`,
-    "",
-  ].join("\n");
-
 const sha256File = async (path: string): Promise<string> => {
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(path)) {
@@ -314,7 +299,7 @@ export const runPublicReleaseBuild = async (
   }
 
   const index = createPublicDictionaryIndex(provenance.value.releaseRevision);
-  const reportPath = join(request.outputDirectory, PUBLIC_REPORT_FILE_NAME);
+  const reportPath = join(request.outputDirectory, RELEASE_REPORT_FILE_NAME);
   const buildAttempt = await runBuild({
     requestedWords: [],
     databasePath: request.databasePath,
@@ -340,11 +325,6 @@ export const runPublicReleaseBuild = async (
     request.outputDirectory,
     PUBLIC_CHECKSUMS_FILE_NAME,
   );
-  const provenanceNotesPath = join(
-    request.outputDirectory,
-    PROVENANCE_NOTES_FILE_NAME,
-  );
-
   try {
     await mkdir(request.outputDirectory, { recursive: true });
     await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`, "utf8");
@@ -359,17 +339,8 @@ export const runPublicReleaseBuild = async (
         digest: await sha256File(indexPath),
         filename: PUBLIC_INDEX_FILE_NAME,
       },
-      {
-        digest: await sha256File(reportPath),
-        filename: PUBLIC_REPORT_FILE_NAME,
-      },
     ]);
     await writeFile(checksumsPath, checksums, "utf8");
-    await writeFile(
-      provenanceNotesPath,
-      formatProvenanceNotes(provenance.value),
-      "utf8",
-    );
   } catch (error: unknown) {
     return {
       ok: false,
@@ -384,7 +355,6 @@ export const runPublicReleaseBuild = async (
       indexPath,
       checksumsPath,
       reportPath,
-      provenanceNotesPath,
       report,
     },
   };

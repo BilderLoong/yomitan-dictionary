@@ -3,7 +3,7 @@
 **What to build:** A dictionary maintainer can run one explicit release build
 with a release revision and converter commit. The command performs a
 full-database build and produces a stable update archive, matching update
-index, provenance-bearing build report, checksums, and provenance notes.
+index, checksums, and an internal provenance-bearing build report.
 Selected and development builds remain outside the public update channel.
 
 **Blocked by:** None — can start immediately
@@ -28,12 +28,10 @@ Selected and development builds remain outside the public update channel.
       revision, is updatable, and contains the stable GitHub latest-release
       index and download URLs
 - [x] Selected and development builds do not announce the public update channel
-- [x] The public build report preserves full-build evidence and records the
+- [x] The internal build report preserves full-build evidence and records the
       release revision, release tag, converter commit, source-data revision,
       database filename, and database SHA-256
-- [x] `SHA256SUMS` covers the update archive, update index, and public build
-      report with conventional lowercase SHA-256 lines
-- [x] Provenance notes are generated from the same release and source
-      inputs but is not listed as a public release asset
+- [x] `SHA256SUMS` covers the update archive and update index with conventional
+      lowercase SHA-256 lines
 - [x] A temporary full source database test proves the complete release-build
       path without requiring the production database

@@ -6,18 +6,16 @@ import {
   PUBLIC_ARCHIVE_FILE_NAME,
   PUBLIC_CHECKSUMS_FILE_NAME,
   PUBLIC_INDEX_FILE_NAME,
-  PUBLIC_REPORT_FILE_NAME,
   parseReleaseRevision,
   type ReleaseSourceData,
 } from "./release";
 
 export const GITHUB_MAX_RELEASE_ASSET_BYTES = 2 * 1024 * 1024 * 1024;
 
-export interface PublicReleaseAssetSizes {
+export interface PublishedReleaseAssetSizes {
   readonly archive: number;
   readonly index: number;
   readonly checksums: number;
-  readonly report: number;
 }
 
 export interface ReleaseAssetDigest {
@@ -33,7 +31,7 @@ export interface PublicReleaseValidationInput {
   readonly standaloneIndex: unknown;
   readonly report: unknown;
   readonly checksums: string;
-  readonly assetSizes: PublicReleaseAssetSizes;
+  readonly assetSizes: PublishedReleaseAssetSizes;
   readonly computedChecksums: readonly ReleaseAssetDigest[];
 }
 
@@ -236,7 +234,6 @@ const validateChecksums = (
   const expectedFiles: readonly string[] = [
     PUBLIC_ARCHIVE_FILE_NAME,
     PUBLIC_INDEX_FILE_NAME,
-    PUBLIC_REPORT_FILE_NAME,
   ];
   const parsed = parseChecksums(input.checksums);
   const filenames = parsed.entries.map(
@@ -287,7 +284,7 @@ const validateChecksums = (
 };
 
 const validateAssetSizes = (
-  sizes: PublicReleaseAssetSizes,
+  sizes: PublishedReleaseAssetSizes,
 ): readonly string[] => {
   const assets: readonly {
     readonly filename: string;
@@ -296,7 +293,6 @@ const validateAssetSizes = (
     { filename: PUBLIC_ARCHIVE_FILE_NAME, size: sizes.archive },
     { filename: PUBLIC_INDEX_FILE_NAME, size: sizes.index },
     { filename: PUBLIC_CHECKSUMS_FILE_NAME, size: sizes.checksums },
-    { filename: PUBLIC_REPORT_FILE_NAME, size: sizes.report },
   ];
   return assets.flatMap(({ filename, size }): readonly string[] => {
     if (!Number.isFinite(size) || size < 0) {

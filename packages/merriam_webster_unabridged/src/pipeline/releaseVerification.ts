@@ -7,12 +7,12 @@ import {
   PUBLIC_ARCHIVE_FILE_NAME,
   PUBLIC_CHECKSUMS_FILE_NAME,
   PUBLIC_INDEX_FILE_NAME,
-  PUBLIC_REPORT_FILE_NAME,
   parseSourceDataManifest,
+  RELEASE_REPORT_FILE_NAME,
   type ReleaseSourceData,
 } from "./release";
 import {
-  type PublicReleaseAssetSizes,
+  type PublishedReleaseAssetSizes,
   type ReleaseAssetDigest,
   type VerifiedPublicRelease,
   validatePublicRelease,
@@ -175,7 +175,7 @@ export const verifyPublicReleaseDirectory = async (
     request.releaseDirectory,
     PUBLIC_CHECKSUMS_FILE_NAME,
   );
-  const reportPath = join(request.releaseDirectory, PUBLIC_REPORT_FILE_NAME);
+  const reportPath = join(request.releaseDirectory, RELEASE_REPORT_FILE_NAME);
 
   const archiveSize = await readAssetSize(
     archivePath,
@@ -189,13 +189,10 @@ export const verifyPublicReleaseDirectory = async (
     PUBLIC_CHECKSUMS_FILE_NAME,
   );
   if (!checksumsSize.ok) return { ok: false, error: [checksumsSize.error] };
-  const reportSize = await readAssetSize(reportPath, PUBLIC_REPORT_FILE_NAME);
-  if (!reportSize.ok) return { ok: false, error: [reportSize.error] };
-
   const [archiveIndex, standaloneIndex, report, checksums] = await Promise.all([
     readArchiveIndex(archivePath),
     readJsonFile(indexPath, PUBLIC_INDEX_FILE_NAME),
-    readJsonFile(reportPath, PUBLIC_REPORT_FILE_NAME),
+    readJsonFile(reportPath, RELEASE_REPORT_FILE_NAME),
     readTextFile(checksumsPath, PUBLIC_CHECKSUMS_FILE_NAME),
   ]);
   if (!archiveIndex.ok) return { ok: false, error: [archiveIndex.error] };
@@ -205,25 +202,21 @@ export const verifyPublicReleaseDirectory = async (
   if (!report.ok) return { ok: false, error: [report.error] };
   if (!checksums.ok) return { ok: false, error: [checksums.error] };
 
-  const [archiveDigest, indexDigest, reportDigest] = await Promise.all([
+  const [archiveDigest, indexDigest] = await Promise.all([
     sha256File(archivePath, PUBLIC_ARCHIVE_FILE_NAME),
     sha256File(indexPath, PUBLIC_INDEX_FILE_NAME),
-    sha256File(reportPath, PUBLIC_REPORT_FILE_NAME),
   ]);
   if (!archiveDigest.ok) return { ok: false, error: [archiveDigest.error] };
   if (!indexDigest.ok) return { ok: false, error: [indexDigest.error] };
-  if (!reportDigest.ok) return { ok: false, error: [reportDigest.error] };
 
   const computedChecksums: readonly ReleaseAssetDigest[] = [
     { filename: PUBLIC_ARCHIVE_FILE_NAME, digest: archiveDigest.value },
     { filename: PUBLIC_INDEX_FILE_NAME, digest: indexDigest.value },
-    { filename: PUBLIC_REPORT_FILE_NAME, digest: reportDigest.value },
   ];
-  const assetSizes: PublicReleaseAssetSizes = {
+  const assetSizes: PublishedReleaseAssetSizes = {
     archive: archiveSize.value,
     index: indexSize.value,
     checksums: checksumsSize.value,
-    report: reportSize.value,
   };
 
   return validatePublicRelease({

@@ -89,7 +89,7 @@ only after every gate succeeds.
     release revision, converter commit, source-data revision, and database
     checksum, so that a public build can be reproduced and audited.
 26. As a dictionary maintainer, I want the existing build totals and findings
-    preserved in the public build report, so that release quality remains
+    preserved in the internal build report, so that release quality remains
     visible.
 27. As a dictionary maintainer, I want a release verification command, so that
     the same asset contract is checked locally and in GitHub Actions.
@@ -110,9 +110,8 @@ only after every gate succeeds.
 33. As a repository owner, I want the workflow to have read-only permissions
     until the publication job needs release write access, so that its token has
     the minimum useful authority.
-34. As a dictionary maintainer, I want generated GitHub release notes plus
-    release provenance, so that users can see changes and maintainers can audit
-    the build.
+34. As a dictionary maintainer, I want generated GitHub release notes, so that
+    users can see changes.
 35. As a dictionary maintainer, I want a failed build or failed verification to
     stop before publication, so that a broken release is not visible as latest.
 36. As a dictionary maintainer, I want a successful publication to become the
@@ -146,25 +145,21 @@ only after every gate succeeds.
   and development archives remain outside the public update channel.
 - A release build produces these public release assets with stable names:
   `Merriam-Webster-Unabridged.zip`,
-  `Merriam-Webster-Unabridged.index.json`, `SHA256SUMS`, and
-  `build-report.json`.
+  `Merriam-Webster-Unabridged.index.json`, and `SHA256SUMS`.
 - `SHA256SUMS` uses the conventional lowercase SHA-256 format with two spaces
   between each digest and filename. It covers the update archive, update
-  index, and public build report; it does not list itself.
-- The public build report preserves the normal full-build report and adds
+  index; it does not list itself.
+- The internal build report preserves the normal full-build report and adds
   release provenance containing the release revision, release tag, converter
   commit, source-data revision, source database filename, and source database
   SHA-256.
-- Provenance notes are generated from the same release inputs and
-  source-data contract as the public build report. It is used during
-  publication but is not a public release asset.
 - Release assembly writes into a dedicated generated release directory. It
   does not replace the existing development build directory contract.
 - The release verifier reads only generated release files and ZIP content. It
   verifies required filenames, revision equality, stable title, update flags,
   stable URLs, internal and standalone index equality, checksum correctness,
-  provenance consistency, absence of build errors, and the GitHub per-asset
-  size limit.
+  internal provenance consistency, absence of build errors, and the GitHub
+  per-asset size limit.
 - The source downloader remains the only source-acquisition implementation.
   The workflow runs its tests, then uses it to download and verify only the
   database from the public Hugging Face bucket.
@@ -197,9 +192,9 @@ only after every gate succeeds.
   not remove the `@ref` that GitHub requires for an action.
 - The workflow has read-only repository contents permission by default. The
   release job receives contents write permission for GitHub Release creation.
-- GitHub CLI verifies that the tag exists, generates change notes, prepends
-  release provenance, uploads exactly the four public release assets, and marks
-  the publication as the latest stable release.
+- GitHub CLI verifies that the tag exists, generates change notes, uploads
+  exactly the three public release assets, and marks the publication as the
+  latest stable release.
 - Draft releases and prereleases are not part of the public update channel.
 - The workflow file must exist in the commit identified by the release tag.
 - `minimumYomitanVersion` remains omitted until a stable compatibility version

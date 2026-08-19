@@ -210,20 +210,13 @@ describe("public release build", () => {
     const expectedChecksums = [
       `${await sha256File(result.value.archivePath)}  ${PUBLIC_ARCHIVE_FILE_NAME}`,
       `${await sha256File(result.value.indexPath)}  ${PUBLIC_INDEX_FILE_NAME}`,
-      `${await sha256File(result.value.reportPath)}  build-report.json`,
     ].join("\n");
     expect(await readFile(result.value.checksumsPath, "utf8")).toBe(
       `${expectedChecksums}\n`,
     );
 
-    const notes = await readFile(result.value.provenanceNotesPath, "utf8");
-    expect(notes).toContain("Release revision: 2026.08.18");
-    expect(notes).toContain(`Converter commit: ${converterCommit}`);
-    expect(notes).toContain(
-      `Source database SHA-256: ${input.sourceData.databaseSha256}`,
-    );
     expect(await readFile(result.value.checksumsPath, "utf8")).not.toContain(
-      "provenance-notes.md",
+      "build-report.json",
     );
   });
 

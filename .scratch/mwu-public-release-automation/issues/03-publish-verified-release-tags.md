@@ -3,7 +3,7 @@
 **What to build:** Pushing a calendar-shaped release tag starts one GitHub
 Actions job that proves the tag belongs to `master`, obtains the verified source
 database, builds and verifies the public dictionary release, and publishes the
-four stable assets as the latest GitHub Release only after every gate passes.
+three stable assets as the latest GitHub Release only after every gate passes.
 
 **Blocked by:** 02 — Reject invalid public release assets
 
@@ -34,9 +34,9 @@ four stable assets as the latest GitHub Release only after every gate passes.
 - [x] The release build receives the tag as its release revision and the tagged
       commit as its converter commit
 - [x] Release verification completes before publication
-- [x] GitHub CLI verifies the tag, generates change notes, adds release
-      provenance, uploads exactly the four stable public release assets, and
-      marks the result as the latest stable release
+- [x] GitHub CLI verifies the tag, generates change notes, uploads exactly the
+      three public release assets, and marks the result as the latest stable
+      release
 - [x] A failed ancestry, source, build, verification, or upload gate prevents
       successful publication
 - [x] Workflow syntax and local non-publication checks pass without creating or

@@ -116,12 +116,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "release/Merriam-Webster-Unabridged.zip#Dictionary archive" \
-            "release/Merriam-Webster-Unabridged.index.json#Update index" \
+            "release/Merriam-Webster-Unabridged.zip#Merriam-Webster-Unabridged.zip" \
+            "release/Merriam-Webster-Unabridged.index.json#index.json" \
             "release/SHA256SUMS#SHA-256 checksums" \
-            "release/build-report.json#Build provenance" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            --notes "$(cat release/provenance-notes.md)" \
             --latest

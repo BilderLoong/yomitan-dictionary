@@ -8,7 +8,7 @@ import {
   PUBLIC_ARCHIVE_FILE_NAME,
   PUBLIC_CHECKSUMS_FILE_NAME,
   PUBLIC_INDEX_FILE_NAME,
-  PUBLIC_REPORT_FILE_NAME,
+  RELEASE_REPORT_FILE_NAME,
   type ReleaseSourceData,
   runPublicReleaseBuild,
 } from "../../src/pipeline/release";
@@ -209,17 +209,14 @@ const createValidationInput = async (
     readJsonFile(release.reportPath),
     readFile(release.checksumsPath, "utf8"),
   ]);
-  const [archiveStats, indexStats, checksumsStats, reportStats] =
-    await Promise.all([
-      stat(release.archivePath),
-      stat(release.indexPath),
-      stat(release.checksumsPath),
-      stat(release.reportPath),
-    ]);
-  const [archiveDigest, indexDigest, reportDigest] = await Promise.all([
+  const [archiveStats, indexStats, checksumsStats] = await Promise.all([
+    stat(release.archivePath),
+    stat(release.indexPath),
+    stat(release.checksumsPath),
+  ]);
+  const [archiveDigest, indexDigest] = await Promise.all([
     sha256File(release.archivePath),
     sha256File(release.indexPath),
-    sha256File(release.reportPath),
   ]);
   return {
     expectedRevision: "2026.08.18",
@@ -233,12 +230,10 @@ const createValidationInput = async (
       archive: archiveStats.size,
       index: indexStats.size,
       checksums: checksumsStats.size,
-      report: reportStats.size,
     },
     computedChecksums: [
       { filename: PUBLIC_ARCHIVE_FILE_NAME, digest: archiveDigest },
       { filename: PUBLIC_INDEX_FILE_NAME, digest: indexDigest },
-      { filename: PUBLIC_REPORT_FILE_NAME, digest: reportDigest },
     ],
   };
 };
@@ -263,7 +258,7 @@ describe("public release verification", () => {
     });
   });
 
-  test("test:release exits successfully and returns nonzero for a missing asset", async () => {
+  test("test:release rejects a missing internal build report", async () => {
     await withTemporaryRelease(async (release) => {
       const success = await runVerificationCommand(release);
       expect(success.exitCode, `${success.stdout}\n${success.stderr}`).toBe(0);
@@ -271,8 +266,8 @@ describe("public release verification", () => {
       await rm(release.reportPath);
       const failure = await runVerificationCommand(release);
       expect(failure.exitCode).not.toBe(0);
-      expect(failure.stderr).toContain(PUBLIC_REPORT_FILE_NAME);
-      expect(failure.stderr).toContain("required release asset");
+      expect(failure.stderr).toContain(RELEASE_REPORT_FILE_NAME);
+      expect(failure.stderr).toContain("Unable to parse");
     });
   });
 
@@ -280,7 +275,6 @@ describe("public release verification", () => {
     PUBLIC_ARCHIVE_FILE_NAME,
     PUBLIC_INDEX_FILE_NAME,
     PUBLIC_CHECKSUMS_FILE_NAME,
-    PUBLIC_REPORT_FILE_NAME,
   ])("rejects a missing stable asset: %s", async (fileName: string) => {
     await withTemporaryRelease(async (release) => {
       await rm(join(release.outputDirectory, fileName));
@@ -427,7 +421,7 @@ describe("public release verification", () => {
     });
   });
 
-  test("rejects build errors in the public build report", async () => {
+  test("rejects build errors in the internal build report", async () => {
     await withTemporaryRelease(async (release) => {
       await updateJsonObject(release.reportPath, (report) => {
         const totals = report.totals;
@@ -445,7 +439,7 @@ describe("public release verification", () => {
     });
   });
 
-  test("rejects selected roots in the public build report", async () => {
+  test("rejects selected roots in the internal build report", async () => {
     await withTemporaryRelease(async (release) => {
       await updateJsonObject(release.reportPath, (report) => ({
         ...report,

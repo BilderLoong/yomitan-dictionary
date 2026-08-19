@@ -118,12 +118,11 @@ git rev-parse HEAD
 Pushing the tag starts `.github/workflows/release-mwu.yml`. GitHub Actions
 checks that the tagged commit belongs to `master`, downloads and verifies the
 source database, builds and verifies the release again, and then publishes the
-GitHub Release. A successful release contains these four assets:
+GitHub Release. A successful release contains these three assets:
 
 - `Merriam-Webster-Unabridged.zip`
 - `Merriam-Webster-Unabridged.index.json`
 - `SHA256SUMS`
-- `build-report.json`
 
 Do not move or reuse a published tag. If a release is bad, fix the problem and
 publish a newer revision. For example, publish `2026.08.19.1` after
