@@ -243,7 +243,7 @@ export const createPublicDictionaryIndex = (
     .setTitle("Merriam Webster Unabridged")
     .setRevision(revision)
     .setFormat(3)
-    .setAuthor("Birudo")
+    .setAuthor("https://github.com/BilderLoong/yomitan-dictionary")
     .setIsUpdatable(true)
     .setIndexUrl(PUBLIC_INDEX_URL)
     .setDownloadUrl(PUBLIC_DOWNLOAD_URL)
