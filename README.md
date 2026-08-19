@@ -49,6 +49,8 @@ Feel free to open a issue if encounter any problem when using this dictionary. I
 - [1Selxo/living-japanese-slang-dictionary: daily Updated living-japanese-slang-dictionary Conversions for yomitan](https://github.com/1Selxo/living-japanese-slang-dictionary/tree/521e0cb19d7f64fe2d0af0a9d93b78329f5ccfe6)
 - [W1ght/ninjal-bunkei-yomitan: Yomitan dictionary for NINJAL Nihongo Bunkei Database 2026.01](https://github.com/W1ght/ninjal-bunkei-yomitan)
 - [HuangAntimony/Nihongo-Bunkei-Jiten: Japanese grammar dictionary rebuilt from mefat.review for Yomitan](https://github.com/HuangAntimony/Nihongo-Bunkei-Jiten)
+- [peldas/yomitan-dicts: Yomitan dictionaries I have created](https://github.com/peldas/yomitan-dicts)
+- [1Selxo/hissatuwaza-Yomitan: https://hissatuwaza.kill.jp/ for yomitan daily updated](https://github.com/1Selxo/hissatuwaza-Yomitan/tree/main)
 
 ## Credit
 
