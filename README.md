@@ -40,3 +40,12 @@ So I highly recommend you toggle the `Part of speech filtering` off which is def
 ## Feedback
 
 Feel free to open a issue if encounter any problem when using this dictionary. I very happy to keep improve it.
+
+## Other yomitan dictionaries
+
+- [W1ght/ninjal-bunkei-yomitan: Yomitan dictionary for NINJAL Nihongo Bunkei Database 2026.01](https://github.com/W1ght/ninjal-bunkei-yomitan)
+- [MarvNC/yomitan-dictionaries: 📚 Japanese and Chinese dictionaries for Yomitan.](https://github.com/MarvNC/yomitan-dictionaries)
+- [yomidevs/wiktionary-to-yomitan: Yomitan-compatible dictionaries from wikitionary data](https://github.com/yomidevs/wiktionary-to-yomitan)
+- [shoujocyber/OALD10-Yomitan-Converter: An advanced Python script to deeply parse, clean, and restructure the OALD (10th Ed) MDX data into a highly optimized, native Yomitan/Yomichan JSON dictionary.](https://github.com/shoujocyber/OALD10-Yomitan-Converter)
+- [1Selxo/living-japanese-slang-dictionary: daily Updated living-japanese-slang-dictionary Conversions for yomitan](https://github.com/1Selxo/living-japanese-slang-dictionary/tree/521e0cb19d7f64fe2d0af0a9d93b78329f5ccfe6)
+
