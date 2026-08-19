@@ -302,3 +302,6 @@ bun run source:download -- --replace
 
 The original MDX archive remains published provenance data; this command does
 not download it.
+
+## Information
+[Help | Merriam-Webster](https://www.merriam-webster.com/help/)

@@ -685,6 +685,33 @@ const assertTargetedEntry = async (
   }
 };
 
+const assertSourceMarkerInlineFlow = async (
+  page: Page,
+  query: string,
+  surface: PresentationSurface,
+): Promise<void> => {
+  const unwrappedMarkers = await page.evaluate((): readonly string[] =>
+    [...document.querySelectorAll("li[data-sc-source-marker-path]")]
+      .filter((item): boolean =>
+        [...item.childNodes].some(
+          (node): boolean =>
+            node.nodeType === Node.TEXT_NODE &&
+            node.textContent?.trim().length !== 0,
+        ),
+      )
+      .map(
+        (item): string =>
+          item.getAttribute("data-sc-source-marker-path") ?? "?",
+      ),
+  );
+
+  if (unwrappedMarkers.length > 0) {
+    throw new Error(
+      `${surface} source marker ${unwrappedMarkers[0]} splits inline text for: ${query}`,
+    );
+  }
+};
+
 const inspectTargetedQueries = async (
   browserContext: BrowserContext,
   searchPage: Page,
@@ -694,6 +721,7 @@ const inspectTargetedQueries = async (
   for (const query of searchQueries) {
     await openSearchResult(searchPage, searchPageUrl, query);
     await assertTargetedEntry(searchPage, query, "search");
+    await assertSourceMarkerInlineFlow(searchPage, query, "search");
   }
 
   const firstQuery = searchQueries[0];
@@ -710,6 +738,7 @@ const inspectTargetedQueries = async (
       await openSearchResult(popupPage, searchPageUrl, query);
     }
     await assertTargetedEntry(popupPage, query, "popup");
+    await assertSourceMarkerInlineFlow(popupPage, query, "popup");
   }
 
   console.log(
@@ -721,6 +750,7 @@ const assertEntryPresentation = async (
   page: Page,
   context: PresentationContext,
 ): Promise<void> => {
+  await assertSourceMarkerInlineFlow(page, context.query, context.surface);
   const failures = await page.evaluate(
     ({ query, surface }: PresentationContext): string[] => {
       const body = document.body;

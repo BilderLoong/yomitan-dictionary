@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 
 import { renderToHtml } from "../helpers/renderToHtml";
 import {
+  allConverted,
   giveConverted,
   inConverted,
   oConverted,
@@ -152,6 +153,44 @@ test("nested sense leaves expose their complete source marker path", () => {
     "1d(1)",
     "1d(2)",
   ]);
+});
+
+test("marked senses do not leave inline text as direct grid items", () => {
+  const directTextNodes = allConverted.flatMap((converted) => {
+    const $ = rendered(converted.content);
+    return $("li[data-sc-source-marker-path]")
+      .toArray()
+      .flatMap((item) =>
+        $(item)
+          .contents()
+          .toArray()
+          .filter(
+            (node): boolean =>
+              node.type === "text" && node.data.trim().length > 0,
+          ),
+      );
+  });
+
+  expect(directTextNodes).toHaveLength(0);
+});
+
+test("give sense 8 keeps its source note inside the definition flow", () => {
+  const $ = rendered(giveConverted.content);
+  const sense = $('li[data-sc-source-marker-path="8"]').first();
+  const definition = sense.children(
+    'div[data-sc-content="definition"][data-sc-level="5"]',
+  );
+
+  expect(
+    sense
+      .children()
+      .map((_, element) => $(element).attr("data-sc-content"))
+      .get(),
+  ).toEqual(["definition"]);
+  expect(
+    definition.children('[data-sc-content="definition-text"]').text(),
+  ).toContain("translation of German gibt");
+  expect(definition.text()).toContain("to take place");
 });
 
 test("inflection pronunciation qualifiers use the local tag treatment", () => {

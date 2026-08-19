@@ -126,6 +126,46 @@ test("renders real MWU what records as structured content", async () => {
   ).toBe(true);
 }, 30_000);
 
+test("does not wrap real generated phrase entries in a Phrases disclosure", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-phrase-"));
+  const attempt = await runBuild({
+    requestedWords: ["give"],
+    databasePath: sourceDatabasePath,
+    buildPaths: {
+      outputDirectory,
+      reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
+    },
+  });
+
+  expect(
+    attempt.ok,
+    attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+  ).toBe(true);
+  if (!attempt.ok) return;
+
+  const phraseContents = attempt.records
+    .filter(
+      (record: TermInformation): boolean =>
+        record[0] === "give of oneself" && structuredContent(record) !== null,
+    )
+    .map((record: TermInformation): unknown => structuredContent(record));
+
+  expect(phraseContents).toHaveLength(1);
+  expect(
+    phraseContents.every(
+      (content: unknown): boolean =>
+        unitsOf(content, "phrase-group").length === 0,
+    ),
+  ).toBe(true);
+  expect(
+    phraseContents.every(
+      (content: unknown): boolean =>
+        unitsOf(content, "definition-flow").length > 0,
+    ),
+  ).toBe(true);
+}, 30_000);
+
 test("preserves real abstract synonym-discussion reference targets", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-abstract-"));
   const attempt = await runBuild({

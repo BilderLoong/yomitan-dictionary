@@ -657,6 +657,34 @@ test("keeps the fixed phrase tag before a dynamic functional tag", () => {
   expect(result.value.definitionTags).toBe("phrase ?future_label");
 });
 
+test("does not render a Phrases summary for a generated phrase entry", () => {
+  const result = convertCanonical({
+    kind: "drp-phrase-canonical-entry",
+    term: "give of oneself",
+    parentTerm: "give",
+    source: {
+      rowId: 12,
+      rowKey: "give",
+      meanIndex: 0,
+      phraseIndex: 0,
+      ownerHtml:
+        '<div class="dro"><span class="drp">give of oneself</span>' +
+        '<div class="vg"><div class="sb"><div class="sense"><span class="dt">to give generously</span></div></div></div></div>',
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+
+  expect(unitsOf(result.value.content, "phrase-group")).toHaveLength(0);
+  expect(textOf(result.value.content)).toContain("to give generously");
+
+  const rendered = cheerio.load(renderToHtml(result.value.content));
+  expect(
+    rendered('details[data-sc-content="phrase-group"] > summary'),
+  ).toHaveLength(0);
+});
+
 test("keeps an unknown owned functional label visible with a finding", () => {
   const result = convert(
     "<mean>" +

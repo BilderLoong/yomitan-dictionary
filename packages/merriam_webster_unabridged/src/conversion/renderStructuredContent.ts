@@ -1433,16 +1433,8 @@ const renderSense = (
     (child: AnyNode): boolean =>
       child.type === "tag" && hasClass(root, child, "dt"),
   );
-  const leadingFormNodes =
-    definitionIndex < 0
-      ? []
-      : children
-          .slice(0, definitionIndex)
-          .filter(
-            (child: AnyNode): boolean =>
-              child.type === "tag" &&
-              hasAnyClass(root, child, ["if", "il", "spl"]),
-          );
+  const leadingDefinitionNodes =
+    definitionIndex < 0 ? [] : children.slice(0, definitionIndex);
   const afterDefinition =
     definitionIndex < 0 ? [] : children.slice(definitionIndex + 1);
   const continuationLength = afterDefinition.findIndex(
@@ -1461,7 +1453,7 @@ const renderSense = (
     root,
     children.filter(
       (child: AnyNode): boolean =>
-        !leadingFormNodes.includes(child) &&
+        !leadingDefinitionNodes.includes(child) &&
         !trailingScopedDefinitions.includes(child),
     ),
     path,
@@ -1474,7 +1466,7 @@ const renderSense = (
           [...path, index],
           plan,
           5,
-          leadingFormNodes,
+          leadingDefinitionNodes,
           trailingScopedDefinitions,
         );
       }
@@ -2904,7 +2896,7 @@ const renderPhrases = (
         renderDroPhrases(root, phrase, [...path, index], plan, embedded),
     ),
   );
-  if (phraseResults.nodes.length === 0) return phraseResults;
+  if (phraseResults.nodes.length === 0 || embedded) return phraseResults;
   return renderResult(
     [
       container(
