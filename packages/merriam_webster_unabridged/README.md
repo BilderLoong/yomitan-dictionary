@@ -92,6 +92,43 @@ Successful builds write:
 - `build/Merriam Webster Unabridged.zip`
 - `build/build-report.json`
 
+## Create a public release
+
+Create a public release only from a commit that is on `master` and is already
+pushed to GitHub. The release revision uses a calendar version such as
+`2026.08.19`. Use `.N` for another release on the same day, such as
+`2026.08.19.1`.
+
+Run these commands in this package directory. Replace `<commit-sha>` with the
+full 40-character SHA of the commit that you will tag:
+
+```bash
+bun run build:release -- --revision 2026.08.19 --commit <commit-sha>
+bun run test:release -- --revision 2026.08.19 --commit <commit-sha>
+git tag 2026.08.19 <commit-sha>
+git push origin 2026.08.19
+```
+
+For example, get the full SHA for the current commit with:
+
+```bash
+git rev-parse HEAD
+```
+
+Pushing the tag starts `.github/workflows/release-mwu.yml`. GitHub Actions
+checks that the tagged commit belongs to `master`, downloads and verifies the
+source database, builds and verifies the release again, and then publishes the
+GitHub Release. A successful release contains these four assets:
+
+- `Merriam-Webster-Unabridged.zip`
+- `Merriam-Webster-Unabridged.index.json`
+- `SHA256SUMS`
+- `build-report.json`
+
+Do not move or reuse a published tag. If a release is bad, fix the problem and
+publish a newer revision. For example, publish `2026.08.19.1` after
+`2026.08.19`.
+
 Every archive also contains `tag_bank_1.json`. It contains all reviewed fixed
 functional tags, even when a selected build does not use every tag. An unknown
 entry-level `.fl` label is kept in the term-bank definition tag field with a

@@ -7,6 +7,13 @@ export interface ParsedCliArgs {
   readonly wordsFilePath: string | null;
   readonly fullDatabase: boolean;
   readonly inventoryFunctionalLabels: boolean;
+  readonly release:
+    | { readonly kind: "development" }
+    | {
+        readonly kind: "release";
+        readonly revision: string;
+        readonly converterCommit: string;
+      };
 }
 
 export type CliParseError = {
@@ -19,6 +26,9 @@ interface CommanderOptions {
   readonly wordsFile?: string;
   readonly full?: boolean;
   readonly "inventory:functionalLabels"?: boolean;
+  readonly release?: boolean;
+  readonly revision?: string;
+  readonly commit?: string;
 }
 
 const ignoreCommanderOutput = (_message: string): void => undefined;
@@ -39,7 +49,10 @@ const createProgram = (): Command =>
     .option(
       "--inventory:functional-labels",
       "Audit the owned functional-label inventory without exporting a dictionary",
-    );
+    )
+    .option("--release", "Build the public full-database release assets")
+    .option("--revision <revision>", "Public release revision")
+    .option("--commit <sha>", "Full converter commit SHA");
 
 export const parseCliArgs = (
   argv: readonly string[],
@@ -52,9 +65,35 @@ export const parseCliArgs = (
     const fullDatabase = options.full === true;
     const inventoryFunctionalLabels =
       options["inventory:functionalLabels"] === true;
+    const releaseRequested = options.release === true;
+    const hasReleaseInputs =
+      options.revision !== undefined || options.commit !== undefined;
 
     if (
-      (fullDatabase || inventoryFunctionalLabels) &&
+      releaseRequested &&
+      (options.revision === undefined || options.commit === undefined)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "The --release flag requires both --revision and --commit.",
+        },
+      };
+    }
+
+    if (!releaseRequested && hasReleaseInputs) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message: "--revision and --commit require the --release flag.",
+        },
+      };
+    }
+
+    if (
+      (fullDatabase || inventoryFunctionalLabels || releaseRequested) &&
       ((options.words?.length ?? 0) > 0 || options.wordsFile !== undefined)
     ) {
       return {
@@ -62,7 +101,18 @@ export const parseCliArgs = (
         error: {
           kind: "usage",
           message:
-            "The --full and --inventory:functional-labels flags cannot be combined with --words or --words-file.",
+            "The --full, --inventory:functional-labels, and --release flags cannot be combined with --words or --words-file.",
+        },
+      };
+    }
+
+    if (releaseRequested && (fullDatabase || inventoryFunctionalLabels)) {
+      return {
+        ok: false,
+        error: {
+          kind: "usage",
+          message:
+            "The --release flag cannot be combined with --full or --inventory:functional-labels.",
         },
       };
     }
@@ -85,6 +135,16 @@ export const parseCliArgs = (
         wordsFilePath: options.wordsFile ?? null,
         fullDatabase,
         inventoryFunctionalLabels,
+        release:
+          releaseRequested &&
+          options.revision !== undefined &&
+          options.commit !== undefined
+            ? {
+                kind: "release",
+                revision: options.revision,
+                converterCommit: options.commit,
+              }
+            : { kind: "development" },
       },
     };
   } catch (error: unknown) {

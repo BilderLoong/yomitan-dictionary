@@ -3,12 +3,18 @@ import { dirname, join } from "node:path";
 
 import { parseCliArgs } from "./pipeline/cli";
 import { writeFunctionalLabelInventory } from "./pipeline/inventory";
+import {
+  parseSourceDataManifest,
+  type ReleaseSourceData,
+  runPublicReleaseBuild,
+} from "./pipeline/release";
 import type { BuildReport } from "./pipeline/report";
 import { runBuild } from "./pipeline/runBuild";
 import { collectRequestedWords } from "./pipeline/selection";
+import type { Result } from "./shared/result";
 
 const usage =
-  "Usage: bun run src/index.ts [--full | --inventory:functional-labels | --words <word...> [--words-file <path>]]";
+  "Usage: bun run src/index.ts [--full | --inventory:functional-labels | --release --revision <revision> --commit <sha> | --words <word...> [--words-file <path>]]";
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -18,6 +24,19 @@ const readWordsFile = async (
 ): Promise<{ readonly text: string } | null> => {
   if (path === null) return null;
   return { text: await readFile(path, "utf8") };
+};
+
+const readSourceDataManifest = async (
+  path: string,
+): Promise<Result<ReleaseSourceData, string>> => {
+  try {
+    return parseSourceDataManifest(JSON.parse(await readFile(path, "utf8")));
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      error: `Unable to read source-data manifest: ${errorMessage(error)}`,
+    };
+  }
 };
 
 const formatBytes = (bytes: number): string => {
@@ -82,6 +101,41 @@ const main = async (): Promise<void> => {
     if (attempt.report.errors.length > 0) {
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (parsed.value.release.kind === "release") {
+    const sourceData = await readSourceDataManifest(
+      join(packageDirectory, "assets", "source-data-manifest.json"),
+    );
+    if (!sourceData.ok) {
+      console.error(sourceData.error);
+      process.exitCode = 1;
+      return;
+    }
+
+    const attempt = await runPublicReleaseBuild({
+      releaseRevision: parsed.value.release.revision,
+      converterCommit: parsed.value.release.converterCommit,
+      sourceData: sourceData.value,
+      databasePath: join(
+        packageDirectory,
+        "assets",
+        sourceData.value.databaseFilename,
+      ),
+      stylesPath: join(packageDirectory, "styles.css"),
+      outputDirectory: join(packageDirectory, "release"),
+    });
+    if (!attempt.ok) {
+      console.error(attempt.error);
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(`Public release build complete: ${attempt.value.archivePath}`);
+    console.log(`  update index: ${attempt.value.indexPath}`);
+    console.log(`  checksums:    ${attempt.value.checksumsPath}`);
+    console.log(`  build report: ${attempt.value.reportPath}`);
     return;
   }
 

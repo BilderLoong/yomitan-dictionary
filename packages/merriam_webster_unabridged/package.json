@@ -7,6 +7,8 @@
   "scripts": {
     "build:selected": "bun run src/index.ts",
     "build:full": "bun run src/index.ts --full",
+    "build:release": "bun run src/index.ts --release",
+    "test:release": "bun run scripts/verify_release.ts",
     "source:download": "uv run scripts/download_source_data.py",
     "test:source-data": "uv run tests/test_source_data.py",
     "inventory:functional-labels": "bun run src/index.ts --inventory:functional-labels",

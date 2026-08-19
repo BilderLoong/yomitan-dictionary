@@ -9,6 +9,8 @@ __pycache__/
 # Anchored: only the package-root build output dir; src/build and tests/build
 # are real source and must stay trackable.
 /build/
+# Public release assets are generated outside the normal development build.
+/release/
 assets/*
 !assets/source-data-manifest.json
 fixture

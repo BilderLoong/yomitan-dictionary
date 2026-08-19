@@ -339,6 +339,52 @@ A user-requested lookup word whose row starts the build and defines the
 A row pulled into the build because a canonical target needs it (dedicated
 row deferral), recorded with its reason.
 
+**Release revision**:
+The calendar version of one public dictionary release. It has the form
+`YYYY.MM.DD` with an optional numeric `.N` same-day sequence, and is shared by
+the release tag and the dictionary revision.
+_Avoid_: dictionary format version
+
+**Public dictionary release**:
+One full-database dictionary archive produced from a tagged converter revision
+and its source-data contract. Only this archive can announce an available
+update.
+_Avoid_: selected build, development archive
+
+**Update index**:
+A small public dictionary index that identifies the latest public dictionary
+release and its update archive.
+_Avoid_: source-data manifest, dictionary archive
+
+**Update archive**:
+The full-database public dictionary ZIP identified by an update index.
+_Avoid_: source database, development archive
+
+**Release tag**:
+An immutable Git tag whose text equals one release revision. It identifies the
+converter revision and source-data contract of a public dictionary release,
+and its commit belongs to the protected `master` line.
+_Avoid_: branch name, source-data revision
+
+**Release build**:
+A full-database build that requires one release revision and produces the
+public dictionary release artifacts.
+_Avoid_: selected build, development build
+
+**Release asset**:
+A stable-named public file published with every public dictionary release.
+_Avoid_: source artifact, Actions artifact
+
+**Release provenance**:
+The evidence that identifies the release tag, converter commit, and
+source-data contract that produced one public dictionary release.
+_Avoid_: release notes, source attribution
+
+**Rollback release**:
+A newer public dictionary release that restores a known-good build. It does
+not move, edit, or reuse an earlier release tag.
+_Avoid_: tag rewrite, release deletion
+
 ## Tooling
 
 **Yomitan fixture**:

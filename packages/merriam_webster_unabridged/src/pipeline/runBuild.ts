@@ -2,6 +2,7 @@ import type Database from "bun:sqlite";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Dictionary, DictionaryIndex } from "yomichan-dict-builder";
+import type { DictionaryIndexType } from "yomichan-dict-builder/dist/types/yomitan/dictionaryindex";
 import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/termbank";
 
 import {
@@ -70,6 +71,8 @@ export interface BuildRequest {
   readonly requestedWords: readonly string[];
   readonly databasePath: string;
   readonly buildPaths: BuildPaths;
+  readonly archiveFileName?: `${string}.zip`;
+  readonly dictionaryIndex?: DictionaryIndexType;
   readonly sourceIndex?: SourceIndex;
   /** Build every row of the source database instead of selected words. */
   readonly fullDatabase?: boolean;
@@ -87,8 +90,17 @@ export type BuildAttempt =
       readonly report: BuildReport;
     };
 
-const archiveFileName = "Merriam Webster Unabridged.zip";
-const archiveReportPath = archiveFileName;
+const defaultArchiveFileName = "Merriam Webster Unabridged.zip";
+
+const createDefaultDictionaryIndex = (): DictionaryIndexType =>
+  new DictionaryIndex()
+    .setTitle("Merriam Webster Unabridged")
+    .setRevision("1.0.0-v1")
+    .setAuthor("Birudo")
+    .setDescription("Selected-word Merriam Webster Unabridged dictionary")
+    .setAttribution("https://www.merriam-webster.com/")
+    .setSequenced(true)
+    .build();
 
 /**
  * Every build covers the Unabridged entries only. Rows prefixed with
@@ -507,19 +519,13 @@ const exportDictionary = async (
   records: readonly TermInformation[],
   outputDirectory: string,
   stylesPath: string,
+  archiveFileName: `${string}.zip`,
+  dictionaryIndex: DictionaryIndexType,
   tagDefinitions: readonly FunctionalTagDefinition[],
 ): Promise<void> => {
-  const index = new DictionaryIndex()
-    .setTitle("Merriam Webster Unabridged")
-    .setRevision("1.0.0-v1")
-    .setAuthor("Birudo")
-    .setDescription("Selected-word Merriam Webster Unabridged dictionary")
-    .setAttribution("https://www.merriam-webster.com/")
-    .setSequenced(true)
-    .build();
   const dictionary = new Dictionary({ fileName: archiveFileName });
 
-  await dictionary.setIndex(index, "", "");
+  await dictionary.setIndex(dictionaryIndex, "", "");
   tagDefinitions.forEach((tag: FunctionalTagDefinition): void => {
     dictionary.addTag({
       name: tag.name,
@@ -685,10 +691,11 @@ const buildSelectedDictionary = async (
   }
 
   const canExport = errors.length === 0;
+  const archiveFileName = request.archiveFileName ?? defaultArchiveFileName;
   let report = createReport(
     request,
     state,
-    canExport ? archiveReportPath : null,
+    canExport ? archiveFileName : null,
     conversions,
     errors,
     fullDatabase,
@@ -733,6 +740,8 @@ const buildSelectedDictionary = async (
       records,
       request.buildPaths.outputDirectory,
       request.buildPaths.stylesPath,
+      archiveFileName,
+      request.dictionaryIndex ?? createDefaultDictionaryIndex(),
       [
         ...fixedFunctionalTagDefinitions(),
         ...dynamicFunctionalTagDefinitions(functionalLabelFindings),

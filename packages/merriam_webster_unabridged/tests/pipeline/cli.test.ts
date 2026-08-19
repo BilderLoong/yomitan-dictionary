@@ -20,6 +20,7 @@ describe("parseCliArgs", () => {
         wordsFilePath: "/tmp/words.txt",
         fullDatabase: false,
         inventoryFunctionalLabels: false,
+        release: { kind: "development" },
       },
     });
   });
@@ -54,6 +55,7 @@ describe("parseCliArgs", () => {
         wordsFilePath: null,
         fullDatabase: false,
         inventoryFunctionalLabels: false,
+        release: { kind: "development" },
       },
     });
     expect(parseCliArgs([])).toEqual({
@@ -63,6 +65,7 @@ describe("parseCliArgs", () => {
         wordsFilePath: null,
         fullDatabase: false,
         inventoryFunctionalLabels: false,
+        release: { kind: "development" },
       },
     });
   });
@@ -76,6 +79,7 @@ describe("parseCliArgs", () => {
     expect(result.value.flagWords).toEqual([]);
     expect(result.value.wordsFilePath).toBeNull();
     expect(result.value.inventoryFunctionalLabels).toBe(false);
+    expect(result.value.release).toEqual({ kind: "development" });
   });
 
   test("rejects --full combined with --words", () => {
@@ -102,6 +106,7 @@ describe("parseCliArgs", () => {
         wordsFilePath: null,
         fullDatabase: false,
         inventoryFunctionalLabels: true,
+        release: { kind: "development" },
       },
     });
   });
@@ -112,5 +117,67 @@ describe("parseCliArgs", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.message).toContain("inventory:functional-labels");
+  });
+
+  test("parses an explicit release revision and converter commit", () => {
+    const result = parseCliArgs([
+      "--release",
+      "--revision",
+      "2026.08.18.1",
+      "--commit",
+      "a".repeat(40),
+    ]);
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        flagWords: [],
+        wordsFilePath: null,
+        fullDatabase: false,
+        inventoryFunctionalLabels: false,
+        release: {
+          kind: "release",
+          revision: "2026.08.18.1",
+          converterCommit: "a".repeat(40),
+        },
+      },
+    });
+  });
+
+  test("rejects a release without both required inputs", () => {
+    const result = parseCliArgs(["--release", "--revision", "2026.08.18"]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("--commit");
+  });
+
+  test("rejects release inputs without the release command", () => {
+    const result = parseCliArgs([
+      "--revision",
+      "2026.08.18",
+      "--commit",
+      "a".repeat(40),
+    ]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("--release");
+  });
+
+  test("rejects a release combined with selected words", () => {
+    const result = parseCliArgs([
+      "--release",
+      "--revision",
+      "2026.08.18",
+      "--commit",
+      "a".repeat(40),
+      "--words",
+      "o",
+    ]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain("--release");
   });
 });

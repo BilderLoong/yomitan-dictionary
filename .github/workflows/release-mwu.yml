@@ -1,0 +1,127 @@
+name: Publish MWU dictionary
+
+run-name: Release ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "20*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mwu-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Build and publish MWU
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the tagged code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Verify that the tag belongs to master
+        run: |
+          git fetch --no-tags origin master:refs/remotes/origin/master
+
+          if ! git merge-base \
+            --is-ancestor "$GITHUB_SHA" \
+            refs/remotes/origin/master
+          then
+            echo "Release tag must point to a commit reachable from master." >&2
+            exit 1
+          fi
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9
+        with:
+          enable-cache: true
+          cache-dependency-glob: >-
+            packages/merriam_webster_unabridged/scripts/download_source_data.py
+
+      - name: Install root dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install dictionary-package dependencies
+        working-directory: packages/merriam_webster_unabridged
+        run: bun install --frozen-lockfile
+
+      - name: Test source-data handling
+        working-directory: packages/merriam_webster_unabridged
+        run: bun run test:source-data
+
+      - name: Download and verify MWU.db
+        working-directory: packages/merriam_webster_unabridged
+        run: bun run source:download
+
+      - name: Build release assets
+        working-directory: packages/merriam_webster_unabridged
+        env:
+          RELEASE_REVISION: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          bun run build:release -- \
+            --revision "$RELEASE_REVISION" \
+            --commit "$RELEASE_COMMIT"
+
+      - name: Verify release assets
+        working-directory: packages/merriam_webster_unabridged
+        env:
+          RELEASE_REVISION: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          bun run test:release -- \
+            --revision "$RELEASE_REVISION" \
+            --commit "$RELEASE_COMMIT"
+
+      - name: Verify that the release tag did not move
+        env:
+          RELEASE_REVISION: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          local_commit="$(git rev-parse "$RELEASE_COMMIT^{commit}")"
+          remote_commit="$(
+            git ls-remote origin "refs/tags/$RELEASE_REVISION^{}" |
+              awk 'NR == 1 { print $1 }'
+          )"
+
+          if [ -z "$remote_commit" ]; then
+            remote_commit="$(
+              git ls-remote origin "refs/tags/$RELEASE_REVISION" |
+                awk 'NR == 1 { print $1 }'
+            )"
+          fi
+
+          if [ "$remote_commit" != "$local_commit" ]; then
+            echo "Release tag changed after this workflow started." >&2
+            exit 1
+          fi
+
+      - name: Publish GitHub Release
+        working-directory: packages/merriam_webster_unabridged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "release/Merriam-Webster-Unabridged.zip#Dictionary archive" \
+            "release/Merriam-Webster-Unabridged.index.json#Update index" \
+            "release/SHA256SUMS#SHA-256 checksums" \
+            "release/build-report.json#Build provenance" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "$(cat release/provenance-notes.md)" \
+            --latest
