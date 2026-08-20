@@ -100,10 +100,23 @@ Run this command from the repository root:
 bun run release
 ```
 
-The command requires a clean local `master` branch. It pushes `master`, finds
-today's next release revision from the remote tags, creates an annotated tag,
-and pushes only that tag. For example, if the remote already has
-`2026.08.20` and `2026.08.20.1`, the command creates `2026.08.20.2`.
+This is a dry run. It requires a clean local `master` branch and prints the
+planned `master` and tag pushes without changing Git.
+
+Publish the plan with:
+
+```bash
+bun run release -- --publish
+```
+
+If the current commit has no release tag, publication finds today's next
+release revision from the remote tags, creates an annotated tag, and pushes
+it. For example, if the remote already has `2026.08.20` and `2026.08.20.1`,
+the command creates `2026.08.20.2`.
+
+If the current commit already has calendar release tags, publication reuses
+and pushes those tags. It does not create another release tag for that commit.
+If it has only a non-calendar tag, the command stops without creating a tag.
 
 The command does not force-push or move an existing tag. If pushing the new
 tag fails, it keeps the local tag and stops so that you can inspect it.

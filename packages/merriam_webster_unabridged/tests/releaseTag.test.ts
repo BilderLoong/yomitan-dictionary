@@ -3,7 +3,11 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { formatReleaseDate, nextReleaseRevision } from "../scripts/release";
+import {
+  formatReleaseDate,
+  nextReleaseRevision,
+  selectReleaseTagPlan,
+} from "../scripts/release";
 
 interface ProcessOutput {
   readonly exitCode: number;
@@ -91,9 +95,39 @@ describe("release-tag selection", () => {
   test("uses the local calendar date in release-revision form", () => {
     expect(formatReleaseDate(new Date(2026, 7, 20))).toBe("2026.08.20");
   });
+
+  test("reuses release tags on the current commit", () => {
+    expect(
+      selectReleaseTagPlan({
+        currentCommitTags: ["2026.08.20.1", "2026.08.20.2"],
+        releaseDate: "2026.08.20",
+        remoteTags: ["2026.08.20"],
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        kind: "existing",
+        tags: ["2026.08.20.1", "2026.08.20.2"],
+      },
+    });
+  });
+
+  test("does not add a release tag beside a non-release tag", () => {
+    expect(
+      selectReleaseTagPlan({
+        currentCommitTags: ["v1.0.0"],
+        releaseDate: "2026.08.20",
+        remoteTags: [],
+      }),
+    ).toEqual({
+      ok: false,
+      error:
+        "Current commit is already tagged but has no calendar release tag: v1.0.0",
+    });
+  });
 });
 
-test("pushes master and the next release tag to a temporary remote", async () => {
+test("creates and pushes a new release tag only with --publish", async () => {
   const repository = await createTemporaryRepository();
   try {
     const releaseDate = formatReleaseDate(new Date());
@@ -114,8 +148,12 @@ test("pushes master and the next release tag to a temporary remote", async () =>
     await runGit(["commit", "-m", "release"], repository.checkoutDirectory);
 
     const scriptPath = resolve(import.meta.dirname, "../scripts/release.ts");
-    const result = await run("bun", [scriptPath], repository.checkoutDirectory);
-    const releasePrefix = "Pushed master and release tag: ";
+    const result = await run(
+      "bun",
+      [scriptPath, "--publish"],
+      repository.checkoutDirectory,
+    );
+    const releasePrefix = "Pushed master and release tag(s): ";
     const releaseLine = result.stdout
       .trim()
       .split("\n")
@@ -143,6 +181,84 @@ test("pushes master and the next release tag to a temporary remote", async () =>
         repository.checkoutDirectory,
       ),
     ).toContain(`refs/tags/${revision}`);
+  } finally {
+    await rm(repository.directory, { force: true, recursive: true });
+  }
+});
+
+test("is dry by default and pushes existing current-commit release tags", async () => {
+  const repository = await createTemporaryRepository();
+  try {
+    const releaseTag = "2026.08.20.1";
+    await writeFile(
+      join(repository.checkoutDirectory, "entry.txt"),
+      "release\n",
+      "utf8",
+    );
+    await runGit(["add", "entry.txt"], repository.checkoutDirectory);
+    await runGit(["commit", "-m", "release"], repository.checkoutDirectory);
+    await runGit(
+      ["tag", "-a", releaseTag, "-m", `Release ${releaseTag}`],
+      repository.checkoutDirectory,
+    );
+
+    const scriptPath = resolve(import.meta.dirname, "../scripts/release.ts");
+    const dryRun = await run("bun", [scriptPath], repository.checkoutDirectory);
+
+    expect(dryRun.exitCode).toBe(0);
+    expect(dryRun.stdout).toContain("Dry run");
+    expect(dryRun.stdout).toContain(releaseTag);
+    expect(
+      await runGit(
+        [
+          "--git-dir",
+          repository.remoteDirectory,
+          "rev-parse",
+          "refs/heads/master",
+        ],
+        repository.directory,
+      ),
+    ).not.toBe(
+      await runGit(["rev-parse", "HEAD"], repository.checkoutDirectory),
+    );
+    expect(
+      await runGit(
+        ["ls-remote", "--tags", "--refs", "origin", `refs/tags/${releaseTag}`],
+        repository.checkoutDirectory,
+      ),
+    ).toBe("");
+
+    const published = await run(
+      "bun",
+      [scriptPath, "--publish"],
+      repository.checkoutDirectory,
+    );
+
+    expect(published.exitCode).toBe(0);
+    expect(published.stdout).toContain(releaseTag);
+    expect(
+      await runGit(
+        [
+          "--git-dir",
+          repository.remoteDirectory,
+          "rev-parse",
+          "refs/heads/master",
+        ],
+        repository.directory,
+      ),
+    ).toBe(await runGit(["rev-parse", "HEAD"], repository.checkoutDirectory));
+    expect(
+      await runGit(
+        ["ls-remote", "--tags", "--refs", "origin", `refs/tags/${releaseTag}`],
+        repository.checkoutDirectory,
+      ),
+    ).toContain(`refs/tags/${releaseTag}`);
+    expect(
+      await runGit(
+        ["ls-remote", "--tags", "--refs", "origin"],
+        repository.checkoutDirectory,
+      ),
+    ).not.toContain("refs/tags/2026.08.20.2");
   } finally {
     await rm(repository.directory, { force: true, recursive: true });
   }
