@@ -105,8 +105,8 @@
   list-style: disc outside;
   margin-block: 0.15em 0.15em;
   margin-inline-start: var(--mwu-example-marker-gutter);
-  padding-inline-start: 0;
-  border: 0;
+  /* padding-inline-start: 0;
+  border: 0; */
 }
 
 [data-sc-content="example-sentence"]::marker {
@@ -130,11 +130,10 @@
   font-weight: 600;
   color: inherit;
 }
-[data-sc-content="definition-text"] {
-  /* padding-block: ; */
-}
-[data-sc-content="cross-reference"] {
-  /* color: var(--text-color-light2, #666666); */
+/* [data-sc-content="definition-text"] {
+} */
+[data-sc-content="cross-reference"],
+[data-sc-content="synonym-term"] {
   font-weight: 600;
   text-decoration-line: underline;
   text-decoration-style: dotted;
@@ -145,10 +144,6 @@
   );
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.16em;
-}
-[data-sc-content="synonym-term"] {
-  color: inherit;
-  font-weight: inherit;
 }
 [data-sc-content="superscript-reference"] {
   font-size: 0.75em;
@@ -259,11 +254,9 @@ details[data-sc-content="extra-examples"] {
   color: var(--text-color-light2, #666666);
   margin-inline-start: var(--mwu-example-marker-gutter);
   padding-inline-start: 0;
-  border: 0;
-  background-color: transparent;
 }
 details[data-sc-content="extra-examples"] > summary {
-  padding-inline-start: 0;
+  list-style-position: outside;
 }
 details[data-sc-content="extra-examples"]
   > summary
@@ -276,12 +269,11 @@ details[data-sc-content="extra-examples"]
   margin-inline-start: 0;
 }
 [data-sc-content="synonym-term-group"] {
-  font-weight: 600;
-}
-[data-sc-content="synonym-term"] {
-  font-weight: 700;
+  /* font-weight: 600; */
 }
 [data-sc-content="synonym-entry"] {
+  padding-block: 0.25em;
+
   border-top: 1px solid
     color-mix(
       in srgb,
@@ -320,9 +312,9 @@ details[data-sc-content="extra-examples"]
 [data-sc-content="definition"] {
   color: inherit;
 }
-span[data-sc-content="definition"][data-sc-level="3"] {
-  border-inline-start: 1px solid var(--light-border-color, #dddddd);
-  padding-inline-start: 0.5em;
+
+span[data-sc-content="definition"][data-sc-level="3"]::before {
+  content: ";";
 }
 
 [data-sc-content="undefined-run-on"] {
