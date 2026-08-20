@@ -94,26 +94,23 @@ Successful builds write:
 
 ## Create a public release
 
-Create a public release only from a commit that is on `master` and is already
-pushed to GitHub. The release revision uses a calendar version such as
-`2026.08.19`. Use `.N` for another release on the same day, such as
-`2026.08.19.1`.
-
-Run these commands in this package directory. Replace `<commit-sha>` with the
-full 40-character SHA of the commit that you will tag:
+Run this command from the repository root:
 
 ```bash
-bun run build:release -- --revision 2026.08.19 --commit <commit-sha>
-bun run test:release -- --revision 2026.08.19 --commit <commit-sha>
-git tag 2026.08.19 <commit-sha>
-git push origin 2026.08.19
+bun run release
 ```
 
-For example, get the full SHA for the current commit with:
+The command requires a clean local `master` branch. It pushes `master`, finds
+today's next release revision from the remote tags, creates an annotated tag,
+and pushes only that tag. For example, if the remote already has
+`2026.08.20` and `2026.08.20.1`, the command creates `2026.08.20.2`.
 
-```bash
-git rev-parse HEAD
-```
+The command does not force-push or move an existing tag. If pushing the new
+tag fails, it keeps the local tag and stops so that you can inspect it.
+
+The local calendar date chooses the new tag. GitHub Actions receives the tag
+text as the release revision, so the release build remains independent of the
+runner date and timezone.
 
 Pushing the tag starts `.github/workflows/release-mwu.yml`. GitHub Actions
 checks that the tagged commit belongs to `master`, downloads and verifies the
