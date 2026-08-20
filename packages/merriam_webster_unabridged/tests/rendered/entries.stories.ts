@@ -61,6 +61,31 @@ export const GiveThanksSubDefinitionStyle = {
   },
 };
 
+export const GiveThanksSubDefinitionSeparatorStyle = {
+  render: (): string => renderToHtml(giveConverted.content),
+  play: async ({
+    canvasElement,
+  }: {
+    readonly canvasElement: HTMLElement;
+  }): Promise<void> => {
+    const subDefinition = canvasElement.querySelector(
+      '[data-sc-content="definition"][data-sc-level="5"] > span[data-sc-content="definition"][data-sc-level="3"]',
+    );
+    expect(subDefinition).not.toBeNull();
+    if (subDefinition === null) return;
+
+    const separator = subDefinition.querySelector(
+      ':scope > [data-sc-content="sub-definition-separator"]',
+    );
+    expect(separator).not.toBeNull();
+    if (separator === null) return;
+    expect(separator.textContent).toBe("; ");
+    expect(["none", "normal"]).toContain(
+      getComputedStyle(subDefinition, "::before").content,
+    );
+  },
+};
+
 export const OMetadataStyle = {
   render: (): string => renderToHtml(oConverted.content),
   play: async ({

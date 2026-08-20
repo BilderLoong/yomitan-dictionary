@@ -220,6 +220,17 @@ source definition marker and inline semantic content, but excludes examples and
 usage notes owned by that definition.
 _Avoid_: definition container, example text, usage-note text
 
+**Sub-definition**:
+A source `.sdsense` continuation inside the nearest definition or usage note.
+It keeps its source order and qualifier styling with that owner.
+_Avoid_: Level 3 definition, separate structural block
+
+**Sub-definition separator**:
+The output-owned `; ` unit at the start of a sub-definition whose direct
+preceding definition does not carry the source `noSemicolon` class. It makes
+the continuation visible in rendered HTML and is not source punctuation.
+_Avoid_: CSS-generated punctuation, source definition marker
+
 **Local tag**:
 A short usage, register, subject, applicability, grammar, or definition
 qualifier inside structured content. Examples such as `archaic`, `cricket`,

@@ -134,7 +134,7 @@ describe("release metadata", () => {
       title: "Merriam Webster Unabridged",
       revision: "2026.08.18.1",
       format: 3,
-      author: "Birudo",
+      author: "https://github.com/BilderLoong/yomitan-dictionary",
       isUpdatable: true,
       indexUrl:
         "https://github.com/BilderLoong/yomitan-dictionary/releases/latest/download/Merriam-Webster-Unabridged.index.json",

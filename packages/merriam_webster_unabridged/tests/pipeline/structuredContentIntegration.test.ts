@@ -166,6 +166,41 @@ test("does not wrap real generated phrase entries in a Phrases disclosure", asyn
   ).toBe(true);
 }, 30_000);
 
+test("serializes real give sub-definition separators", async () => {
+  const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-sub-definition-"));
+  const attempt = await runBuild({
+    requestedWords: ["give"],
+    databasePath: sourceDatabasePath,
+    buildPaths: {
+      outputDirectory,
+      reportPath: join(outputDirectory, "build-report.json"),
+      stylesPath,
+    },
+  });
+
+  expect(
+    attempt.ok,
+    attempt.ok ? "" : JSON.stringify(attempt.report.errors),
+  ).toBe(true);
+  if (!attempt.ok) return;
+
+  const separators = attempt.records
+    .filter(
+      (record: TermInformation): boolean =>
+        record[0] === "give" && structuredContent(record) !== null,
+    )
+    .flatMap((record: TermInformation): readonly JsonObject[] =>
+      unitsOf(structuredContent(record), "sub-definition-separator"),
+    );
+
+  expect(separators.length).toBeGreaterThan(0);
+  expect(
+    separators.every(
+      (separator: JsonObject): boolean => textOf(separator) === "; ",
+    ),
+  ).toBe(true);
+}, 30_000);
+
 test("preserves real abstract synonym-discussion reference targets", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "mwu-abstract-"));
   const attempt = await runBuild({

@@ -1313,6 +1313,28 @@ const renderUsageNotes = (
   return combineResults([...usageNodes, standaloneResult]);
 };
 
+const dropLeadingWhitespaceTextNodes = (
+  nodes: readonly StructuredContent[],
+): readonly StructuredContent[] => {
+  const firstContentNodeIndex = nodes.findIndex(
+    (node: StructuredContent): boolean =>
+      typeof node !== "string" || node.trim().length > 0,
+  );
+  return firstContentNodeIndex < 0 ? [] : nodes.slice(firstContentNodeIndex);
+};
+
+const subDefinitionSeparator = (
+  root: cheerio.CheerioAPI,
+  element: Element,
+): readonly StructuredContent[] =>
+  root(element).prev(".dt.hasSdSense.noSemicolon").length > 0
+    ? []
+    : [
+        container("span", "; ", {
+          data: unitData("sub-definition-separator"),
+        }),
+      ];
+
 const renderScopedDefinition = (
   root: cheerio.CheerioAPI,
   element: Element,
@@ -1320,11 +1342,21 @@ const renderScopedDefinition = (
   plan: CanonicalEntryPlan,
 ): RenderResult => {
   const content = renderInlineChildren(root, element, path, plan);
+  const contentWithoutLeadingWhitespace = dropLeadingWhitespaceTextNodes(
+    content.nodes,
+  );
   return renderResult(
     [
-      container("span", content.nodes, {
-        data: unitData("definition", { level: 3 }),
-      }),
+      container(
+        "span",
+        [
+          ...subDefinitionSeparator(root, element),
+          ...contentWithoutLeadingWhitespace,
+        ],
+        {
+          data: unitData("definition", { level: 3 }),
+        },
+      ),
     ],
     content.findings,
   );

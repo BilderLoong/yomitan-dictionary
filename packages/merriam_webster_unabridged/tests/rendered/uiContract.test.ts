@@ -233,6 +233,24 @@ test("give thanks keeps its specific meaning in one flow with the example below"
   ).toBe(1);
 });
 
+test("give thanks renders the sub-definition separator before its content", () => {
+  const $ = rendered(giveConverted.content);
+  const specificDefinition = $(
+    'span[data-sc-content="definition"][data-sc-level="3"]',
+  )
+    .filter((_, element) => $(element).text().includes("to say grace"))
+    .first();
+  const firstChild = specificDefinition.contents().first();
+
+  expect(
+    firstChild.is('span[data-sc-content="sub-definition-separator"]'),
+  ).toBe(true);
+  expect(firstChild.text()).toBe("; ");
+  expect(
+    specificDefinition.text().startsWith("; specifically : to say grace"),
+  ).toBe(true);
+});
+
 test("phrase example attributions stay inside the example frame", () => {
   const $ = rendered(giveConverted.content);
   const specificDefinition = $(

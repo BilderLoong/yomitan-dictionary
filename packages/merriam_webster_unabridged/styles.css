@@ -313,10 +313,6 @@ details[data-sc-content="extra-examples"]
   color: inherit;
 }
 
-span[data-sc-content="definition"][data-sc-level="3"]::before {
-  content: ";";
-}
-
 [data-sc-content="undefined-run-on"] {
   display: none;
 }
