@@ -1448,6 +1448,18 @@ const renderDefinitionFlow = (
   );
 };
 
+const wrapSensePrefix = (result: RenderResult): RenderResult =>
+  normalizeBlockText(result.visibleText).length === 0
+    ? result
+    : renderResult(
+        [
+          container("div", result.nodes, {
+            data: unitData("sense-prefix"),
+          }),
+        ],
+        result.findings,
+      );
+
 const renderSense = (
   root: cheerio.CheerioAPI,
   element: Element,
@@ -1511,7 +1523,8 @@ const renderSense = (
       return renderInlineNode(root, child, [...path, index], plan);
     },
   );
-  return combineResults(results);
+  const combined = combineResults(results);
+  return definitionIndex < 0 ? wrapSensePrefix(combined) : combined;
 };
 
 const markerObservation = (

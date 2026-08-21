@@ -3,6 +3,7 @@ import type { ConvertedCanonical } from "../../src/conversion/types";
 import type { Result } from "../../src/shared/result";
 import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
 import becauseHtml from "./fixtures/because.html?raw";
+import capeHtml from "./fixtures/cape.html?raw";
 import downHtml from "./fixtures/down.html?raw";
 import giveHtml from "./fixtures/give.html?raw";
 import inHtml from "./fixtures/in.html?raw";
@@ -43,6 +44,12 @@ export const whatConverted = unwrap(
 export const becauseConverted = unwrap(
   convertCanonical(
     mainCanonicalEntryPlan({ term: "because", ownerHtml: becauseHtml }),
+  ),
+);
+
+export const capeConverted = unwrap(
+  convertCanonical(
+    mainCanonicalEntryPlan({ term: "cape", ownerHtml: capeHtml }),
   ),
 );
 
