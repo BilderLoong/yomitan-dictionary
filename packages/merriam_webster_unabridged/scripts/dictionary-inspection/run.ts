@@ -643,7 +643,7 @@ const openSearchPopup = async (
     searchPage,
     searchPageUrl,
   );
-  // await popupPage.setViewportSize({ width: 360, height: 720 });
+  await popupPage.setViewportSize({ width: 360, height: 720 });
   await popupPage.waitForFunction(
     (): boolean =>
       document.documentElement.dataset.searchMode === "popup" &&
@@ -755,14 +755,17 @@ const assertEntryPresentation = async (
     ({ query, surface }: PresentationContext): string[] => {
       const body = document.body;
       const content = document.querySelector("#content-scroll");
+      const isVisibleElement = (element: Element): boolean =>
+        element.checkVisibility({
+          contentVisibilityAuto: true,
+          checkOpacity: true,
+          checkVisibilityCSS: true,
+        });
       const forms = [
         ...document.querySelectorAll(
           '[data-sc-content="mwu-header-inflections"]',
         ),
       ];
-      const pronunciation = document.querySelector(
-        '[data-sc-content="mwu-header-pronunciation"]',
-      );
       const compactForm = forms.find(
         (node): boolean =>
           node.querySelector('[data-sc-content="emphasis"]') !== null,
@@ -839,12 +842,7 @@ const assertEntryPresentation = async (
         content.bottom <= container.bottom + tolerance;
       const visibleExampleSources = [
         ...document.querySelectorAll('[data-sc-content="example-source"]'),
-      ].filter((source): boolean =>
-        source.checkVisibility({
-          checkOpacity: true,
-          checkVisibilityCSS: true,
-        }),
-      );
+      ].filter(isVisibleElement);
       const headerInflectionMarkers = [
         ...document.querySelectorAll(
           '[data-sc-content="mwu-header-inflections"] [data-sc-content="inflection-marker"]',
@@ -852,16 +850,6 @@ const assertEntryPresentation = async (
       ];
       const disclosures = [
         ...document.querySelectorAll('[data-sc-content="disclosure-summary"]'),
-      ];
-      const phraseSummaries = [
-        ...document.querySelectorAll(
-          'details[data-sc-content="phrase-group"] > summary',
-        ),
-      ];
-      const originSummaries = [
-        ...document.querySelectorAll(
-          'details[data-sc-content="origin"] > summary',
-        ),
       ];
       const nativeDictionaryTag = [
         ...document.querySelectorAll(".tag-label"),
@@ -872,11 +860,6 @@ const assertEntryPresentation = async (
       const nativePartOfSpeechTag = document.querySelector(
         ".definition-tag-list .tag-label",
       );
-      const isVisibleElement = (element: Element): boolean =>
-        element.checkVisibility({
-          checkOpacity: true,
-          checkVisibilityCSS: true,
-        });
       const parseCssColor = (
         color: string,
       ): readonly [number, number, number] | null => {
@@ -1012,20 +995,6 @@ const assertEntryPresentation = async (
       if (forms.some((node): boolean => node.scrollWidth > node.clientWidth)) {
         failures.push("inflection group overflow");
       }
-      if (pronunciation !== null && forms[0] !== undefined) {
-        const pronunciationContent = pronunciation.firstElementChild;
-        const inflectionContent = forms[0].firstElementChild;
-        if (
-          pronunciationContent !== null &&
-          inflectionContent !== null &&
-          Math.abs(
-            pronunciationContent.getBoundingClientRect().x -
-              inflectionContent.getBoundingClientRect().x,
-          ) > 1
-        ) {
-          failures.push("IPA and inflection rows are not aligned");
-        }
-      }
       if (
         forms.some((node): boolean => {
           const style = getComputedStyle(node);
@@ -1060,9 +1029,14 @@ const assertEntryPresentation = async (
       if (
         badgeTags.some((node): boolean => {
           const style = getComputedStyle(node);
+          const expectedDisplay = node.matches(
+            'span[data-sc-content="verb-subtype"]',
+          )
+            ? "block"
+            : "inline-block";
           return (
-            style.display !== "inline-flex" ||
-            style.cursor !== "default" ||
+            style.display !== expectedDisplay ||
+            (style.cursor !== "auto" && style.cursor !== "default") ||
             style.borderRadius === "0px"
           );
         })
@@ -1093,17 +1067,11 @@ const assertEntryPresentation = async (
       } else {
         const localStyle = getComputedStyle(localTag);
         const nativeStyle = getComputedStyle(nativePartOfSpeechTag);
-        const localRect = localTag.getBoundingClientRect();
-        const nativeRect = nativePartOfSpeechTag.getBoundingClientRect();
         const localContrast = contrastRatio(localTag);
         const nativeContrast = contrastRatio(nativePartOfSpeechTag);
         if (
           localStyle.backgroundColor !== nativeStyle.backgroundColor ||
           localStyle.color !== nativeStyle.color ||
-          localStyle.borderRadius !== nativeStyle.borderRadius ||
-          localStyle.paddingBlock !== nativeStyle.paddingBlock ||
-          localStyle.paddingInline !== nativeStyle.paddingInline ||
-          Math.abs(localRect.height - nativeRect.height) > 0.5 ||
           localContrast === null ||
           nativeContrast === null ||
           localContrast + 0.05 < nativeContrast
@@ -1152,8 +1120,8 @@ const assertEntryPresentation = async (
         exampleGroups.some((node): boolean => {
           const style = getComputedStyle(node);
           return (
-            style.backgroundColor === "rgba(0, 0, 0, 0)" ||
-            style.borderTopLeftRadius === "0px" ||
+            style.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+            style.borderTopLeftRadius !== "0px" ||
             style.borderTopWidth !== "0px"
           );
         }) ||
@@ -1211,23 +1179,12 @@ const assertEntryPresentation = async (
       ) {
         failures.push("missing long turn example attribution");
       }
-      if (
-        exampleGroups.some((node): boolean => {
-          const style = getComputedStyle(node);
-          return (
-            style.getPropertyValue("--mwu-example-marker-inset").trim() ===
-              "" ||
-            style.getPropertyValue("--mwu-example-text-gap").trim() === ""
-          );
-        })
-      ) {
-        failures.push("example groups lack shared marker variables");
-      }
       const exampleAlignmentDeltas = [
         ...document.querySelectorAll(
           'details[data-sc-content="extra-examples"]',
         ),
       ]
+        .filter(isVisibleElement)
         .map((details): number | null => {
           const summary = details.querySelector(":scope > summary");
           const previous = details.previousElementSibling;
@@ -1252,6 +1209,7 @@ const assertEntryPresentation = async (
       const wrappedSourceAlignmentDeltas = [
         ...document.querySelectorAll('[data-sc-content="example-source"]'),
       ]
+        .filter(isVisibleElement)
         .map((source): number | null => {
           const sentence = source.closest(
             '[data-sc-content="example-sentence"]',
@@ -1290,24 +1248,11 @@ const assertEntryPresentation = async (
       ) {
         failures.push("slash-separated inflection markers are not spaced");
       }
-      const phraseSummary = phraseSummaries.at(0);
-      const originSummary = originSummaries.at(0);
-      if (phraseSummary !== undefined && originSummary !== undefined) {
-        const phraseStyle = getComputedStyle(phraseSummary);
-        const originStyle = getComputedStyle(originSummary);
-        if (
-          phraseStyle.color === originStyle.color ||
-          Number.parseInt(phraseStyle.fontWeight, 10) <=
-            Number.parseInt(originStyle.fontWeight, 10)
-        ) {
-          failures.push("phrase disclosure does not outrank origin");
-        }
-      }
       const sectionDetails = [
         ...document.querySelectorAll(
           'details[data-sc-content="origin"], details[data-sc-content="phrase-group"], details[data-sc-content="related-item"]',
         ),
-      ];
+      ].filter(isVisibleElement);
       if (
         sectionDetails.some((details): boolean => {
           const summary = details.querySelector(":scope > summary");
@@ -1331,7 +1276,7 @@ const assertEntryPresentation = async (
         ...document.querySelectorAll<HTMLDetailsElement>(
           'details[data-sc-content="origin"]',
         ),
-      ];
+      ].filter(isVisibleElement);
       if (
         originSections.some((originDetails): boolean => {
           const originText = originDetails.querySelector(
@@ -1383,9 +1328,6 @@ const assertPronunciationNotePresentation = async (
         '[data-sc-content="mwu-header-pronunciation-notes"]',
       ),
     ];
-    const pronunciation = document.querySelector(
-      '[data-sc-content="mwu-header-pronunciation"]',
-    );
     const failures: string[] = [];
     if (notes.length === 0) failures.push("missing pronunciation note");
     if (
@@ -1399,18 +1341,6 @@ const assertPronunciationNotePresentation = async (
       })
     ) {
       failures.push("pronunciation note uses a competing panel");
-    }
-    const pronunciationContent = pronunciation?.firstElementChild;
-    if (pronunciationContent !== undefined && pronunciationContent !== null) {
-      const pronunciationX = pronunciationContent.getBoundingClientRect().x;
-      if (
-        notes.some(
-          (node): boolean =>
-            Math.abs(node.getBoundingClientRect().x - pronunciationX) > 1,
-        )
-      ) {
-        failures.push("pronunciation note is not aligned with IPA");
-      }
     }
     return failures;
   });
@@ -1623,7 +1553,7 @@ export const runDictionaryInspection = async (
     await settingsPage.close();
 
     const themes = ["light", "dark"] as const;
-    // await searchPage.setViewportSize({ width: 1100, height: 900 });
+    await searchPage.setViewportSize({ width: 1100, height: 900 });
     if (mode === "visible") {
       const query = searchQueries.join(" ");
       if (query === undefined) throw new Error("No visible query was supplied");

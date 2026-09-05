@@ -7,6 +7,7 @@ import type { TermInformation } from "yomichan-dict-builder/dist/types/yomitan/t
 import { runBuild } from "../../src/pipeline/runBuild";
 
 type JsonObject = Record<string, unknown>;
+type JsonObjectWithData = JsonObject & { readonly data: JsonObject };
 
 const sourceDatabasePath = new URL("../../assets/MWU.db", import.meta.url)
   .pathname;
@@ -43,9 +44,9 @@ const textOf = (value: unknown): string =>
         ? textOf(value.content)
         : "";
 
-const unitsOf = (value: unknown, unit: string): readonly JsonObject[] =>
+const unitsOf = (value: unknown, unit: string): readonly JsonObjectWithData[] =>
   allObjects(value).filter(
-    (node: JsonObject): boolean =>
+    (node: JsonObject): node is JsonObjectWithData =>
       isObject(node.data) && node.data.content === unit,
   );
 
@@ -224,7 +225,7 @@ test("preserves real abstract synonym-discussion reference targets", async () =>
       (record: TermInformation): boolean =>
         record[0] === "abstract" && structuredContent(record) !== null,
     )
-    .flatMap((record: TermInformation): readonly JsonObject[] =>
+    .flatMap((record: TermInformation): readonly JsonObjectWithData[] =>
       unitsOf(structuredContent(record), "synonym-discussion-reference"),
     );
   expect(references).toHaveLength(2);
@@ -240,13 +241,14 @@ test("preserves real abstract synonym-discussion reference targets", async () =>
     ),
   ).toEqual(expect.arrayContaining([["abridgment"], ["detach"]]));
   const targets = references.flatMap(
-    (reference: JsonObject): readonly JsonObject[] =>
+    (reference: JsonObjectWithData): readonly JsonObjectWithData[] =>
       unitsOf(reference, "cross-reference"),
   );
   expect(targets).toHaveLength(2);
   expect(
     targets.every(
-      (target: JsonObject): boolean => target.data?.relation === undefined,
+      (target: JsonObjectWithData): boolean =>
+        target.data.relation === undefined,
     ),
   ).toBe(true);
   expect(
@@ -287,7 +289,11 @@ test("keeps real MWU synonym references inside their source entries", async () =
   );
   expect(discussionRecords).toHaveLength(1);
 
-  const discussion = structuredContent(discussionRecords[0]);
+  const discussionRecord = discussionRecords[0];
+  if (discussionRecord === undefined) {
+    throw new Error("Expected one turn synonym discussion record");
+  }
+  const discussion = structuredContent(discussionRecord);
   const entries = unitsOf(discussion, "synonym-entry");
   expect(entries).toHaveLength(11);
   expect(

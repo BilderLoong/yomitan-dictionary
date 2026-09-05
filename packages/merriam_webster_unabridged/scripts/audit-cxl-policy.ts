@@ -13,6 +13,7 @@
 import Database from "bun:sqlite";
 import { fileURLToPath } from "node:url";
 import * as cheerio from "cheerio";
+import type { Element } from "domhandler";
 import {
   extractSearchableHeadword,
   planCanonicalOwners,
@@ -129,7 +130,7 @@ for (const dbRow of database
         .find(".dt")
         .toArray()
         .some(
-          (definition: cheerio.Element): boolean =>
+          (definition: Element): boolean =>
             root(definition).closest(".dro").length === 0,
         );
       const refs = owner.find(".cxl-ref").toArray();

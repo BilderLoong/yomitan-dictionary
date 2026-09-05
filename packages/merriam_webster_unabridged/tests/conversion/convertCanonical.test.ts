@@ -6,6 +6,7 @@ import { mainCanonicalEntryPlan } from "../helpers/level1Factories";
 import { renderToHtml } from "../helpers/renderToHtml";
 
 type JsonObject = Record<string, unknown>;
+type JsonObjectWithData = JsonObject & { readonly data: JsonObject };
 
 const isObject = (value: unknown): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -25,9 +26,9 @@ const allNodes = (value: unknown): JsonObject[] => {
   return [value, ...nodeChildren(value).flatMap(allNodes)];
 };
 
-const unitsOf = (value: unknown, unit: string): JsonObject[] =>
+const unitsOf = (value: unknown, unit: string): JsonObjectWithData[] =>
   allNodes(value).filter(
-    (node: JsonObject): boolean =>
+    (node: JsonObject): node is JsonObjectWithData =>
       isObject(node.data) && node.data.content === unit,
   );
 
@@ -131,24 +132,22 @@ test("builds nested ol sense hierarchy from markers", () => {
   if (!result.ok) return;
 
   const levels = unitsOf(result.value.content, "mwu-level");
-  expect(levels.map((node: JsonObject): unknown => node.data?.level)).toEqual([
-    "3",
-    "4",
-    "5",
-  ]);
+  expect(
+    levels.map((node: JsonObjectWithData): unknown => node.data.level),
+  ).toEqual(["3", "4", "5"]);
   expect(
     unitsOf(result.value.content, "sense-number").map(
-      (node: JsonObject): unknown => node.data?.sourceMarker,
+      (node: JsonObjectWithData): unknown => node.data.sourceMarker,
     ),
   ).toEqual(["1"]);
   expect(
     unitsOf(result.value.content, "subsense-letter").map(
-      (node: JsonObject): unknown => node.data?.sourceMarker,
+      (node: JsonObjectWithData): unknown => node.data.sourceMarker,
     ),
   ).toEqual(["a"]);
   expect(
     unitsOf(result.value.content, "definition-number").map(
-      (node: JsonObject): unknown => node.data?.sourceMarker,
+      (node: JsonObjectWithData): unknown => node.data.sourceMarker,
     ),
   ).toEqual(["(1)"]);
   expect(textOf(result.value.content)).toContain("first sense");
@@ -180,11 +179,11 @@ test("inherits sense markers across sibling senses", () => {
   if (!result.ok) return;
 
   const markers = unitsOf(result.value.content, "definition-number").map(
-    (node: JsonObject): unknown => node.data?.sourceMarker,
+    (node: JsonObjectWithData): unknown => node.data.sourceMarker,
   );
   expect(markers).toEqual(["(1)", "(2)", "(1)"]);
   const letters = unitsOf(result.value.content, "subsense-letter").map(
-    (node: JsonObject): unknown => node.data?.sourceMarker,
+    (node: JsonObjectWithData): unknown => node.data.sourceMarker,
   );
   expect(letters).toEqual(["a", "b"]);
   const text = textOf(result.value.content);
@@ -229,7 +228,7 @@ test("groups verb subtypes as level-2 list items", () => {
   expect(
     subtypes
       .filter((node: JsonObject): boolean => node.tag === "li")
-      .map((node: JsonObject): unknown => node.data?.sourceMarker),
+      .map((node: JsonObjectWithData): unknown => node.data.sourceMarker),
   ).toEqual(["1", "2"]);
   expect(textOf(result.value.content)).toContain("transitive sense");
   expect(textOf(result.value.content)).toContain("intransitive sense");
@@ -996,7 +995,7 @@ test("marks inline source and auth citations as example-source-inline", () => {
   expect(sources).toHaveLength(2);
   expect(textOf(sources[0])).toBe(" — J. Doe");
   expect(textOf(sources[1])).toBe(", author");
-  expect(sources[0].data).not.toHaveProperty("level");
+  expect(sources[0]?.data).not.toHaveProperty("level");
 });
 
 test("preserves punctuation and annotation in multi-part pronunciations", () => {
@@ -1251,7 +1250,7 @@ test("tags cross-reference relations from source classes", () => {
 
   expect(
     unitsOf(result.value.content, "cross-reference").map(
-      (node: JsonObject): unknown => node.data?.relation,
+      (node: JsonObjectWithData): unknown => node.data.relation,
     ),
   ).toEqual(["origin", "see", "related"]);
 });
@@ -1704,7 +1703,7 @@ test("keeps local labels semantic and preserves source block boundaries", () => 
   const tags = unitsOf(result.value.content, "tag");
   expect(tags.map(textOf)).toEqual(["slang", "archaic", "of a blade"]);
   expect(
-    tags.map((node: JsonObject): unknown => node.data?.sourceUnit),
+    tags.map((node: JsonObjectWithData): unknown => node.data.sourceUnit),
   ).toEqual(["sense-label", "sense-label", "definition-label"]);
   const boundaries = unitsOf(result.value.content, "source-block-boundary");
   expect(boundaries).toHaveLength(1);
@@ -2151,14 +2150,15 @@ test("tags etymology links as origin and text-lowercase spans as sense pointers"
 
   expect(
     unitsOf(result.value.content, "cross-reference").map(
-      (node: JsonObject): unknown => node.data?.relation,
+      (node: JsonObjectWithData): unknown => node.data.relation,
     ),
   ).toEqual(["origin", "see", "related"]);
   const pointers = unitsOf(
     result.value.content,
     "superscript-reference",
   ).filter(
-    (node: JsonObject): unknown => node.data?.sourceUnit === "text-lowercase",
+    (node: JsonObjectWithData): unknown =>
+      node.data.sourceUnit === "text-lowercase",
   );
   expect(pointers.map(textOf)).toEqual(["8", "1a(1)"]);
 });

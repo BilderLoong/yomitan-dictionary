@@ -65,9 +65,9 @@ const ownerPathOf = (_root: cheerio.CheerioAPI, element: Element): string => {
   let current: AnyNode | null = element;
   while (current !== null && current.type === "tag" && segments.length < 12) {
     segments.unshift(elementSelector(current));
-    const parent = (current as Element).parent;
+    const parent: Element["parent"] = current.parent;
     if (parent === null) break;
-    const parentElement = parent.type === "tag" ? parent : null;
+    const parentElement: Element | null = parent.type === "tag" ? parent : null;
     if (
       parentElement !== null &&
       (parentElement.tagName === "mean" ||
@@ -105,7 +105,8 @@ const boundLevel = (
     "mean, .dro, .vg, .vd, .sb, .sense, .sen, .pseq, .dt, .un, .uns, .prs, .vg-ins, .headword-row, .related-to, .syn, .etymology, .illustrations, .ex-sent-group",
   );
   if (owner.length === 0) return null;
-  const tag = owner.get(0)?.tagName ?? "";
+  const ownerElement = owner.get(0);
+  const tag = ownerElement?.type === "tag" ? ownerElement.tagName : "";
   const cls = owner.attr("class")?.split(" ")[0] ?? "";
   if (
     tag === "mean" ||

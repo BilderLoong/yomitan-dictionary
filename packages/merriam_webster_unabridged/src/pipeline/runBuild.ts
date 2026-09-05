@@ -16,10 +16,6 @@ import {
   isUnmappedFunctionalLabelFinding,
   type UnmappedFunctionalLabelFinding,
 } from "../conversion/functionalLabels";
-import {
-  closeDependencies,
-  type DependencyEdge,
-} from "../level1/closeDependencies";
 import { planCanonicalOwners } from "../level1/planCanonical";
 import {
   deriveBareAffixSoftLinks,
@@ -118,7 +114,6 @@ interface PlannedRow {
   readonly softLinkEntries: readonly SoftLinkEntryPlan[];
   readonly findings: readonly Level1Finding[];
   readonly rejections: readonly LinkRejection[];
-  readonly dependencyEdges: readonly DependencyEdge[];
 }
 
 interface PendingRow {
@@ -233,19 +228,6 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
       readonly rejections: readonly LinkRejection[];
     }): readonly LinkRejection[] => alternateRejections,
   );
-  const dependencyEdges = canonicalResult.decisions.flatMap(
-    (decision: OwnershipDecision): readonly DependencyEdge[] =>
-      decision.dedicatedRowId === null
-        ? []
-        : [
-            {
-              fromRowId: decision.rowId,
-              toRowId: decision.dedicatedRowId,
-              target: decision.searchableHeadword,
-            },
-          ],
-  );
-
   return {
     row: {
       id: row.id,
@@ -258,7 +240,6 @@ const planRow = (row: SourceRow, index: SourceIndex): PlannedRow => {
     softLinkEntries,
     findings,
     rejections,
-    dependencyEdges,
   };
 };
 
@@ -461,18 +442,6 @@ const planSelectedRows = (
         });
       }
     }
-  }
-
-  const closure = closeDependencies({
-    rootRowIds: [...rootIds],
-    availableRowIds: index.rows.map(({ id }: IndexedSourceRow): number => id),
-    edges: plannedRows.flatMap(
-      ({ dependencyEdges }: PlannedRow): readonly DependencyEdge[] =>
-        dependencyEdges,
-    ),
-  });
-  if (!closure.ok) {
-    errors.push(closure.error);
   }
 
   return {

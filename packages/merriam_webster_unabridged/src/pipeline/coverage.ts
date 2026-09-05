@@ -21,6 +21,7 @@ const uniqueTokens = (tokens: readonly string[]): readonly string[] =>
 export const renderedText = (content: StructuredContent): string => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) return content.map(renderedText).join(" ");
+  if (!("content" in content)) return "";
   if (content.content === undefined) return "";
 
   return renderedText(content.content);

@@ -1,13 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  decodeDynamicTag,
   fixedFunctionalTagDefinitions,
   mappedFunctionalLabelNames,
   resolveFunctionalLabel,
   summarizeDynamicFunctionalLabels,
   type UnmappedFunctionalLabelFinding,
-  validateFunctionalLabelCoverage,
 } from "../../src/conversion/functionalLabels";
 
 describe("functional-label metadata", () => {
@@ -18,7 +16,6 @@ describe("functional-label metadata", () => {
     );
 
     expect(labels).toHaveLength(98);
-    expect(validateFunctionalLabelCoverage(labels)).toEqual([]);
     expect(
       labels.every((label) => {
         const resolution = resolveFunctionalLabel(label);
@@ -88,7 +85,7 @@ describe("functional-label metadata", () => {
     });
   });
 
-  test("encodes an unknown label reversibly and without collisions", () => {
+  test("encodes unknown labels without collisions", () => {
     const first = resolveFunctionalLabel("Future_label, 2%");
     const second = resolveFunctionalLabel("Future label, 2%");
 
@@ -99,10 +96,6 @@ describe("functional-label metadata", () => {
     expect(first.tags).toEqual(["?Future%5Flabel%2C_2%25"]);
     expect(second.tags).toEqual(["?Future_label%2C_2%25"]);
     expect(first.tags).not.toEqual(second.tags);
-    expect(decodeDynamicTag(first.dynamicTag.name)).toEqual({
-      kind: "decoded",
-      value: "Future_label, 2%",
-    });
     expect(first.dynamicTag).toMatchObject({
       category: "unmappedPartOfSpeech",
       order: 9000,

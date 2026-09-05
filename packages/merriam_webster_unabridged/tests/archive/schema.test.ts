@@ -66,9 +66,12 @@ describe("selected archive", () => {
     if (!attempt.ok) return;
 
     const index = await readArchiveJson(attempt.archivePath, "index.json");
-    expect(dictionaryIndex(index), JSON.stringify(dictionaryIndex.errors)).toBe(
-      true,
-    );
+    expect(
+      dictionaryIndex(index),
+      JSON.stringify(
+        "errors" in dictionaryIndex ? dictionaryIndex.errors : undefined,
+      ),
+    ).toBe(true);
 
     const tagBank = await readArchiveJson(
       attempt.archivePath,
@@ -83,7 +86,11 @@ describe("selected archive", () => {
     for (const termBank of termBanks) {
       expect(
         dictionaryTermBankV3(termBank),
-        JSON.stringify(dictionaryTermBankV3.errors),
+        JSON.stringify(
+          "errors" in dictionaryTermBankV3
+            ? dictionaryTermBankV3.errors
+            : undefined,
+        ),
       ).toBe(true);
     }
 

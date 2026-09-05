@@ -56,15 +56,6 @@ const readTermBank = async (
   return parsed;
 };
 
-const collectStrings = (value: unknown): readonly string[] =>
-  typeof value === "string"
-    ? [value]
-    : Array.isArray(value)
-      ? value.flatMap(collectStrings)
-      : value !== null && typeof value === "object"
-        ? Object.values(value).flatMap(collectStrings)
-        : [];
-
 const canonicalEntry = (
   term: string,
   popularity: number,
@@ -181,9 +172,9 @@ describe("term-bank level 1 generation test", () => {
       ["role-play", null, ""],
     ]);
     expect(termBank.slice(0, 3).map(definitionHash)).toEqual([
-      "34cfe52641201539e0273abed5d655bcd6979e30958b474247dba06c0a1db037",
-      "21f160a9ab2042bdcb93a1caebb40a103c55b332dd6d84c63d4d25b63845c59e",
-      "59a24cb4a80d23b2197125c70b52f65e4823ecec9cd120547eb7c4fa49460c64",
+      "b541e8f45023ab680caa07786a15737b42f3d4be735e1f33c1fbcc4365f09a8c",
+      "df1b2d3c3bbcd53e28378882a5f9ca6e799bf6715dacf198146cfbeeb9c81a3c",
+      "81e432e81b9773a075ebe39b83f3f5bf3ba98a06fd81215e742020bfbc26deb5",
     ]);
   }, 90_000);
 

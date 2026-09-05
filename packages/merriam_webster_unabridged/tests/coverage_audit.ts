@@ -117,7 +117,7 @@ const runCoverageAudit = async (argv: readonly string[]): Promise<number> => {
     wordsFile,
   });
   if (!selection.ok) {
-    console.error(selection.error.message);
+    console.error("No selected words were supplied.");
     return 2;
   }
 
@@ -135,9 +135,7 @@ const runCoverageAudit = async (argv: readonly string[]): Promise<number> => {
       },
     });
 
-    const entries = recordCoverageEntries(
-      attempt.report as unknown as BuildReportLike,
-    );
+    const entries = recordCoverageEntries(attempt.report);
     const meanCoverage =
       entries.length === 0
         ? 1
@@ -160,7 +158,7 @@ const runCoverageAudit = async (argv: readonly string[]): Promise<number> => {
             flaggedRecords: flags.length,
           },
           planningFindingsByKind: countFindings(
-            attempt.report.planningFindings,
+            attempt.report.planningFindings ?? [],
           ),
           perRecord: entries,
           flags,

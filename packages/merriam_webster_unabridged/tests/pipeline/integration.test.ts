@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { type BuildRequest, runBuild } from "../../src/pipeline/runBuild";
 import { collectRequestedWords } from "../../src/pipeline/selection";
+import { buildSourceIndex } from "../../src/source/rows";
 import {
   createTestBuildRequest,
   representativeRows,
@@ -70,6 +71,79 @@ describe("selected-word build", () => {
     );
   });
 
+  test("terminates when dedicated dependencies contain a cycle", async () => {
+    const request = await createTestBuildRequest({
+      words: ["alpha"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("root")) +
+            mean("beta", definition("alternate")),
+        },
+        {
+          id: 2,
+          encodedKey: "beta",
+          html:
+            mean("beta", definition("target")) +
+            mean("gamma", definition("alternate")),
+        },
+        {
+          id: 3,
+          encodedKey: "gamma",
+          html:
+            mean("gamma", definition("target")) +
+            mean("beta", definition("alternate")),
+        },
+      ],
+    });
+    const attempt = await runBuild(request);
+
+    expect(attempt.ok).toBe(true);
+    if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
+
+    expect(attempt.report.dependencyRows.map(({ row }) => row.id)).toEqual([
+      2, 3,
+    ]);
+    expect(attempt.report.canonicalEntryPlans.map(({ term }) => term)).toEqual([
+      "alpha",
+      "beta",
+      "gamma",
+    ]);
+    expect(attempt.report.errors).toEqual([]);
+  });
+
+  test("reports a missing database dependency as fatal", async () => {
+    const request = await createTestBuildRequest({
+      words: ["alpha"],
+      rows: [
+        {
+          id: 1,
+          encodedKey: "alpha",
+          html:
+            mean("alpha", definition("root")) +
+            mean("beta", definition("alternate")),
+        },
+      ],
+    });
+    const attempt = await runBuild({
+      ...request,
+      sourceIndex: buildSourceIndex([
+        { id: 1, encodedKey: "alpha" },
+        { id: 2, encodedKey: "beta" },
+      ]),
+    });
+
+    expect(attempt.ok).toBe(false);
+    if (attempt.ok) return;
+
+    expect(attempt.report.errors).toEqual([
+      { kind: "missing-dependency", target: "beta" },
+    ]);
+    expect(attempt.report.archivePath).toBeNull();
+  });
+
   test("emits the o-row variant reference as a soft-link record", async () => {
     const request = await createTestBuildRequest({
       words: ["o"],
@@ -105,7 +179,7 @@ describe("selected-word build", () => {
       ),
     ).toBe(true);
     expect(
-      attempt.report.planningFindings.some(
+      (attempt.report.planningFindings ?? []).some(
         (finding) => finding.kind === "definition-free-mean",
       ),
     ).toBe(false);
@@ -250,7 +324,7 @@ describe("selected-word build", () => {
     expect(attempt.ok).toBe(true);
     if (!attempt.ok) throw new Error(JSON.stringify(attempt.report.errors));
 
-    expect(attempt.report.planningFindings[0]).toMatchObject({
+    expect((attempt.report.planningFindings ?? [])[0]).toMatchObject({
       kind: "cxl-ref-not-emitted",
       meanIndex: 1,
       referenceIndex: 0,

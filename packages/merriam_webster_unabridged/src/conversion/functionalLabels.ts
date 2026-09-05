@@ -495,25 +495,6 @@ const encodeDynamicTag = (normalizedLabel: string): string =>
     })
     .join("")}`;
 
-export const decodeDynamicTag = (
-  tagName: string,
-):
-  | { readonly kind: "decoded"; readonly value: string }
-  | { readonly kind: "invalid"; readonly value: string } => {
-  if (!tagName.startsWith("?")) {
-    return { kind: "invalid", value: tagName };
-  }
-
-  try {
-    return {
-      kind: "decoded",
-      value: decodeURIComponent(tagName.slice(1).replaceAll("_", " ")),
-    };
-  } catch (_error: unknown) {
-    return { kind: "invalid", value: tagName };
-  }
-};
-
 export const normalizeFunctionalLabel = (rawLabel: string): string =>
   rawLabel.replace(/\s+/gu, " ").trim();
 
@@ -658,20 +639,6 @@ export const isUnmappedFunctionalLabelFinding = (finding: {
   readonly kind: string;
 }): finding is UnmappedFunctionalLabelFinding =>
   finding.kind === "unmapped-functional-label";
-
-export const validateFunctionalLabelCoverage = (
-  labels: readonly string[],
-): readonly string[] =>
-  labels
-    .map(normalizeFunctionalLabel)
-    .filter(
-      (label: string, index: number, all: readonly string[]): boolean =>
-        all.indexOf(label) === index &&
-        NORMALIZED_LABEL_TAGS[label] === undefined,
-    )
-    .toSorted((left: string, right: string): number =>
-      left.localeCompare(right),
-    );
 
 export const ownedFunctionalLabelFromOwner = (
   root: cheerio.CheerioAPI,

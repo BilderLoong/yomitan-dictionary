@@ -20,7 +20,6 @@ import type {
 interface RenderResult {
   readonly nodes: readonly StructuredContent[];
   readonly findings: readonly ConversionFinding[];
-  readonly visibleText: string;
 }
 
 interface ExampleSentence {
@@ -224,7 +223,6 @@ const disclosureSummary = (
 const emptyResult = (): RenderResult => ({
   nodes: [],
   findings: [],
-  visibleText: "",
 });
 
 const normalizeWhitespace = (text: string): string =>
@@ -269,11 +267,7 @@ const nodeVisibleText = (node: StructuredContent): string => {
 const renderResult = (
   nodes: readonly StructuredContent[],
   findings: readonly ConversionFinding[] = [],
-): RenderResult => ({
-  nodes,
-  findings,
-  visibleText: nodes.map(nodeVisibleText).join(""),
-});
+): RenderResult => ({ nodes, findings });
 
 const combineResults = (results: readonly RenderResult[]): RenderResult =>
   renderResult(
@@ -452,10 +446,9 @@ const renderReferenceAnchorChildren = (
     (node: AnyNode): boolean =>
       !(node.type === "text" && node.data.trim().length === 0),
   );
+  const firstVisibleNode = contents[firstVisible];
   const leadingHomographSup =
-    firstVisible >= 0 &&
-    contents[firstVisible].type === "tag" &&
-    contents[firstVisible].tagName === "sup";
+    firstVisibleNode?.type === "tag" && firstVisibleNode.tagName === "sup";
   return combineResults(
     contents.flatMap(
       (child: AnyNode, index: number): readonly RenderResult[] =>
@@ -477,7 +470,9 @@ const seeInAdditionOwnership = (
   const owner = root(element)
     .closest(".synonym-discussion, #usage-notes, .usage")
     .get(0);
-  if (owner === undefined) return { kind: "unsupported" };
+  if (owner === undefined || owner.type !== "tag") {
+    return { kind: "unsupported" };
+  }
   if (hasClass(root, owner, "synonym-discussion")) {
     return { kind: "confirmed", level: 1 };
   }
@@ -1145,9 +1140,10 @@ const partitionExampleRuns = (
       index > 0 && isExampleGroup(root, node) !== firstIsGroup,
   );
   if (boundary < 0) return [nodes];
-  return [nodes.slice(0, boundary)].concat(
-    partitionExampleRuns(root, nodes.slice(boundary)),
-  );
+  return [
+    nodes.slice(0, boundary),
+    ...partitionExampleRuns(root, nodes.slice(boundary)),
+  ];
 };
 
 /**
@@ -1449,7 +1445,7 @@ const renderDefinitionFlow = (
 };
 
 const wrapSensePrefix = (result: RenderResult): RenderResult =>
-  normalizeBlockText(result.visibleText).length === 0
+  normalizeBlockText(result.nodes.map(nodeVisibleText).join("")).length === 0
     ? result
     : renderResult(
         [
@@ -2337,6 +2333,7 @@ const isSynonymEntryBoundary = (
 ): boolean => {
   const previousTerm = nodes[previousIndex];
   const currentTerm = nodes[currentIndex];
+  if (previousTerm === undefined || currentTerm === undefined) return false;
   if (!isSynonymTerm(root, previousTerm) || !isSynonymTerm(root, currentTerm)) {
     return false;
   }
@@ -3763,7 +3760,6 @@ export const renderCanonicalContent = (
       content,
       definitionTags: header.definitionTags,
       findings,
-      visibleText,
     },
   };
 };

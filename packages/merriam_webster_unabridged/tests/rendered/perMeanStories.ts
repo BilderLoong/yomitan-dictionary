@@ -7,10 +7,9 @@ import { meanFragments } from "./meanFragments";
 
 /**
  * One story per numbered mean of a converted entry. Each story renders only
- * that mean's subtree so every sense can be inspected visually. The render
- * contract for each subtree is asserted by the bun tests
- * (tests/rendered/meanRender.test.ts); the play functions that duplicated
- * those asserts were removed.
+ * that mean's subtree so every sense can be inspected visually.
+ * Full-entry rendering is asserted by renderSmoke.test.ts, while fragment
+ * extraction and labels are asserted by meanFragments.test.ts.
  */
 
 const storyName = (label: string): string => `Mean ${label}`;
@@ -19,7 +18,9 @@ const exportName = (label: string): string => {
   const words = label
     .split(/[^0-9a-zA-Z]+/u)
     .filter((word: string): boolean => word.length > 0)
-    .map((word: string): string => word[0].toUpperCase() + word.slice(1));
+    .map(
+      (word: string): string => word.charAt(0).toUpperCase() + word.slice(1),
+    );
   return `Mean${words.join("")}`;
 };
 

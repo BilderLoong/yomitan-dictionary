@@ -143,7 +143,7 @@ test("primary definition text is wrapped in Level 5 definition-text spans", () =
     'span[data-sc-content="definition-text"][data-sc-level="5"]',
   ).filter((_, element) => $(element).text().includes(": how much"));
   expect(sense1cDefinitionText.length).toBe(1);
-  expect(sense1cDefinitionText.text()).toBe(": how much ");
+  expect(sense1cDefinitionText.text().trim()).toBe(": how much");
   expect(
     sense1cDefinitionText.next('[data-sc-content="example-group"]').length,
   ).toBe(1);
@@ -213,12 +213,12 @@ test("primary definition text is wrapped in Level 5 definition-text spans", () =
   expect(
     multiRun
       .children('span[data-sc-content="definition-text"]')
-      .map((_, element) => $(element).text())
+      .map((_, element) => $(element).text().trim())
       .get(),
   ).toEqual([
-    ": punishment especially by blows or by a sharp reprimand ",
-    " : rough treatment inflicted especially on an offender ",
-    " : severe pain ",
+    ": punishment especially by blows or by a sharp reprimand",
+    ": rough treatment inflicted especially on an offender",
+    ": severe pain",
   ]);
 
   const usageOnly = definitions

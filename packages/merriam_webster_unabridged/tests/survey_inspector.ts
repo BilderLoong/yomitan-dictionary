@@ -60,7 +60,7 @@ const runSurveyInspector = async (argv: readonly string[]): Promise<number> => {
     wordsFile,
   });
   if (!selection.ok) {
-    console.error(selection.error.message);
+    console.error("No selected words were supplied.");
     return 2;
   }
 

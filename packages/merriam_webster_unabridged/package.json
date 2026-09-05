@@ -35,7 +35,6 @@
     "playwright": "^1.62.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "@storybook/addon-vitest": "^10.5.7",
     "@storybook/html-vite": "^10.5.7",
     "@types/bun": "^1.2.5",

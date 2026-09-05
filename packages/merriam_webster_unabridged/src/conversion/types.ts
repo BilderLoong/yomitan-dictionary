@@ -25,7 +25,6 @@ export interface RenderedCanonicalContent {
   readonly content: StructuredContent;
   readonly definitionTags: string | null;
   readonly findings: readonly ConversionFinding[];
-  readonly visibleText: string;
 }
 
 export interface ConvertedCanonical {

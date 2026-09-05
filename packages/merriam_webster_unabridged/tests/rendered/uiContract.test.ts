@@ -33,7 +33,7 @@ test("structured entry headers expose ordered visual rows", () => {
 
     expect(
       rows.map((_, element) => $(element).attr("data-sc-content")).get(),
-    ).toEqual(expectedRows);
+    ).toEqual([...expectedRows]);
     if (expectedRows.includes("mwu-header-pronunciation")) {
       expect(
         rows.eq(0).find('[data-sc-content="pronunciation-reading"]').length,
