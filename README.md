@@ -44,6 +44,7 @@ Feel free to open a issue if encounter any problem when using this dictionary. I
 ## Other yomitan dictionaries
 
 - [MarvNC/yomitan-dictionaries: 📚 Japanese and Chinese dictionaries for Yomitan.](https://github.com/MarvNC/yomitan-dictionaries)
+- [MarvNC/pixiv-yomitan: Pixiv Encyclopedia Dictionary for Yomitan](https://github.com/MarvNC/pixiv-yomitan)
 - [yomidevs/wiktionary-to-yomitan: Yomitan-compatible dictionaries from wikitionary data](https://github.com/yomidevs/wiktionary-to-yomitan)
 - [shoujocyber/OALD10-Yomitan-Converter: An advanced Python script to deeply parse, clean, and restructure the OALD (10th Ed) MDX data into a highly optimized, native Yomitan/Yomichan JSON dictionary.](https://github.com/shoujocyber/OALD10-Yomitan-Converter)
 - [1Selxo/living-japanese-slang-dictionary: daily Updated living-japanese-slang-dictionary Conversions for yomitan](https://github.com/1Selxo/living-japanese-slang-dictionary/tree/521e0cb19d7f64fe2d0af0a9d93b78329f5ccfe6)
@@ -51,7 +52,10 @@ Feel free to open a issue if encounter any problem when using this dictionary. I
 - [HuangAntimony/Nihongo-Bunkei-Jiten: Japanese grammar dictionary rebuilt from mefat.review for Yomitan](https://github.com/HuangAntimony/Nihongo-Bunkei-Jiten)
 - [peldas/yomitan-dicts: Yomitan dictionaries I have created](https://github.com/peldas/yomitan-dicts)
 - [1Selxo/hissatuwaza-Yomitan: https://hissatuwaza.kill.jp/ for yomitan daily updated](https://github.com/1Selxo/hissatuwaza-Yomitan/tree/main)
+- [bee-san/yomitan-dictionaries: Custom Yomitan dictionaries for Japanese places, culture, folklore, food and grammar](https://github.com/bee-san/yomitan-dictionaries)
 
 ## Credit
 
+- [yomidevs/yomitan: Pop-up dictionary browser extension for language learning. Successor to Yomichan.](https://github.com/yomidevs/yomitan)
 - [yomidevs/wiktionary-to-yomitan: Yomitan-compatible dictionaries from wikitionary data](https://github.com/yomidevs/wiktionary-to-yomitan)
+- [MarvNC/yomichan-dict-builder: Build Yomitan dictionaries with ease](https://github.com/MarvNC/yomichan-dict-builder)
