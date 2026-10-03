@@ -13,6 +13,7 @@ __pycache__/
 /release/
 assets/*
 !assets/source-data-manifest.json
+!assets/README.md
 fixture
 # Source-HTML render fixtures: regenerated from assets/MWU.db via
 # `bun run update:render-fixtures` (same provenance as the build itself).

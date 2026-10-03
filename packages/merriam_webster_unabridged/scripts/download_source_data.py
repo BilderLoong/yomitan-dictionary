@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["huggingface_hub==1.27.0"]
+# dependencies = ["huggingface_hub==1.27.0", "httpx[socks]"]
 # ///
 
 """Download MWU.db from the public Hugging Face bucket and verify it.

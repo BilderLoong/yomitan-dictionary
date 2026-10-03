@@ -8,9 +8,8 @@ const config: StorybookConfig = {
   },
   addons: ["@storybook/addon-vitest"],
   viteFinal: async (viteConfig) => {
-    // The gitignored assets dir contains a broken tracked symlink
-    // (termTagMap.tsv) and the multi-GB source database; watching it crashes
-    // the file watcher and serves nothing.
+    // The gitignored assets dir contains the source database.
+    // Storybook does not need to watch or serve these files.
     viteConfig.server = {
       ...viteConfig.server,
       watch: { ...viteConfig.server?.watch, ignored: ["**/assets/**"] },
