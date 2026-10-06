@@ -5,24 +5,34 @@
 [data-sc-content="mwu-header"] {
   margin-block-start: 0.3em;
   line-height: 1.8;
-  border-bottom: 1px solid var(--light-border-color, #dddddd);
+  border-bottom: 1px solid
+    var(--light-border-color, color-mix(in srgb, currentColor 20%, transparent));
 }
 [data-sc-content="mwu-header-pronunciation-notes"] {
   border-inline-start: 0;
   border-radius: 0;
   background-color: transparent;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.9em;
 }
 [data-sc-content="mwu-header-inflections"] {
   border: 0;
   border-radius: 0;
   background-color: transparent;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.9em;
 }
 [data-sc-content="mwu-header-pronunciation-notes"]::before {
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -50,8 +60,8 @@
   border-radius: 0.2em;
   background-color: color-mix(
     in srgb,
-    var(--text-color, #242424) 3%,
-    var(--background-color, #ffffff)
+    var(--text-color, currentColor) 3%,
+    var(--background-color, transparent)
   );
   font-style: normal;
   font-weight: 400;
@@ -64,7 +74,10 @@
 }
 [data-sc-content="inflection-label"] {
   font-style: normal;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.9em;
 }
 [data-sc-content="form-pronunciation"] {
@@ -75,7 +88,10 @@
 }
 [data-sc-content="variant-qualifier"] {
   font-style: normal;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
 }
 
 /* Definition body */
@@ -95,7 +111,10 @@
 }
 
 [data-sc-content="example-group"] {
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   --mwu-example-marker-gutter: 1.4em;
   padding-block: 0.15em;
   padding-inline: 0.7em;
@@ -139,8 +158,9 @@
   text-decoration-style: dotted;
   text-decoration-color: color-mix(
     in srgb,
-    var(--text-color-light2, #666666) 60%,
-    var(--background-color, #ffffff)
+    var(--text-color-light2, color-mix(in srgb, currentColor 90%, transparent))
+      60%,
+    var(--background-color, transparent)
   );
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.16em;
@@ -156,16 +176,18 @@
 span[data-sc-content="verb-subtype"] {
   display: inline flow-root;
   font-weight: var(--tag-font-weight, 700);
-  font-size: var(--tag-font-size);
-  padding: calc(2.5em / var(--font-size-no-units)) 0.375em
-    calc(2.5em / var(--font-size-no-units)) 0.375em;
+  font-size: var(--tag-font-size, calc(1em * 11 / 14));
+  padding: calc(2.5em / var(--font-size-no-units, 14)) 0.375em
+    calc(2.5em / var(--font-size-no-units, 14)) 0.375em;
   border-radius: calc(
-    0.25em * var(--font-size-no-units) / var(--tag-font-size-no-units)
+    0.25em *
+    var(--font-size-no-units, 14) /
+    var(--tag-font-size-no-units, 11)
   );
-  min-height: var(--tag-height);
+  min-height: var(--tag-height, calc(1em * 20 / 14));
   background-color: var(
     --tag-part-of-speech-background-color,
-    var(--tag-default-background-color, #8a8a91)
+    var(--tag-default-background-color, #565656)
   );
   color: var(--tag-text-color, #ffffff);
 }
@@ -182,7 +204,10 @@ span[data-sc-content="verb-subtype"] {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.86em;
   font-style: normal;
   font-variant-caps: all-small-caps;
@@ -200,8 +225,8 @@ span[data-sc-content="verb-subtype"] {
   border-left: 2px solid
     color-mix(
       in srgb,
-      var(--text-color, #242424) 28%,
-      var(--background-color, #ffffff)
+      var(--text-color, currentColor) 28%,
+      var(--background-color, transparent)
     );
 }
 [data-sc-content="run-on-form"] {
@@ -219,14 +244,17 @@ span[data-sc-content="verb-subtype"] {
 [data-sc-content="origin-text"] {
   font-style: italic;
   border-inline-start: 0;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
 }
 [data-sc-content="first-known-use"] {
   border-top: 1px solid
     color-mix(
       in srgb,
-      var(--text-color, #242424) 12%,
-      var(--background-color, #ffffff)
+      var(--text-color, currentColor) 12%,
+      var(--background-color, transparent)
     );
   font-size: 0.9em;
   font-style: normal;
@@ -244,14 +272,18 @@ span[data-sc-content="verb-subtype"] {
   border-radius: 0.25em;
 }
 [data-sc-content="definition-flow"] {
-  border-inline-start: 1px solid var(--light-border-color, #dddddd);
+  border-inline-start: 1px solid
+    var(--light-border-color, color-mix(in srgb, currentColor 20%, transparent));
   padding-inline-start: 0.5em;
   margin-block-start: 0.5em;
   font-style: italic;
 }
 
 details[data-sc-content="extra-examples"] {
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   margin-inline-start: var(--mwu-example-marker-gutter);
   padding-inline-start: 0;
 }
@@ -277,22 +309,28 @@ details[data-sc-content="extra-examples"]
   border-top: 1px solid
     color-mix(
       in srgb,
-      var(--text-color, #242424) 20%,
-      var(--background-color, #ffffff)
+      var(--text-color, currentColor) 20%,
+      var(--background-color, transparent)
     );
 }
 [data-sc-content="see-in-addition"] {
   border-top: 1px solid
     color-mix(
       in srgb,
-      var(--text-color, #242424) 20%,
-      var(--background-color, #ffffff)
+      var(--text-color, currentColor) 20%,
+      var(--background-color, transparent)
     );
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.95em;
 }
 [data-sc-content="usage-discussion-reference"] {
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-style: italic;
 }
 
@@ -304,7 +342,7 @@ details[data-sc-content="extra-examples"]
   --mwu-list-mark-gutter-width: 0.8em;
   padding-inline-start: var(--mwu-list-mark-gutter-width);
 
-  color: var(--text-color, #242424);
+  color: var(--text-color, currentColor);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -324,7 +362,10 @@ details[data-sc-content="extra-examples"]
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.9em;
   font-style: italic;
   font-variant-caps: normal;
@@ -362,7 +403,10 @@ li[data-sc-source-marker-path]::before {
   grid-column: 1;
   grid-row: 1;
   content: attr(data-sc-source-marker-path);
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-size: 0.85em;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -384,10 +428,13 @@ details[data-sc-content="usage-note"] > summary,
 details[data-sc-content="origin"] > summary,
 details[data-sc-content="related-item"] > summary,
 details[data-sc-content="phrase-group"] > summary {
-  color: var(--text-color-light2, #666666);
+  color: var(
+    --text-color-light2,
+    color-mix(in srgb, currentColor 90%, transparent)
+  );
   font-weight: 600;
 }
 
 [data-sc-content="usage-explanation"] {
-  color: var(--text-color, #242424);
+  color: var(--text-color, currentColor);
 }
